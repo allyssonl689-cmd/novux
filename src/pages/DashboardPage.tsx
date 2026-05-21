@@ -1,0 +1,383 @@
+import { useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useFinance } from '@/contexts/FinanceContext';
+import { Wallet, TrendingUp, TrendingDown, Zap, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
+import { buildFinancialIndicators } from '@/lib/financial-indicators';
+
+const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtK = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(Math.round(v));
+
+const PIE_COLORS = ['hsl(161,100%,45%)', 'hsl(265,85%,70%)', 'hsl(43,95%,58%)', `hsl(var(--chart-1))`, 'hsl(4,86%,68%)', 'hsl(300,60%,65%)'];
+
+function Tip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-border bg-[hsl(230_22%_11%)] p-3 shadow-2xl text-xs min-w-[140px]">
+      <p className="font-semibold text-foreground mb-2" style={{ fontFamily: 'Syne,sans-serif' }}>{label}</p>
+      {payload.map((p: any, i: number) => (
+        <div key={i} className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: p.fill || p.color }} />
+            <span className="text-muted-foreground">{p.name}</span>
+          </span>
+          <span className="font-mono font-semibold" style={{ color: p.fill || p.color }}>{fmt(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function KPI({ label, value, sub, icon: Icon, color, delta, idx }: {
+  label: string; value: string; sub?: string; icon: any; color: string; delta?: number; idx: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 24 }}
+      className="rounded-2xl border border-border bg-card p-5 card-hover relative overflow-hidden group"
+      style={{ boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(var(--border))' }}>
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{ background: `radial-gradient(ellipse at 80% 20%, ${color}08 0%, transparent 60%)` }} />
+      <div className="flex items-start justify-between mb-4">
+        <span className="text-xs font-medium text-muted-foreground leading-none">{label}</span>
+        <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
+          <Icon className="h-4 w-4" style={{ color }} />
+        </div>
+      </div>
+      <p className="text-2xl font-bold text-foreground leading-none" style={{ fontFamily: 'Syne,sans-serif' }}>{value}</p>
+      {(sub || delta !== undefined) && (
+        <div className="mt-2.5 flex items-center gap-1.5 text-[11px]">
+          {delta !== undefined && (
+            delta >= 0
+              ? <ArrowUpRight className="h-3 w-3 text-success" />
+              : <ArrowDownRight className="h-3 w-3 text-destructive" />
+          )}
+          {delta !== undefined && (
+            <span className={delta >= 0 ? 'text-success font-semibold' : 'text-destructive font-semibold'}>
+              {delta >= 0 ? '+' : ''}{delta}%
+            </span>
+          )}
+          {sub && <span className="text-muted-foreground">{sub}</span>}
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+const INSIGHT_CFG: Record<string, { color: string; bg: string; Icon: any }> = {
+  critical: { color: 'hsl(4 86% 68%)',   bg: 'hsl(4 40% 10% / 0.6)',    Icon: AlertTriangle },
+  warning:  { color: 'hsl(43 95% 58%)',  bg: 'hsl(43 40% 10% / 0.6)',   Icon: AlertTriangle },
+  positive: { color: 'hsl(161 100% 45%)', bg: 'hsl(158 40% 8% / 0.6)',   Icon: CheckCircle2 },
+  info:     { color: 'hsl(193 100% 50%)', bg: 'hsl(200 50% 10% / 0.6)',  Icon: Info },
+};
+
+function buildMonthlySummary(transactions: { type: string; value: number; date: string }[]) {
+  const months: Record<string, { income: number; expense: number }> = {};
+  transactions.forEach(t => {
+    const key = t.date.slice(0, 7);
+    if (!months[key]) months[key] = { income: 0, expense: 0 };
+    if (t.type === 'income') months[key].income += t.value;
+    else months[key].expense += t.value;
+  });
+  return Object.entries(months)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(-6)
+    .map(([key, { income, expense }]) => {
+      const [year, month] = key.split('-');
+      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+      const shortMonth = date.toLocaleDateString('pt-BR', { month: 'short' });
+      return { shortMonth, income, expense, savings: income - expense };
+    });
+}
+
+export default function DashboardPage() {
+  const { transactions, insights } = useFinance();
+  const [chartMode, setChartMode] = useState<'bar' | 'area'>('bar');
+
+  const monthlySummary = useMemo(() => buildMonthlySummary(transactions), [transactions]);
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const cm = now.getMonth(), cy = now.getFullYear();
+    const cur = transactions.filter(t => { const d = new Date(t.date); return d.getMonth()===cm && d.getFullYear()===cy; });
+    const prev = transactions.filter(t => { const d = new Date(t.date); const pm = cm===0 ? 11 : cm-1, py = cm===0 ? cy-1 : cy; return d.getMonth()===pm && d.getFullYear()===py; });
+
+    const income  = cur.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
+    const expense = cur.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    const pIncome = prev.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
+    const pExpense= prev.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+
+    const byCategory: Record<string,number> = {};
+    cur.filter(t=>t.type==='expense').forEach(t => { byCategory[t.category]=(byCategory[t.category]||0)+t.value; });
+    const totalExpenses = cur.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    const categories = Object.entries(byCategory)
+      .map(([name,value],i) => ({ name, value, color: PIE_COLORS[i%PIE_COLORS.length], pct: totalExpenses>0 ? Math.round((value/totalExpenses)*100) : 0 }))
+      .sort((a,b)=>b.value-a.value);
+
+    return {
+      income, expense, balance: income-expense, categories,
+      incDelta: pIncome>0 ? Math.round(((income-pIncome)/pIncome)*100) : 0,
+      expDelta: pExpense>0 ? Math.round(((expense-pExpense)/pExpense)*100) : 0,
+    };
+  }, [transactions]);
+
+  const indicators = useMemo(() => buildFinancialIndicators(transactions), [transactions]);
+  const score = indicators ? Math.round((1 - indicators.riskRatio) * 1000) : 720;
+  const scoreLabel = score>=800?'Excelente':score>=700?'Muito Bom':score>=500?'Regular':'Atenção';
+  const scoreColor = score>=700 ? 'hsl(161 100% 45%)' : score>=500 ? 'hsl(43 95% 58%)' : 'hsl(4 86% 68%)';
+
+  const recent = useMemo(() => [...transactions].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [transactions]);
+  const savingsRate = stats.income > 0 ? ((stats.income - stats.expense) / stats.income * 100).toFixed(1) : '0';
+
+  const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  return (
+    <div className="max-w-[1400px] mx-auto space-y-6">
+
+      {/* Header */}
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">Painel Financeiro</p>
+            <h1 className="text-2xl font-bold text-foreground leading-none" style={{ fontFamily: 'Syne,sans-serif' }}>
+              {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+            </h1>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
+            <div className="relative h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
+            </div>
+            <span className="text-[11px] text-muted-foreground">Dados em tempo real</span>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KPI idx={0} label="Saldo do Mês"      value={fmt(stats.balance)} delta={stats.incDelta - stats.expDelta} sub="vs mês anterior" icon={Wallet}      color="hsl(193 100% 50%)" />
+        <KPI idx={1} label="Receitas"           value={fmt(stats.income)}  delta={stats.incDelta}  sub="vs mês anterior" icon={TrendingUp}  color="hsl(161 100% 45%)" />
+        <KPI idx={2} label="Despesas"           value={fmt(stats.expense)} delta={stats.expDelta}  sub="vs mês anterior" icon={TrendingDown} color="hsl(4 86% 68%)"  />
+        <KPI idx={3} label="Score Financeiro"   value={`${score}/1000`}    sub={scoreLabel}         icon={Zap}          color={scoreColor}               />
+      </div>
+
+      {/* Summary strip */}
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: 'Taxa de poupança', val: `${savingsRate}%`, note: Number(savingsRate)>=20?'✓ Acima da meta':'Meta: 20%', ok: Number(savingsRate)>=20 },
+          { label: 'Saldo livre estimado', val: fmt(Math.max(0,stats.income-stats.expense)), note: 'disponível para investir', ok: stats.balance >= 0 },
+          { label: 'Categorias ativas', val: `${stats.categories.length}`, note: `top: ${stats.categories[0]?.name||'—'}`, ok: true },
+        ].map((s,i) => (
+          <div key={i} className="rounded-xl border border-border bg-card/50 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">{s.label}</p>
+            <p className="text-xl font-bold text-foreground mt-0.5" style={{ fontFamily: 'Syne,sans-serif' }}>{s.val}</p>
+            <p className={`text-[11px] mt-0.5 ${s.ok ? 'text-success' : 'text-warning'}`}>{s.note}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        {/* Flow chart */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+          className="lg:col-span-3 rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-5">
+            <div>
+              <h3 className="text-sm font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>Fluxo de Caixa</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Receitas, despesas e economia</p>
+            </div>
+            <div className="flex gap-1 p-1 rounded-xl bg-secondary/60">
+              {(['bar','area'] as const).map(m => (
+                <button key={m} onClick={() => setChartMode(m)}
+                  className={`rounded-lg px-3 py-1 text-[11px] font-medium transition-all ${chartMode===m ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                  {m==='bar' ? 'Barras' : 'Área'}
+                </button>
+              ))}
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={240}>
+            {chartMode === 'bar' ? (
+              <BarChart data={monthlySummary} barGap={4} barCategoryGap="30%">
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(230 18% 15%)" vertical={false} />
+                <XAxis dataKey="shortMonth" tick={{ fontSize: 10, fill: 'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                <Tooltip content={<Tip />} />
+                <Bar dataKey="income"  name="Receitas" fill="hsl(var(--chart-2))" radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="expense" name="Despesas" fill="hsl(var(--chart-5))"   radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="savings" name="Economia" fill="hsl(265,85%,70%)" radius={[5,5,0,0]} barSize={14} />
+              </BarChart>
+            ) : (
+              <AreaChart data={monthlySummary}>
+                <defs>
+                  <linearGradient id="gInc" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(161,100%,45%)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="hsl(161,100%,45%)" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(4,86%,68%)" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="hsl(4,86%,68%)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(230 18% 15%)" vertical={false} />
+                <XAxis dataKey="shortMonth" tick={{ fontSize: 10, fill: 'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: 'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                <Tooltip content={<Tip />} />
+                <Area type="monotone" dataKey="income"  name="Receitas" stroke="hsl(var(--chart-2))" fill="url(#gInc)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name="Despesas" stroke="hsl(var(--chart-5))"   fill="url(#gExp)" strokeWidth={2} />
+              </AreaChart>
+            )}
+          </ResponsiveContainer>
+        </motion.div>
+
+        {/* Categories donut */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
+          <h3 className="text-sm font-bold text-foreground mb-4" style={{ fontFamily: 'Syne,sans-serif' }}>Gastos por Categoria</h3>
+
+          {stats.categories.length > 0 && (
+            <div className="flex justify-center mb-4">
+              <PieChart width={140} height={140}>
+                <Pie data={stats.categories.slice(0,5)} dataKey="value" cx={65} cy={65} innerRadius={40} outerRadius={62} paddingAngle={2} strokeWidth={0}>
+                  {stats.categories.slice(0,5).map((c,i) => <Cell key={i} fill={c.color} />)}
+                </Pie>
+              </PieChart>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {stats.categories.slice(0,5).map(cat => {
+              const barColor = cat.pct>=90 ? 'hsl(4,86%,68%)' : cat.pct>=70 ? 'hsl(43,95%,58%)' : cat.color;
+              return (
+                <div key={cat.name}>
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span className="h-2 w-2 rounded-full" style={{ background: cat.color }} />
+                      <span className="text-foreground font-medium">{cat.name}</span>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground">{cat.pct}%</span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${Math.min(cat.pct,100)}%`, background: barColor }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* AI Insights */}
+      {insights.length > 0 && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="h-3.5 w-3.5 text-[hsl(265_85%_70%)]" />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Insights da IA</h3>
+            <span className="badge-purple">LIVE</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {insights.slice(0,6).map((ins, i) => {
+              const cfg = INSIGHT_CFG[ins.level] || INSIGHT_CFG.info;
+              return (
+                <motion.div key={ins.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.06 }}
+                  className="rounded-2xl border p-4 card-hover"
+                  style={{ borderColor: `${cfg.color}30`, background: cfg.bg }}>
+                  <div className="flex items-start gap-3">
+                    <cfg.Icon className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: cfg.color }} />
+                    <div>
+                      <p className="text-xs font-bold text-foreground leading-tight">{ins.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{ins.text}</p>
+                      <button className="mt-2.5 flex items-center gap-1 text-[11px] font-semibold transition-opacity hover:opacity-80" style={{ color: cfg.color }}>
+                        Ação recomendada <ChevronRight className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Bottom row: recent + score */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Recent transactions */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}
+          className="lg:col-span-2 rounded-2xl border border-border bg-card overflow-hidden">
+          <div className="px-5 py-4 border-b border-border flex items-center justify-between">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Últimas Transações</h3>
+            <a href="/lancamentos" className="flex items-center gap-1 text-[11px] text-primary font-medium hover:opacity-80 transition-opacity">
+              Ver todas <ChevronRight className="h-3 w-3" />
+            </a>
+          </div>
+          <div>
+            {recent.map((tx, i) => (
+              <div key={tx.id} className={`flex items-center justify-between px-5 py-3 hover:bg-secondary/20 transition-colors ${i < recent.length-1 ? 'border-b border-border/50' : ''}`}>
+                <div className="flex items-center gap-3">
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center text-sm font-bold ${tx.type==='income' ? 'bg-success-muted text-success' : 'bg-alert-muted text-destructive'}`}>
+                    {tx.type === 'income' ? '↑' : '↓'}
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground leading-tight">{tx.description}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{tx.category} · {new Date(tx.date+'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                  </div>
+                </div>
+                <span className={`text-sm font-bold mono ${tx.type==='income' ? 'text-success' : 'text-destructive'}`}>
+                  {tx.type==='income' ? '+' : '−'}{fmt(tx.value)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Financial health */}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
+          className="rounded-2xl border border-border bg-card p-5">
+          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-5">Saúde Financeira</h3>
+
+          {/* Score ring */}
+          <div className="flex justify-center mb-5">
+            <div className="relative">
+              <svg width="120" height="72" viewBox="0 0 120 72">
+                <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" strokeWidth="10" strokeLinecap="round" stroke="hsl(230 18% 15%)" />
+                <path d="M 10 68 A 50 50 0 0 1 110 68" fill="none" strokeWidth="10" strokeLinecap="round"
+                  stroke={scoreColor} strokeDasharray={`${(score/1000)*157} 157`}
+                  style={{ filter: `drop-shadow(0 0 6px ${scoreColor})` }} />
+              </svg>
+              <div className="absolute bottom-0 inset-x-0 text-center -mb-1">
+                <span className="text-2xl font-bold leading-none" style={{ fontFamily:'Outfit,sans-serif', color: scoreColor }}>{score}</span>
+                <p className="text-[9px] text-muted-foreground mt-0.5">{scoreLabel}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Metrics */}
+          <div className="space-y-3">
+            {[
+              { label: 'Controle de gastos', val: Math.round(score*0.3), max: 300, color: `hsl(var(--chart-1))` },
+              { label: 'Taxa de poupança',   val: Math.round(score*0.25),max: 250, color: 'hsl(161,100%,45%)' },
+              { label: 'Regularidade',       val: Math.round(score*0.2), max: 200, color: 'hsl(265,85%,70%)' },
+              { label: 'Diversificação',     val: Math.round(score*0.25),max: 250, color: 'hsl(43,95%,58%)'  },
+            ].map(m => (
+              <div key={m.label}>
+                <div className="flex justify-between text-[11px] mb-1.5">
+                  <span className="text-muted-foreground">{m.label}</span>
+                  <span className="font-semibold text-foreground mono">{m.val}/{m.max}</span>
+                </div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${(m.val/m.max)*100}%`, background: m.color }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <a href="/ia-insights" className="btn-novux flex items-center justify-center gap-2 w-full mt-5 py-2.5 text-xs font-bold rounded-xl">
+            <Sparkles className="h-3.5 w-3.5" />
+            Analisar com IA
+          </a>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
