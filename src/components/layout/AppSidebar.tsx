@@ -1,4 +1,4 @@
-import { LayoutDashboard, BarChart3, ArrowLeftRight, Target, Cpu, TrendingUp, User, Sparkles } from 'lucide-react';
+import { LayoutDashboard, BarChart3, ArrowLeftRight, Target, BrainCircuit, TrendingUp, User, Sparkles, Wallet } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -11,7 +11,7 @@ const navItems = [
   { title: 'Relatórios',    url: '/relatorios',   icon: BarChart3 },
   { title: 'Lançamentos',   url: '/lancamentos',  icon: ArrowLeftRight },
   { title: 'Metas',         url: '/metas',        icon: Target },
-  { title: 'IA Copiloto',   url: '/ia-insights',  icon: Cpu, badge: 'AI' },
+  { title: 'IA Copiloto',   url: '/ia-insights',  icon: BrainCircuit, badge: 'AI' },
   { title: 'Investimentos', url: '/investimentos',icon: TrendingUp },
   { title: 'Perfil',        url: '/perfil',       icon: User },
 ];
@@ -26,41 +26,22 @@ export function AppSidebar() {
       style={{ background: 'hsl(var(--sidebar-background))' }}>
 
       {/* ── Logo ── */}
-      <div className={`flex items-center gap-3 border-b border-sidebar-border ${collapsed ? 'p-3 justify-center' : 'px-5 py-4'}`}>
-        {/* Novux logomark — N geometric */}
-        <div className="relative h-9 w-9 shrink-0 rounded-xl overflow-hidden flex items-center justify-center"
-          style={{ background: 'hsl(234 38% 8%)', border: '1px solid hsl(234 28% 16%)' }}>
-          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-            <rect x="2" y="2" width="5" height="18" rx="1.5"
-              style={{ fill: 'url(#ng)' }} />
-            <rect x="15" y="2" width="5" height="18" rx="1.5"
-              style={{ fill: 'url(#ng)' }} />
-            <polygon points="2,2 7,2 20,18 15,18"
-              style={{ fill: 'url(#ng2)' }} />
-            <circle cx="19" cy="3.5" r="2.5" fill="#00D4FF" opacity="0.9"/>
-            <defs>
-              <linearGradient id="ng" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#00D4FF"/>
-                <stop offset="100%" stopColor="#7B6FFF"/>
-              </linearGradient>
-              <linearGradient id="ng2" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#00D4FF"/>
-                <stop offset="50%" stopColor="#7B6FFF"/>
-                <stop offset="100%" stopColor="#FF6B9D"/>
-              </linearGradient>
-            </defs>
-          </svg>
+      <div className={`flex items-center gap-3 border-b border-sidebar-border ${collapsed ? 'p-3 justify-center' : 'px-5 py-5'}`}>
+        {/* Novux logomark */}
+        <div className="h-9 w-9 shrink-0 rounded-xl flex items-center justify-center"
+          style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+          <Wallet className="h-5 w-5" />
         </div>
 
         {!collapsed && (
           <div>
-            <p className="text-sm font-black text-foreground leading-none"
-              style={{ fontFamily: 'Syne, sans-serif', letterSpacing: '-0.04em' }}>
-              <span className="text-gradient">Novux</span>
-              <span className="text-foreground/60 font-medium"> Finance</span>
+            <p className="text-base font-black leading-none"
+              style={{ fontFamily: 'Syne, sans-serif', letterSpacing: '-0.04em', color: 'hsl(var(--sidebar-foreground))' }}>
+              Novux
+              <span className="font-semibold" style={{ color: 'hsl(var(--sidebar-foreground) / 0.5)' }}> Finance</span>
             </p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">
-              Novo nível. Sua vida financeira.
+            <p className="text-[10px] mt-0.5 leading-none" style={{ color: 'hsl(var(--sidebar-foreground) / 0.4)' }}>
+              Sua vida financeira
             </p>
           </div>
         )}

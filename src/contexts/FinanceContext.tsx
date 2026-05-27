@@ -61,6 +61,11 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setTransactions(prev => [...created, ...prev]);
   }, []);
 
+  const toggleTransactionPaid = useCallback(async (id: string, paid: boolean) => {
+    const updated = await transactionService.togglePaid(id, paid);
+    setTransactions(prev => prev.map(t => t.id === id ? updated : t));
+  }, []);
+
   const value = useMemo<FinanceContextType>(() => ({
     transactions,
     categories,
@@ -73,7 +78,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     deleteTransaction,
     addCategory,
     addTransactions,
-  }), [transactions, categories, insights, isPremiumPreview, isLoading, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions]);
+    toggleTransactionPaid,
+  }), [transactions, categories, insights, isPremiumPreview, isLoading, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }

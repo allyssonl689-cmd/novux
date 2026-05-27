@@ -13,6 +13,9 @@ export interface Transaction {
   recurrenceMonths?: number;
   isRecurring?: boolean;
   tags?: string[];
+  paid?: boolean;
+  currency?: string;
+  attachmentUrl?: string;
 }
 
 export interface Category {
@@ -28,19 +31,40 @@ export interface Insight {
   text: string;
 }
 
+export const CURRENCIES = [
+  { code: 'BRL', symbol: 'R$', label: 'Real Brasileiro' },
+  { code: 'USD', symbol: '$',  label: 'Dólar Americano' },
+  { code: 'EUR', symbol: '€',  label: 'Euro' },
+  { code: 'GBP', symbol: '£',  label: 'Libra Esterlina' },
+  { code: 'ARS', symbol: '$',  label: 'Peso Argentino' },
+];
+
+// Fixed conversion rates to BRL (updated manually until live API)
+export const RATES_TO_BRL: Record<string, number> = {
+  BRL: 1,
+  USD: 5.42,
+  EUR: 5.88,
+  GBP: 6.85,
+  ARS: 0.0057,
+};
+
+export function toBRL(value: number, currency: string): number {
+  return value * (RATES_TO_BRL[currency] ?? 1);
+}
+
 export const DEFAULT_CATEGORIES: Category[] = [
-  { id: 'alimentacao',  name: 'Alimentação',  isDefault: true },
-  { id: 'transporte',   name: 'Transporte',   isDefault: true },
-  { id: 'moradia',      name: 'Moradia',      isDefault: true },
-  { id: 'lazer',        name: 'Lazer',        isDefault: true },
-  { id: 'saude',        name: 'Saúde',        isDefault: true },
-  { id: 'educacao',     name: 'Educação',     isDefault: true },
-  { id: 'salario',      name: 'Salário',      isDefault: true },
-  { id: 'investimentos',name: 'Investimentos',isDefault: true },
-  { id: 'freelance',    name: 'Freelance',    isDefault: true },
-  { id: 'assinaturas',  name: 'Assinaturas',  isDefault: true },
-  { id: 'cartao',       name: 'Cartão',       isDefault: true },
-  { id: 'saude_bem',    name: 'Saúde/Bem-estar', isDefault: true },
-  { id: 'vestuario',    name: 'Vestuário',    isDefault: true },
-  { id: 'outros',       name: 'Outros',       isDefault: true },
+  { id: 'alimentacao',  name: 'Alimentação',    isDefault: true },
+  { id: 'transporte',   name: 'Transporte',     isDefault: true },
+  { id: 'moradia',      name: 'Moradia',        isDefault: true },
+  { id: 'lazer',        name: 'Lazer',          isDefault: true },
+  { id: 'saude',        name: 'Saúde',          isDefault: true },
+  { id: 'educacao',     name: 'Educação',       isDefault: true },
+  { id: 'salario',      name: 'Salário',        isDefault: true },
+  { id: 'investimentos',name: 'Investimentos',  isDefault: true },
+  { id: 'freelance',    name: 'Freelance',      isDefault: true },
+  { id: 'assinaturas',  name: 'Assinaturas',    isDefault: true },
+  { id: 'cartao',       name: 'Cartão',         isDefault: true },
+  { id: 'saude_bem',    name: 'Saúde/Bem-estar',isDefault: true },
+  { id: 'vestuario',    name: 'Vestuário',      isDefault: true },
+  { id: 'outros',       name: 'Outros',         isDefault: true },
 ];

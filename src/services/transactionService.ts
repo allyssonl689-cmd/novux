@@ -1,6 +1,8 @@
 import { apiFetch } from './api';
 import { Transaction, TransactionType, RecurrenceType } from '@/lib/types';
 
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+
 interface ApiTransaction {
   id: string;
   user_id: string;
@@ -13,26 +15,20 @@ interface ApiTransaction {
   recurrence: RecurrenceType;
   recurrence_months?: number;
   is_recurring: boolean;
+  paid: boolean;
   tags: string[];
+  currency: string;
+  attachment_url?: string;
   created_at: string;
   updated_at: string;
 }
 
 interface PaginatedResponse<T> {
   success: boolean;
-  data: {
-    data: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+  data: { data: T[]; total: number; page: number; limit: number; totalPages: number };
 }
 
-interface SingleResponse<T> {
-  success: boolean;
-  data: T;
-}
+interface SingleResponse<T> { success: boolean; data: T }
 
 function toFrontend(t: ApiTransaction): Transaction {
   return {
@@ -46,23 +42,28 @@ function toFrontend(t: ApiTransaction): Transaction {
     recurrence: t.recurrence,
     recurrenceMonths: t.recurrence_months,
     isRecurring: t.is_recurring,
+    paid: t.paid ?? false,
     tags: t.tags ?? [],
+    currency: t.currency ?? 'BRL',
+    attachmentUrl: t.attachment_url,
   };
 }
 
-function toBackend(t: Omit<Transaction, 'id'>): Omit<ApiTransaction, 'id' | 'user_id' | 'created_at' | 'updated_at'> {
-  return {
-    type: t.type,
-    value: t.value,
-    category: t.category,
-    date: t.date,
-    description: t.description,
-    notes: t.notes,
-    recurrence: t.recurrence ?? 'none',
-    recurrence_months: t.recurrenceMonths,
-    is_recurring: t.isRecurring ?? false,
-    tags: t.tags ?? [],
-  };
+function toBackend(t: Partial<Omit<Transaction, 'id'>>): Partial<ApiTransaction> {
+  const out: any = {};
+  if (t.type        !== undefined) out.type = t.type;
+  if (t.value       !== undefined) out.value = t.value;
+  if (t.category    !== undefined) out.category = t.category;
+  if (t.date        !== undefined) out.date = t.date;
+  if (t.description !== undefined) out.description = t.description;
+  if (t.notes       !== undefined) out.notes = t.notes;
+  if (t.recurrence  !== undefined) out.recurrence = t.recurrence ?? 'none';
+  if (t.recurrenceMonths !== undefined) out.recurrence_months = t.recurrenceMonths;
+  if (t.isRecurring !== undefined) out.is_recurring = t.isRecurring ?? false;
+  if (t.paid        !== undefined) out.paid = t.paid ?? false;
+  if (t.tags        !== undefined) out.tags = t.tags ?? [];
+  if (t.currency    !== undefined) out.currency = t.currency ?? 'BRL';
+  return out;
 }
 
 export interface TransactionFilters {
@@ -71,8 +72,16 @@ export interface TransactionFilters {
   startDate?: string;
   endDate?: string;
   search?: string;
+  tags?: string;
   page?: number;
   limit?: number;
+}
+
+export interface HistoryEntry {
+  id: string;
+  action: 'create' | 'update' | 'delete';
+  snapshot: Transaction;
+  changed_at: string;
 }
 
 export const transactionService = {
@@ -81,11 +90,7 @@ export const transactionService = {
     Object.entries(filters).forEach(([k, v]) => { if (v !== undefined) params.set(k, String(v)); });
     const qs = params.toString() ? `?${params}` : '';
     const res = await apiFetch<PaginatedResponse<ApiTransaction>>(`/api/transactions${qs}`);
-    return {
-      data: res.data.data.map(toFrontend),
-      total: res.data.total,
-      totalPages: res.data.totalPages,
-    };
+    return { data: res.data.data.map(toFrontend), total: res.data.total, totalPages: res.data.totalPages };
   },
 
   async create(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {
@@ -99,22 +104,58 @@ export const transactionService = {
   async update(id: string, transaction: Partial<Omit<Transaction, 'id'>>): Promise<Transaction> {
     const res = await apiFetch<SingleResponse<ApiTransaction>>(`/api/transactions/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(toBackend(transaction as Omit<Transaction, 'id'>)),
+      body: JSON.stringify(toBackend(transaction)),
     });
     return toFrontend(res.data);
+  },
+
+  async togglePaid(id: string, paid: boolean): Promise<Transaction> {
+    const res = await apiFetch<SingleResponse<ApiTransaction>>(`/api/transactions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ paid }),
+    });
+    return toFrontend(res.data);
+  },
+
+  async uploadAttachment(id: string, file: File): Promise<Transaction> {
+    const token = localStorage.getItem('novux_access_token');
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${API_BASE}/api/transactions/${id}/attachment`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    if (!res.ok) throw new Error('Erro ao enviar comprovante');
+    const json = await res.json();
+    return toFrontend(json.data);
+  },
+
+  async getHistory(id: string): Promise<HistoryEntry[]> {
+    const res = await apiFetch<{ success: boolean; data: HistoryEntry[] }>(`/api/transactions/${id}/history`);
+    return res.data;
   },
 
   async delete(id: string): Promise<void> {
     await apiFetch(`/api/transactions/${id}`, { method: 'DELETE' });
   },
 
-  getExportUrl(startDate?: string, endDate?: string): string {
-    const base = (import.meta.env.VITE_API_URL ?? 'http://localhost:3001') + '/api/transactions/export/csv';
-    const token = localStorage.getItem('novux_access_token');
+  async exportCSV(startDate?: string, endDate?: string): Promise<void> {
     const params = new URLSearchParams();
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
-    if (token) params.set('token', token);
-    return params.toString() ? `${base}?${params}` : base;
+    const qs = params.toString() ? `?${params}` : '';
+    const token = localStorage.getItem('novux_access_token');
+    const res = await fetch(`${API_BASE}/api/transactions/export/csv${qs}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error('Erro ao exportar CSV');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `novux-transacoes-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   },
 };

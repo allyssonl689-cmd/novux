@@ -1,4 +1,6 @@
 import bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
+import { verifySync } from 'otplib';
 import { db } from '../config/database';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../config/auth';
 import { UserModel } from '../models/UserModel';
@@ -13,6 +15,11 @@ interface AuthTokens {
   user: PublicUser;
 }
 
+type LoginResult = AuthTokens | { requires2FA: true; tempToken: string };
+
+// short-lived map: tempToken → userId (in-memory, cleared after use or 5min)
+const pending2FA = new Map<string, { userId: string; expiresAt: number }>();
+
 export class AuthService {
   static async register(input: RegisterInput): Promise<AuthTokens> {
     const exists = await UserModel.emailExists(input.email);
@@ -24,12 +31,24 @@ export class AuthService {
     return this.issueTokens(user);
   }
 
-  static async login(input: LoginInput): Promise<AuthTokens> {
+  static async login(input: LoginInput): Promise<LoginResult> {
     const user = await UserModel.findByEmail(input.email);
     if (!user) throw new AppError('Email ou senha inválidos', 401);
 
     const valid = await bcrypt.compare(input.password, user.password_hash);
     if (!valid) throw new AppError('Email ou senha inválidos', 401);
+
+    const { rows } = await db.query<{ totp_enabled: boolean }>(
+      'SELECT totp_enabled FROM users WHERE id = $1',
+      [user.id]
+    );
+    const totpEnabled = rows[0]?.totp_enabled ?? false;
+
+    if (totpEnabled) {
+      const tempToken = randomBytes(32).toString('base64url');
+      pending2FA.set(tempToken, { userId: user.id, expiresAt: Date.now() + 5 * 60 * 1000 });
+      return { requires2FA: true, tempToken };
+    }
 
     const publicUser: PublicUser = {
       id: user.id,
@@ -41,6 +60,37 @@ export class AuthService {
       updated_at: user.updated_at,
     };
 
+    return this.issueTokens(publicUser);
+  }
+
+  static async loginWith2FA(tempToken: string, totpToken: string): Promise<AuthTokens> {
+    const entry = pending2FA.get(tempToken);
+    if (!entry || entry.expiresAt < Date.now()) {
+      pending2FA.delete(tempToken);
+      throw new AppError('Sessão expirada. Faça login novamente.', 401);
+    }
+
+    const { rows } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null; is_active: boolean; created_at: Date; updated_at: Date; totp_secret: string | null }>(
+      'SELECT id, name, email, avatar_url, is_active, created_at, updated_at, totp_secret FROM users WHERE id = $1',
+      [entry.userId]
+    );
+    const user = rows[0];
+    if (!user || !user.totp_secret) throw new AppError('Usuário não encontrado', 404);
+
+    const result = verifySync({ token: totpToken, secret: user.totp_secret });
+    if (!result?.valid) throw new AppError('Código 2FA inválido', 400);
+
+    pending2FA.delete(tempToken);
+
+    const publicUser: PublicUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatar_url: user.avatar_url,
+      is_active: user.is_active,
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+    };
     return this.issueTokens(publicUser);
   }
 

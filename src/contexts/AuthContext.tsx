@@ -1,11 +1,15 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { authService, AuthUser } from '@/services/authService';
 
+export interface Login2FARequired { requires2FA: true; tempToken: string }
+
 interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<Login2FARequired | void>;
+  loginWith2FA: (tempToken: string, totpToken: string) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -30,8 +34,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const u = await authService.login(email, password);
+  const login = useCallback(async (email: string, password: string): Promise<Login2FARequired | void> => {
+    const result = await authService.login(email, password);
+    if ('requires2FA' in result) return result;
+    setUser(result);
+  }, []);
+
+  const loginWith2FA = useCallback(async (tempToken: string, totpToken: string) => {
+    const u = await authService.loginWith2FA(tempToken, totpToken);
+    setUser(u);
+  }, []);
+
+  const loginWithGoogle = useCallback(async (credential: string) => {
+    const u = await authService.loginWithGoogle(credential);
     setUser(u);
   }, []);
 
@@ -51,6 +66,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isLoading,
       isAuthenticated: !!user,
       login,
+      loginWith2FA,
+      loginWithGoogle,
       register,
       logout,
     }}>

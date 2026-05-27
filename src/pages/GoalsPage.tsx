@@ -1,12 +1,24 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, Plus, Trash2, CheckCircle2, Clock, Zap, Sparkles, Loader2 } from 'lucide-react';
+import {
+  Target, Plus, Trash2, CheckCircle2, Clock, Zap, Sparkles, Loader2, Pencil,
+  ShieldCheck, Plane, Monitor, BarChart2, Home, Car, BookOpen, LucideIcon,
+} from 'lucide-react';
 import { goalService, Goal, CreateGoalInput } from '@/services/goalService';
 
 const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
 
-const COLORS = ['hsl(161,100%,45%)','hsl(245,100%,72%)','hsl(43,95%,58%)','hsl(193,100%,50%)','hsl(4,86%,68%)','hsl(300,60%,65%)'];
-const GOAL_ICONS: Record<string, string> = { 'Emergência':'🛡️','Viagem':'✈️','Tecnologia':'💻','Investimento':'📈','Imóvel':'🏠','Veículo':'🚗','Educação':'📚','Outro':'🎯' };
+const COLORS = ['#10B981','#8B5CF6','#F59E0B','#0EA5E9','#EF4444','#EC4899'];
+const GOAL_ICONS: Record<string, LucideIcon> = {
+  'Emergência': ShieldCheck,
+  'Viagem': Plane,
+  'Tecnologia': Monitor,
+  'Investimento': BarChart2,
+  'Imóvel': Home,
+  'Veículo': Car,
+  'Educação': BookOpen,
+  'Outro': Target,
+};
 
 function daysLeft(deadline?: string) {
   if (!deadline) return { label: 'Sem prazo', color: 'hsl(220,12%,42%)' };
@@ -21,6 +33,7 @@ export default function GoalsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', target: '', current: '', deadline: '', category: 'Outro' });
 
@@ -31,21 +44,51 @@ export default function GoalsPage() {
       .finally(() => setIsLoading(false));
   }, []);
 
-  async function addGoal() {
+  function openEdit(goal: Goal) {
+    setForm({
+      name: goal.title,
+      target: String(goal.targetValue),
+      current: String(goal.currentValue),
+      deadline: goal.deadline ?? '',
+      category: goal.category ?? 'Outro',
+    });
+    setEditingId(goal.id);
+    setShowForm(true);
+  }
+
+  function openCreate() {
+    setForm({ name: '', target: '', current: '', deadline: '', category: 'Outro' });
+    setEditingId(null);
+    setShowForm(true);
+  }
+
+  async function saveGoal() {
     if (!form.name || !form.target) return;
     setSaving(true);
     try {
-      const input: CreateGoalInput = {
-        title: form.name,
-        targetValue: Number(form.target),
-        currentValue: Number(form.current || 0),
-        deadline: form.deadline || undefined,
-        category: form.category,
-        color: COLORS[goals.length % COLORS.length],
-      };
-      const created = await goalService.create(input);
-      setGoals(p => [created, ...p]);
+      if (editingId) {
+        const updated = await goalService.update(editingId, {
+          title: form.name,
+          targetValue: Number(form.target),
+          currentValue: Number(form.current || 0),
+          deadline: form.deadline || undefined,
+          category: form.category,
+        });
+        setGoals(p => p.map(g => g.id === editingId ? updated : g));
+      } else {
+        const input: CreateGoalInput = {
+          title: form.name,
+          targetValue: Number(form.target),
+          currentValue: Number(form.current || 0),
+          deadline: form.deadline || undefined,
+          category: form.category,
+          color: COLORS[goals.length % COLORS.length],
+        };
+        const created = await goalService.create(input);
+        setGoals(p => [created, ...p]);
+      }
       setForm({ name: '', target: '', current: '', deadline: '', category: 'Outro' });
+      setEditingId(null);
       setShowForm(false);
     } catch (err) {
       console.error(err);
@@ -79,7 +122,7 @@ export default function GoalsPage() {
             <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>Metas Financeiras</h1>
             <p className="text-xs text-muted-foreground mt-1">Acompanhe seus objetivos com inteligência</p>
           </div>
-          <button onClick={() => setShowForm(true)}
+          <button onClick={openCreate}
             className="btn-novux flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl">
             <Plus className="h-3.5 w-3.5" /> Nova Meta
           </button>
@@ -125,9 +168,9 @@ export default function GoalsPage() {
 
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 rounded-xl flex items-center justify-center text-2xl shrink-0"
-                      style={{ background: `${color}18`, border: `1px solid ${color}25` }}>
-                      {GOAL_ICONS[goal.category ?? 'Outro'] ?? '🎯'}
+                    <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
+                      {(() => { const Icon = GOAL_ICONS[goal.category ?? 'Outro'] ?? Target; return <Icon className="h-5 w-5" style={{ color }} />; })()}
                     </div>
                     <div>
                       <p className="text-sm font-bold text-foreground" style={{ fontFamily: 'Outfit,sans-serif' }}>{goal.title}</p>
@@ -138,10 +181,16 @@ export default function GoalsPage() {
                       </div>
                     </div>
                   </div>
-                  <button onClick={() => deleteGoal(goal.id)}
-                    className="opacity-0 group-hover:opacity-100 h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-alert-muted transition-all">
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-all">
+                    <button onClick={() => openEdit(goal)}
+                      className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => deleteGoal(goal.id)}
+                      className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-alert-muted transition-all">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-3">
@@ -152,8 +201,7 @@ export default function GoalsPage() {
                   <div className="progress-track h-2.5">
                     <motion.div className="progress-fill h-full" initial={{ width: 0 }} animate={{ width: `${pct}%` }}
                       transition={{ duration: 1, ease: 'easeOut', delay: i * 0.08 }}
-                      style={{ background: done ? 'linear-gradient(90deg, hsl(161,100%,45%), hsl(193,100%,50%))' : color,
-                        boxShadow: done ? `0 0 10px ${color}60` : undefined }} />
+                      style={{ background: done ? '#10B981' : color }} />
                   </div>
                   <div className="flex justify-between mt-1.5 text-[11px]">
                     <span className="font-bold" style={{ color }}>{pct}%</span>
@@ -171,7 +219,7 @@ export default function GoalsPage() {
           })}
         </AnimatePresence>
 
-        <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => setShowForm(true)}
+        <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={openCreate}
           className="rounded-2xl border border-dashed border-border bg-card/30 p-5 flex flex-col items-center justify-center gap-3 text-muted-foreground hover:border-primary/40 hover:text-foreground hover:bg-card/60 transition-all min-h-[180px]">
           <div className="h-12 w-12 rounded-xl border border-dashed border-current flex items-center justify-center">
             <Plus className="h-5 w-5" />
@@ -188,17 +236,20 @@ export default function GoalsPage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {[
-            { icon: '🛡️', title: 'Reserva de emergência', text: 'Com sua renda atual, você completaria a reserva em 8 meses guardando R$ 812/mês.' },
-            { icon: '✈️', title: 'Viagem econômica', text: 'Cortando delivery em 30%, economiza ~R$ 114/mês — isso é uma passagem aérea a cada 14 meses.' },
-            { icon: '🏠', title: 'Entrada do imóvel', text: 'Investindo o saldo livre em CDB, você atingiria R$ 80k de entrada em 6 anos.' },
+            { Icon: ShieldCheck, color: '#10B981', title: 'Reserva de emergência', text: 'Com sua renda atual, você completaria a reserva em 8 meses guardando R$ 812/mês.' },
+            { Icon: Plane,       color: '#0EA5E9', title: 'Viagem econômica',      text: 'Cortando delivery em 30%, economiza ~R$ 114/mês — isso é uma passagem aérea a cada 14 meses.' },
+            { Icon: Home,        color: '#8B5CF6', title: 'Entrada do imóvel',     text: 'Investindo o saldo livre em CDB, você atingiria R$ 80k de entrada em 6 anos.' },
           ].map((s, i) => (
-            <div key={i} className="rounded-xl border border-dashed border-[hsl(265_85%_70%_/0.3)] bg-[hsl(265_85%_70%_/0.04)] p-4 card-hover">
+            <div key={i} className="rounded-xl border border-border bg-card p-4 card-hover">
               <div className="flex items-start gap-3">
-                <span className="text-xl">{s.icon}</span>
+                <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ background: `${s.color}18` }}>
+                  <s.Icon className="h-4 w-4" style={{ color: s.color }} />
+                </div>
                 <div>
                   <p className="text-xs font-bold text-foreground">{s.title}</p>
                   <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">{s.text}</p>
-                  <button onClick={() => setShowForm(true)} className="mt-2.5 text-[11px] font-semibold text-[hsl(245,100%,72%)] hover:opacity-80 transition-opacity">Criar meta →</button>
+                  <button onClick={openCreate} className="mt-2.5 text-[11px] font-semibold text-primary hover:opacity-80 transition-opacity">Criar meta →</button>
                 </div>
               </div>
             </div>
@@ -211,10 +262,10 @@ export default function GoalsPage() {
         {showForm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
-            onClick={e => e.target === e.currentTarget && setShowForm(false)}>
+            onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setEditingId(null); } }}>
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9 }}
               className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
-              <h2 className="text-lg font-bold text-foreground mb-5" style={{ fontFamily: 'Outfit,sans-serif' }}>Nova Meta Financeira</h2>
+              <h2 className="text-lg font-bold text-foreground mb-5" style={{ fontFamily: 'Outfit,sans-serif' }}>{editingId ? 'Editar Meta' : 'Nova Meta Financeira'}</h2>
               <div className="space-y-3">
                 {[
                   { l: 'Nome da meta', k: 'name', type: 'text', ph: 'Ex: Fundo de emergência' },
@@ -238,14 +289,14 @@ export default function GoalsPage() {
                 </div>
               </div>
               <div className="flex gap-3 mt-5">
-                <button onClick={() => setShowForm(false)}
+                <button onClick={() => { setShowForm(false); setEditingId(null); }}
                   className="flex-1 rounded-xl border border-border py-2.5 text-xs font-medium text-muted-foreground hover:bg-secondary transition-all">
                   Cancelar
                 </button>
-                <button onClick={addGoal} disabled={saving}
+                <button onClick={saveGoal} disabled={saving}
                   className="btn-novux flex-1 py-2.5 text-xs font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-60">
                   {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  {saving ? 'Salvando...' : 'Criar Meta'}
+                  {saving ? 'Salvando...' : editingId ? 'Salvar Alterações' : 'Criar Meta'}
                 </button>
               </div>
             </motion.div>

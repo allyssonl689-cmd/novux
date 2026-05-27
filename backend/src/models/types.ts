@@ -27,6 +27,7 @@ export interface Transaction {
   recurrence: RecurrenceType;
   recurrence_months: number | null;
   is_recurring: boolean;
+  paid: boolean;
   tags: string[];
   created_at: Date;
   updated_at: Date;

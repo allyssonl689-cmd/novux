@@ -10,7 +10,9 @@ export const createTransactionSchema = z.object({
   recurrence: z.enum(['none', 'daily', 'weekly', 'monthly', 'yearly']).default('none'),
   recurrence_months: z.number().int().positive().optional(),
   is_recurring: z.boolean().default(false),
+  paid: z.boolean().default(false),
   tags: z.array(z.string()).default([]),
+  currency: z.string().length(3).default('BRL'),
 });
 
 export const updateTransactionSchema = createTransactionSchema.partial();
@@ -22,7 +24,7 @@ export const transactionFiltersSchema = z.object({
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   search: z.string().optional(),
   page: z.coerce.number().int().positive().default(1),
-  limit: z.coerce.number().int().min(1).max(200).default(50),
+  limit: z.coerce.number().int().min(1).max(1000).default(50),
 });
 
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;

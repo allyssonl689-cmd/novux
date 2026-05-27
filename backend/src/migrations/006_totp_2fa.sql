@@ -1,0 +1,3 @@
+-- Migração 006: 2FA TOTP nos usuários
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64);
+ALTER TABLE users ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT false;

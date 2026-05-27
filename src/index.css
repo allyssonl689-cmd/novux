@@ -5,11 +5,11 @@
 @layer base {
   :root {
     /* ── DARK MODE (default) ── */
-    --background:        232 35% 9%;
+    --background:        232 35% 8%;
     --foreground:        220 25% 92%;
-    --card:              232 30% 13%;
+    --card:              232 28% 16%;
     --card-foreground:   220 25% 92%;
-    --popover:           232 30% 13%;
+    --popover:           232 28% 16%;
     --popover-foreground:220 25% 92%;
     --primary:           193 100% 50%;
     --primary-foreground:232 35% 8%;
@@ -30,16 +30,16 @@
     --alert:             343 90% 62%;
     --alert-foreground:  0 0% 100%;
     --alert-muted:       343 45% 12%;
-    --border:            232 22% 20%;
-    --input:             232 22% 20%;
+    --border:            232 22% 22%;
+    --input:             232 22% 22%;
     --ring:              193 100% 50%;
     --radius:            0.75rem;
     --sidebar-background:232 38% 7%;
-    --sidebar-foreground:220 18% 62%;
+    --sidebar-foreground:220 18% 70%;
     --sidebar-primary:   193 100% 50%;
     --sidebar-primary-foreground:232 35% 8%;
-    --sidebar-accent:    232 28% 12%;
-    --sidebar-accent-foreground:220 22% 88%;
+    --sidebar-accent:    232 28% 13%;
+    --sidebar-accent-foreground:220 22% 92%;
     --sidebar-border:    232 22% 13%;
     --sidebar-ring:      193 100% 50%;
 
@@ -81,14 +81,14 @@
     --border:            220 18% 88%;
     --input:             220 18% 88%;
     --ring:              193 100% 38%;
-    --sidebar-background:232 35% 14%;
-    --sidebar-foreground:220 18% 70%;
-    --sidebar-primary:   193 100% 55%;
-    --sidebar-primary-foreground:232 35% 8%;
-    --sidebar-accent:    232 28% 18%;
-    --sidebar-accent-foreground:220 22% 92%;
-    --sidebar-border:    232 22% 20%;
-    --sidebar-ring:      193 100% 55%;
+    --sidebar-background:0 0% 100%;
+    --sidebar-foreground:232 28% 28%;
+    --sidebar-primary:   193 100% 38%;
+    --sidebar-primary-foreground:0 0% 100%;
+    --sidebar-accent:    220 20% 94%;
+    --sidebar-accent-foreground:232 35% 15%;
+    --sidebar-border:    220 18% 88%;
+    --sidebar-ring:      193 100% 38%;
 
     --chart-1: 193 85% 42%;
     --chart-2: 161 75% 38%;
@@ -102,9 +102,16 @@
   * { @apply border-border; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
 
+  /*
+   * FONT SYSTEM — Novux Finance
+   * Body text  : DM Sans   — leitura geral, labels, botões
+   * Títulos    : Syne      — h1..h6, page titles, section headings, brand name
+   * Valores KPI: Outfit    — números grandes, KPIs, valores monetários destacados
+   * Monospace  : Fira Code — valores financeiros inline (.mono), tabelas
+   */
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+    font-family: 'DM Sans', system-ui, sans-serif;
     font-variant-numeric: tabular-nums;
     -webkit-font-smoothing: antialiased;
   }
@@ -115,7 +122,9 @@
     line-height: 1.2;
   }
 
-  .val  { font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+  /* KPI / metric values */
+  .val  { font-family: 'Outfit', 'DM Sans', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+  /* Financial numbers inline */
   .mono { font-family: 'Fira Code', 'Courier New', monospace; }
 
   ::selection { background: hsl(193 100% 50% / 0.2); color: hsl(220 25% 92%); }
@@ -170,26 +179,26 @@
 
   /* Botão principal Novux */
   .btn-novux {
-    background: linear-gradient(135deg, #00D4FF, #7B6FFF);
-    color: hsl(232 35% 8%);
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
     font-family: 'DM Sans', sans-serif;
     font-weight: 700;
     border-radius: 0.75rem;
     transition: all 0.18s ease;
-    box-shadow: 0 3px 16px hsl(193 100% 50% / 0.22);
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.25);
   }
   .btn-novux:hover {
-    filter: brightness(1.07);
-    box-shadow: 0 5px 24px hsl(193 100% 50% / 0.35);
+    filter: brightness(1.08);
+    box-shadow: 0 4px 16px hsl(var(--primary) / 0.35);
     transform: translateY(-1px);
   }
   .light .btn-novux { color: #fff; }
 
   /* Nav active */
   .nav-active {
-    background: linear-gradient(90deg, hsl(193 100% 50% / 0.12) 0%, transparent 100%);
-    border-left: 2px solid hsl(193 100% 50%);
-    color: hsl(193 100% 65%);
+    background: hsl(var(--primary) / 0.1);
+    border-left: 2px solid hsl(var(--primary));
+    color: hsl(var(--primary));
   }
 
   /* Badges */

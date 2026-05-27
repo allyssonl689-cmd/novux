@@ -10,12 +10,16 @@ import { connectDatabase } from './config/database';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
+import path from 'path';
 import authRoutes        from './routes/auth';
+import authGoogleRoutes  from './routes/authGoogle';
 import transactionRoutes from './routes/transactions';
 import categoryRoutes    from './routes/categories';
 import goalRoutes        from './routes/goals';
 import reportRoutes      from './routes/reports';
 import userRoutes        from './routes/users';
+import twoFactorRoutes   from './routes/twoFactor';
+import aiRoutes          from './routes/ai';
 
 const app = express();
 
@@ -33,13 +37,19 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Servir arquivos de upload estaticamente
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Rotas da API
 app.use('/api/auth',         authRoutes);
+app.use('/api/auth',         authGoogleRoutes);
+app.use('/api/auth/2fa',     twoFactorRoutes);
 app.use('/api/transactions',  transactionRoutes);
 app.use('/api/categories',    categoryRoutes);
 app.use('/api/goals',         goalRoutes);
 app.use('/api/reports',       reportRoutes);
 app.use('/api/users',         userRoutes);
+app.use('/api/ai',            aiRoutes);
 
 // 404
 app.use((_req, res) => {

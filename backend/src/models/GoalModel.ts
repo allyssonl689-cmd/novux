@@ -18,12 +18,12 @@ export class GoalModel {
     return rows[0] ?? null;
   }
 
-  static async create(userId: string, data: Omit<Goal, 'id' | 'user_id' | 'current_value' | 'is_completed' | 'created_at' | 'updated_at'>): Promise<Goal> {
+  static async create(userId: string, data: Omit<Goal, 'id' | 'user_id' | 'is_completed' | 'created_at' | 'updated_at'>): Promise<Goal> {
     const { rows } = await db.query<Goal>(
-      `INSERT INTO goals (user_id, title, description, target_value, deadline, category, color)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO goals (user_id, title, description, target_value, current_value, deadline, category, color)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
-      [userId, data.title, data.description ?? null, data.target_value, data.deadline ?? null, data.category ?? null, data.color ?? null]
+      [userId, data.title, data.description ?? null, data.target_value, data.current_value ?? 0, data.deadline ?? null, data.category ?? null, data.color ?? null]
     );
     return rows[0];
   }

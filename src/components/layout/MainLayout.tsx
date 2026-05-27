@@ -1,12 +1,72 @@
 import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
-import { Bell, Plus, Sun, Moon, Calendar, ChevronDown, Download, Upload } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { Bell, Plus, Sun, Moon, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { TransactionForm } from '@/components/TransactionForm';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePeriod, PERIOD_LABELS, type PeriodPreset } from '@/contexts/PeriodContext';
+
+const MONTH_NAMES = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
+];
+
+function MonthNavigator() {
+  const { setCustomRange, setPeriod } = usePeriod();
+  const now = new Date();
+  const [year, setYear]   = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth()); // 0-based
+
+  const applyMonth = useCallback((m: number, y: number) => {
+    const start = new Date(y, m, 1);
+    const end   = new Date(y, m + 1, 0, 23, 59, 59);
+    setCustomRange({ start, end });
+    setPeriod('custom');
+  }, [setCustomRange, setPeriod]);
+
+  // Apply current month on mount
+  useEffect(() => { applyMonth(month, year); }, []); // eslint-disable-line
+
+  function prev() {
+    const m = month === 0 ? 11 : month - 1;
+    const y = month === 0 ? year - 1 : year;
+    setMonth(m); setYear(y); applyMonth(m, y);
+  }
+
+  function next() {
+    const m = month === 11 ? 0 : month + 1;
+    const y = month === 11 ? year + 1 : year;
+    setMonth(m); setYear(y); applyMonth(m, y);
+  }
+
+  const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={prev}
+        className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </button>
+
+      <button
+        onClick={() => { setMonth(now.getMonth()); setYear(now.getFullYear()); applyMonth(now.getMonth(), now.getFullYear()); }}
+        title="Voltar para o mês atual"
+        className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-all min-w-[130px] justify-center"
+        style={isCurrentMonth ? { borderColor: 'hsl(193 100% 50% / 0.4)', color: 'hsl(193 100% 65%)' } : {}}>
+        {MONTH_NAMES[month]} {year}
+      </button>
+
+      <button
+        onClick={next}
+        className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+        <ChevronRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 function PeriodSelector() {
   const { period, setPeriod, label, setCustomRange } = usePeriod();
@@ -86,11 +146,103 @@ function PeriodSelector() {
   );
 }
 
+function NotificationPanel({ onClose, dismissed, setDismissed }: {
+  onClose: () => void;
+  dismissed: Set<number>;
+  setDismissed: (s: Set<number>) => void;
+}) {
+  const { insights } = useFinance();
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  const visible = insights.filter((_, i) => !dismissed.has(i));
+
+  const levelIcon = (level: string) => {
+    if (level === 'critical' || level === 'warning') return <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0" />;
+    if (level === 'positive') return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />;
+    return <Info className="h-3.5 w-3.5 text-blue-400 shrink-0" />;
+  };
+
+  const levelBg = (level: string) => {
+    if (level === 'critical' || level === 'warning') return 'bg-amber-500/8 border-amber-500/20';
+    if (level === 'positive') return 'bg-emerald-500/8 border-emerald-500/20';
+    return 'bg-blue-500/8 border-blue-500/20';
+  };
+
+  return (
+    <div ref={ref} className="absolute right-0 top-full mt-2 z-50 w-80 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Bell className="h-4 w-4 text-primary" />
+          <span className="text-sm font-bold text-foreground">Notificações</span>
+          {visible.length > 0 && (
+            <span className="text-[10px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded-full">{visible.length}</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {visible.length > 0 && (
+            <button
+              onClick={() => setDismissed(new Set(insights.map((_, i) => i)))}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors font-medium">
+              Limpar tudo
+            </button>
+          )}
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="max-h-80 overflow-y-auto">
+        {visible.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+            <CheckCircle2 className="h-8 w-8 text-muted-foreground/30 mb-3" />
+            <p className="text-sm font-medium text-muted-foreground">Tudo em ordem!</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Você não tem notificações no momento.</p>
+          </div>
+        ) : (
+          <div className="p-2 space-y-1.5">
+            {insights.map((insight, i) => dismissed.has(i) ? null : (
+              <div key={i} className={`flex items-start gap-3 rounded-xl border p-3 ${levelBg(insight.level)}`}>
+                {levelIcon(insight.level)}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold text-foreground leading-snug">{insight.label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">{insight.text}</p>
+                </div>
+                <button
+                  onClick={() => setDismissed(prev => new Set([...prev, i]))}
+                  className="shrink-0 text-muted-foreground hover:text-foreground transition-colors mt-0.5">
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="px-4 py-2.5 border-t border-border bg-secondary/30">
+        <p className="text-[10px] text-muted-foreground text-center">Insights gerados pela IA com base nas suas transações</p>
+      </div>
+    </div>
+  );
+}
+
 export function MainLayout() {
   const [formOpen, setFormOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const { insights, transactions, isPremiumPreview } = useFinance();
   const { theme, toggleTheme } = useTheme();
-  const alertCount = insights.filter(i => i.level === 'critical' || i.level === 'warning').length;
+  const alertCount = insights.filter((i, idx) =>
+    !dismissed.has(idx) && (i.level === 'critical' || i.level === 'warning')
+  ).length;
 
   function exportCSV() {
     const csv = ['Data,Tipo,Categoria,Descrição,Valor',
@@ -114,7 +266,10 @@ export function MainLayout() {
 
             <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors shrink-0" />
 
-            <div className="flex-1" />
+            {/* Month navigator — center */}
+            <div className="flex-1 flex justify-center">
+              <MonthNavigator />
+            </div>
 
             {/* Period selector */}
             <PeriodSelector />
@@ -134,12 +289,17 @@ export function MainLayout() {
             )}
 
             {/* Alert bell */}
-            <button className="relative h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
-              <Bell className="h-3.5 w-3.5" />
-              {alertCount > 0 && (
-                <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
-              )}
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setNotifOpen(v => !v)}
+                className="relative h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                <Bell className="h-3.5 w-3.5" />
+                {alertCount > 0 && (
+                  <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive ring-2 ring-background" />
+                )}
+              </button>
+              {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} dismissed={dismissed} setDismissed={setDismissed} />}
+            </div>
 
             {/* New transaction CTA */}
             <button onClick={() => setFormOpen(true)}
@@ -149,9 +309,9 @@ export function MainLayout() {
             </button>
 
             {/* Avatar */}
-            <div className="h-8 w-8 rounded-xl flex items-center justify-center text-xs font-black border border-border shrink-0"
-              style={{ background: 'hsl(var(--card))' }}>
-              <span className="text-gradient" style={{ fontFamily: 'Syne, sans-serif' }}>N</span>
+            <div className="h-8 w-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+              <span style={{ fontFamily: 'Syne, sans-serif' }}>N</span>
             </div>
           </header>
 

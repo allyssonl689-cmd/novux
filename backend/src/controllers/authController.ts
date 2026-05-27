@@ -23,6 +23,17 @@ export class AuthController {
     }
   }
 
+  static async loginWith2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { tempToken, totpToken } = req.body as { tempToken: string; totpToken: string };
+      if (!tempToken || !totpToken) throw new Error('Dados incompletos');
+      const result = await AuthService.loginWith2FA(tempToken, totpToken);
+      res.json({ success: true, data: result });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { refreshToken } = refreshTokenSchema.parse(req.body);

@@ -13,6 +13,7 @@ export interface FinanceContextType {
   deleteTransaction: (id: string) => void | Promise<void>;
   addCategory: (name: string) => void | Promise<void>;
   addTransactions: (transactions: Omit<Transaction, 'id'>[]) => void | Promise<void>;
+  toggleTransactionPaid: (id: string, paid: boolean) => Promise<void>;
 }
 
 export const FinanceContext = createContext<FinanceContextType | null>(null);
