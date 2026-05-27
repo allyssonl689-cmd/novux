@@ -5,8 +5,10 @@ export const db = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 5000,
   ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  // Force IPv4 to avoid ENETUNREACH on hosts with both A and AAAA records
+  family: 4,
 });
 
 db.on('error', (err) => {
