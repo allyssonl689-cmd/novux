@@ -358,7 +358,7 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                 {recurrence === 'monthly' && (
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground whitespace-nowrap">Repetir por</span>
-                    <input type="number" min={2} max={60} step={1} value={recMonths} onChange={e => setRecMonths(Math.max(2, Math.min(60, Math.floor(Number(e.target.value))))}
+                    <input type="number" min={2} max={60} step={1} value={recMonths} onChange={e => setRecMonths(Math.max(2, Math.min(60, Math.floor(Number(e.target.value)))))}
                       className="w-20 rounded-xl border border-border bg-secondary px-3 py-1.5 text-xs text-foreground text-center outline-none focus:border-primary/50" />
                     <span className="text-xs text-muted-foreground">meses</span>
                     <span className="text-[10px] text-primary font-medium">= {recMonths} lançamentos</span>
