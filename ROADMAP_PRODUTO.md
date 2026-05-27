@@ -6,6 +6,35 @@ Novux Finance é um app de gestão financeira pessoal full-stack com IA integrad
 
 ---
 
+## Status do Deploy (atualizado em 2026-05-27)
+
+| Serviço | URL | Status |
+|---|---|---|
+| Frontend | https://novux-export.vercel.app | ✅ No ar |
+| Backend | https://novux.onrender.com | ✅ No ar |
+| Banco de dados | Supabase (PostgreSQL) | ✅ Conectado |
+| Repositório | https://github.com/allyssonl689-cmd/novux | ✅ Público |
+
+---
+
+## Identidade Visual — Arquivos para Substituição
+
+Ao criar a identidade visual definitiva da Novux, substitua os seguintes arquivos:
+
+| Arquivo | Uso | Tamanho recomendado |
+|---|---|---|
+| [public/favicon.ico](public/favicon.ico) | Ícone na aba do browser | 32×32 px |
+| [public/icon.svg](public/icon.svg) | Ícone vetorial base (usado para gerar os demais) | SVG escalável |
+| [public/icon-192.png](public/icon-192.png) | Ícone PWA (Android/Chrome) | 192×192 px |
+| [public/icon-512.png](public/icon-512.png) | Ícone PWA splash screen | 512×512 px |
+| [public/placeholder.svg](public/placeholder.svg) | Imagem placeholder de imagens não carregadas | SVG |
+
+> **Dica:** Crie o logo em SVG (`icon.svg`) e use uma ferramenta como [RealFaviconGenerator](https://realfavicongenerator.net) para gerar automaticamente o `favicon.ico`, `icon-192.png` e `icon-512.png`.
+>
+> Após substituir os arquivos, faça commit e push — o Vercel redeploya automaticamente.
+
+---
+
 ## 1. Free vs Pro — Definição de Tiers
 
 ### Tier Gratuito (Free)
@@ -45,7 +74,7 @@ Novux Finance é um app de gestão financeira pessoal full-stack com IA integrad
 
 ---
 
-## 2. Implementação do Gate Premium (atual)
+## 2. Implementação do Gate Premium (pendente)
 
 O gate de premium já existe no frontend via `isPremiumPreview` no `FinanceContext`. Para produção:
 
@@ -58,89 +87,73 @@ O gate de premium já existe no frontend via `isPremiumPreview` no `FinanceConte
 
 ## 3. Checklist Pré-Lançamento
 
-### Backend
-- [ ] Variáveis de ambiente configuradas (ver seção 5)
-- [ ] Migrations rodadas no banco de produção:
-  - `backend/src/migrations/004_attachment_currency.sql`
-  - `backend/src/migrations/005_transaction_history.sql`
-  - `backend/src/migrations/006_totp_2fa.sql`
-- [ ] GROQ_API_KEY configurada em `backend/.env`
-- [ ] Rate limiting testado (100 req/15min por padrão)
-- [ ] CORS configurado para o domínio de produção (`CORS_ORIGIN`)
-- [ ] JWT secrets fortes (mín. 64 chars, aleatórios)
-- [ ] Health check endpoint (`GET /api/health`)
+### Infraestrutura
+- [x] Repositório GitHub configurado
+- [x] Frontend no ar (Vercel)
+- [x] Backend no ar (Render)
+- [x] Banco de dados criado (Supabase)
+- [x] Migrations rodadas (001 a 006)
+- [x] `VITE_API_URL` configurado no Vercel
+- [x] `CORS_ORIGIN` configurado no Render
+- [x] `GROQ_API_KEY` configurada no backend
 
-### Frontend
-- [ ] `VITE_API_URL` aponta para o backend de produção
-- [ ] Ícones PWA finais em `public/icon-192.png` e `public/icon-512.png`
-- [ ] `manifest.json` com `start_url`, `scope`, `name` corretos
-- [ ] Meta tags de SEO em `index.html`
+### Identidade Visual
+- [ ] Logo/ícone final criado
+- [ ] Substituir `public/favicon.ico`
+- [ ] Substituir `public/icon.svg`
+- [ ] Substituir `public/icon-192.png`
+- [ ] Substituir `public/icon-512.png`
+- [ ] Atualizar cores em `public/manifest.json` (`theme_color`, `background_color`)
+
+### Produto
+- [ ] Implementar gate Free vs Pro (coluna `plan` no banco)
+- [ ] Integrar gateway de pagamento (Stripe ou Mercado Pago)
+- [ ] Email transacional: boas-vindas e reset de senha (Resend ou SendGrid)
+- [ ] Onboarding guiado para novos usuários
+- [ ] Domínio customizado (ex: `novux.com.br`)
 - [ ] Google Analytics ou Plausible configurado
-- [ ] Testar fluxo completo: cadastro → login → transação → relatório PDF → chat IA
+- [ ] Monitoramento de erros (Sentry)
 
 ### Segurança
-- [ ] HTTPS obrigatório em produção
-- [ ] Headers de segurança (helmet já configurado)
-- [ ] Uploads limitados a 5MB e tipos permitidos (já implementado)
-- [ ] Senhas hasheadas com bcrypt rounds 12 (já implementado)
-- [ ] 2FA opcional para todos os usuários (já implementado)
+- [x] HTTPS obrigatório em produção
+- [x] Headers de segurança (Helmet)
+- [x] Uploads limitados a 5MB com validação de MIME
+- [x] Senhas com bcrypt rounds 12
+- [x] 2FA TOTP opcional
+- [x] JWT com access (15min) + refresh (7d)
+- [ ] Mover JWT para httpOnly cookies (proteção XSS)
+- [ ] AI usage tracking persistido no banco (não em memória)
+- [ ] CSRF protection no endpoint de logout
 
 ---
 
-## 4. Deploy: Passo a Passo
+## 4. Deploy — Configuração Atual
 
-### 4.1 GitHub
-```bash
-git init  # se ainda não for repo
-git remote add origin https://github.com/SEU_USUARIO/novux-finance.git
-git add .
-git commit -m "feat: initial production release"
-git push -u origin main
+### Variáveis no Render (backend)
+```
+NODE_ENV=production
+DATABASE_URL=postgresql://postgres.iargaqfriiaygzzsbbwq:...@aws-1-us-west-2.pooler.supabase.com:5432/postgres
+JWT_SECRET=...
+JWT_REFRESH_SECRET=...
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+BCRYPT_ROUNDS=12
+CORS_ORIGIN=https://novux-export.vercel.app
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=100
+GROQ_API_KEY=gsk_...
 ```
 
-### 4.2 Banco de Dados — Supabase (gratuito até 500MB)
-1. Criar conta em https://supabase.com
-2. Novo projeto → anotar `DATABASE_URL` (postgres connection string)
-3. No painel SQL Editor, rodar em ordem:
-   - Schema inicial (tabelas users, transactions, categories, goals)
-   - `backend/src/migrations/004_attachment_currency.sql`
-   - `backend/src/migrations/005_transaction_history.sql`
-   - `backend/src/migrations/006_totp_2fa.sql`
-4. Copiar `DATABASE_URL` para as variáveis de ambiente do backend
+### Variáveis no Vercel (frontend)
+```
+VITE_API_URL=https://novux.onrender.com
+```
 
-### 4.3 Backend — Railway (gratuito $5/mês de créditos)
-1. Criar conta em https://railway.app
-2. "New Project" → "Deploy from GitHub Repo" → selecionar `novux-finance`
-3. Configurar Root Directory: `backend`
-4. Start Command: `npm start`
-5. Variáveis de ambiente (Settings → Variables):
-   ```
-   NODE_ENV=production
-   PORT=3001
-   DATABASE_URL=postgresql://...supabase...
-   JWT_SECRET=<64 chars aleatórios>
-   JWT_REFRESH_SECRET=<64 chars aleatórios>
-   BCRYPT_ROUNDS=12
-   GROQ_API_KEY=gsk_...
-   CORS_ORIGIN=https://novux.vercel.app
-   ```
-6. Anotar a URL gerada (ex: `https://novux-backend.up.railway.app`)
-
-### 4.4 Frontend — Vercel (gratuito)
-1. Criar conta em https://vercel.com
-2. "Add New Project" → importar do GitHub
-3. Framework Preset: **Vite**
-4. Root Directory: `.` (raiz do repo)
-5. Environment Variables:
-   ```
-   VITE_API_URL=https://novux-backend.up.railway.app
-   ```
-6. Deploy → a URL final será `https://novux.vercel.app` (ou domínio customizado)
-
-### 4.5 Domínio Customizado (opcional)
+### Domínio Customizado (opcional)
 1. Comprar domínio (ex: `novux.com.br`) no Registro.br (~R$40/ano)
 2. No Vercel: Settings → Domains → adicionar domínio
 3. Configurar DNS: CNAME `www` → `cname.vercel-dns.com`
+4. Atualizar `CORS_ORIGIN` no Render para o novo domínio
 
 ---
 
@@ -162,9 +175,9 @@ RATE_LIMIT_MAX=100
 GROQ_API_KEY=gsk_...  # https://console.groq.com/keys
 ```
 
-### Frontend (`.env` ou Vercel env vars)
+### Frontend (Vercel env vars)
 ```env
-VITE_API_URL=https://seu-backend.railway.app
+VITE_API_URL=https://novux.onrender.com
 VITE_GOOGLE_CLIENT_ID=...  # opcional, para login com Google
 ```
 
@@ -208,12 +221,14 @@ VITE_GOOGLE_CLIENT_ID=...  # opcional, para login com Google
 - [ ] Reset de senha por email
 - [ ] Onboarding guiado (wizard de primeiros passos)
 - [ ] Notificações push via FCM (Firebase)
+- [ ] Gate Free vs Pro com coluna `plan` no banco
 
 ### v1.2 (2-4 meses)
 - [ ] Importação de OFX/QIF (extratos Bradesco, Itaú, Nubank)
 - [ ] Orçamento mensal por categoria com alertas
 - [ ] Relatório anual consolidado
 - [ ] Widget de resumo para iOS/Android (PWA avançado)
+- [ ] Domínio customizado
 
 ### v2.0 (4-8 meses)
 - [ ] App nativo React Native (Expo)
@@ -229,15 +244,17 @@ VITE_GOOGLE_CLIENT_ID=...  # opcional, para login com Google
 | Serviço | Plano | Custo |
 |---|---|---|
 | Vercel (frontend) | Hobby | Gratuito |
-| Railway (backend) | Starter | ~$5/mês |
+| Render (backend) | Free | Gratuito (dorme após 15min inativo) |
 | Supabase (banco) | Free | Gratuito até 500MB |
 | Groq API (IA) | Free tier | Gratuito (limitado) |
 | Domínio .com.br | Registro.br | ~R$40/ano |
-| **Total inicial** | | **~R$30/mês** |
+| **Total inicial** | | **Gratuito** |
+
+> **Nota:** O plano gratuito do Render "dorme" após 15 minutos de inatividade, causando delay de ~30s na primeira requisição. Para produção com usuários reais, considere o plano pago (~$7/mês) ou migrar para Railway ($5/mês de créditos).
 
 Com 10 assinantes Pro (R$19,90): **R$199/mês** — já cobre custos com margem.
 Break-even: **2 assinantes**.
 
 ---
 
-*Gerado em 2026-05-26 | Versão 1.0*
+*Atualizado em 2026-05-27 | Versão 1.1*
