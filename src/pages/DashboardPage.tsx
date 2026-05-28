@@ -2,19 +2,17 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
-import { Wallet, TrendingUp, TrendingDown, Zap, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { buildFinancialIndicators } from '@/lib/financial-indicators';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CHART } from '@/lib/tokens';
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
 const fmtK = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(Math.round(v));
 
-const PIE_COLORS = [
-  'hsl(161 90% 42%)', 'hsl(245 85% 68%)', 'hsl(43 90% 55%)', 'hsl(193 100% 50%)',
-  'hsl(343 90% 62%)', 'hsl(316 80% 62%)', 'hsl(172 80% 42%)', 'hsl(25 90% 55%)',
-];
+const PIE_COLORS = CHART.pie;
 
 function Tip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -196,12 +194,12 @@ export default function DashboardPage() {
         </div>
       </motion.div>
 
-      {/* KPIs */}
+      {/* KPIs — Saldo Total, Receitas, Despesas, Patrimônio Líquido */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPI idx={0} label="Saldo do Mês"      value={fmtSigned(stats.balance)} delta={stats.incDelta - stats.expDelta} sub="vs mês anterior" icon={Wallet}      color="hsl(193 100% 50%)" />
-        <KPI idx={1} label="Receitas"           value={fmt(stats.income)}  delta={stats.incDelta}  sub="vs mês anterior" icon={TrendingUp}  color="hsl(161 100% 45%)" />
-        <KPI idx={2} label="Despesas"           value={fmt(stats.expense)} delta={stats.expDelta}  sub="vs mês anterior" icon={TrendingDown} color="hsl(4 86% 68%)"  />
-        <KPI idx={3} label="Score Financeiro"   value={`${score}/1000`}    sub={scoreLabel}         icon={Zap}          color={scoreColor}               />
+        <KPI idx={0} label="Saldo do Mês"       value={fmtSigned(stats.balance)}              delta={stats.incDelta - stats.expDelta} sub="vs mês anterior" icon={Wallet}      color={CHART.investment} />
+        <KPI idx={1} label="Receitas"            value={fmt(stats.income)}                     delta={stats.incDelta}                  sub="vs mês anterior" icon={TrendingUp}  color={CHART.income}     />
+        <KPI idx={2} label="Despesas"            value={fmt(stats.expense)}                    delta={stats.expDelta}                  sub="vs mês anterior" icon={TrendingDown} color={CHART.expense}   />
+        <KPI idx={3} label="Patrimônio Líquido"  value={fmtSigned(stats.income - stats.expense)} sub="acumulado no período"            icon={PiggyBank}      color={CHART.goal}                         />
       </div>
 
       {/* Summary strip */}
@@ -245,28 +243,28 @@ export default function DashboardPage() {
                 <XAxis dataKey="shortMonth" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                 <Tooltip content={<Tip />} cursor={{ fill: 'hsl(var(--secondary))' }} wrapperStyle={{ background: 'transparent', border: 'none', padding: 0, outline: 'none' }} />
-                <Bar dataKey="income"  name="Receitas" fill="hsl(161 90% 42%)" radius={[5,5,0,0]} barSize={14} />
-                <Bar dataKey="expense" name="Despesas" fill="hsl(343 90% 62%)" radius={[5,5,0,0]} barSize={14} />
-                <Bar dataKey="savings" name="Economia" fill="hsl(245 85% 68%)" radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="income"  name="Receitas" fill={CHART.income}     radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="expense" name="Despesas" fill={CHART.expense}    radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="savings" name="Economia" fill={CHART.goal}       radius={[5,5,0,0]} barSize={14} />
               </BarChart>
             ) : (
               <AreaChart data={monthlySummary}>
                 <defs>
                   <linearGradient id="gInc" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(161 90% 42%)" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="hsl(161 90% 42%)" stopOpacity={0} />
+                    <stop offset="0%" stopColor={CHART.income}  stopOpacity={0.3} />
+                    <stop offset="100%" stopColor={CHART.income}  stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(343 90% 62%)" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="hsl(343 90% 62%)" stopOpacity={0} />
+                    <stop offset="0%" stopColor={CHART.expense} stopOpacity={0.2} />
+                    <stop offset="100%" stopColor={CHART.expense} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="shortMonth" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                 <Tooltip content={<Tip />} cursor={{ fill: 'hsl(var(--secondary))' }} wrapperStyle={{ background: 'transparent', border: 'none', padding: 0, outline: 'none' }} />
-                <Area type="monotone" dataKey="income"  name="Receitas" stroke="hsl(161 90% 42%)" fill="url(#gInc)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expense" name="Despesas" stroke="hsl(343 90% 62%)" fill="url(#gExp)" strokeWidth={2} />
+                <Area type="monotone" dataKey="income"  name="Receitas" stroke={CHART.income}  fill="url(#gInc)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name="Despesas" stroke={CHART.expense} fill="url(#gExp)" strokeWidth={2} />
               </AreaChart>
             )}
           </ResponsiveContainer>
@@ -313,9 +311,9 @@ export default function DashboardPage() {
       {insights.length > 0 && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
           <div className="flex items-center gap-2 mb-3">
-            <Sparkles className="h-3.5 w-3.5 text-[hsl(265_85%_70%)]" />
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Insights da IA</h3>
-            <span className="badge-purple">LIVE</span>
+            <span className="badge-violet">LIVE</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {insights.slice(0,6).map((ins, i) => {

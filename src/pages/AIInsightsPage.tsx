@@ -4,6 +4,7 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { apiFetch } from '@/services/api';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { Send, Bot, User, Sparkles, Zap, RefreshCw, TrendingUp, BarChart3, Lock, Crown } from 'lucide-react';
+import { CHART } from '@/lib/tokens';
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -170,7 +171,7 @@ export default function AIInsightsPage() {
   }
 
   const score = income > 0 ? Math.max(0, Math.round((1 - expense / income) * 1000)) : 720;
-  const scoreColor = score >= 700 ? '#10B981' : score >= 500 ? '#F59E0B' : '#EF4444';
+  const scoreColor = score >= 700 ? CHART.income : score >= 500 ? CHART.warning : CHART.expense;
 
   return (
     <div className="max-w-[1400px] mx-auto">
@@ -292,10 +293,10 @@ export default function AIInsightsPage() {
               </div>
               <div className="flex-1 space-y-2">
                 {[
-                  ['Controle', Math.round(score * .3),  300, '#0EA5E9'],
-                  ['Poupança', Math.round(score * .25), 250, '#10B981'],
-                  ['Metas',    Math.round(score * .25), 250, '#8B5CF6'],
-                  ['Regular.', Math.round(score * .2),  200, '#F59E0B'],
+                  ['Controle', Math.round(score * .3),  300, CHART.investment],
+                  ['Poupança', Math.round(score * .25), 250, CHART.income],
+                  ['Metas',    Math.round(score * .25), 250, CHART.goal],
+                  ['Regular.', Math.round(score * .2),  200, CHART.warning],
                 ].map(([l, v, mx, c]) => (
                   <div key={l as string}>
                     <div className="flex justify-between text-[10px] mb-1">
@@ -342,10 +343,10 @@ export default function AIInsightsPage() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { l: 'Receita',    v: fmt(income),         c: '#10B981' },
-                { l: 'Despesa',    v: fmt(expense),        c: '#EF4444' },
-                { l: 'Saldo',      v: `${income - expense < 0 ? '-' : ''}${fmt(income - expense)}`, c: income >= expense ? '#0EA5E9' : '#EF4444' },
-                { l: 'Transações', v: String(thisMonth.length), c: '#8B5CF6' },
+                { l: 'Receita',    v: fmt(income),         c: CHART.income },
+                { l: 'Despesa',    v: fmt(expense),        c: CHART.expense },
+                { l: 'Saldo',      v: `${income - expense < 0 ? '-' : ''}${fmt(income - expense)}`, c: income >= expense ? CHART.investment : CHART.expense },
+                { l: 'Transações', v: String(thisMonth.length), c: CHART.goal },
               ].map(s => (
                 <div key={s.l} className="rounded-xl border border-border bg-secondary p-3">
                   <p className="text-[10px] text-muted-foreground">{s.l}</p>
@@ -363,7 +364,7 @@ export default function AIInsightsPage() {
               <div className="space-y-2.5">
                 {topCats.slice(0, 5).map(([cat, val], i) => {
                   const pct = expense > 0 ? Math.round((val / expense) * 100) : 0;
-                  const colors = ['hsl(161,100%,45%)', 'hsl(245,100%,72%)', 'hsl(43,95%,58%)', 'hsl(193,100%,50%)', 'hsl(4,86%,68%)'];
+                  const colors = [CHART.income, CHART.goal, CHART.warning, CHART.investment, CHART.expense];
                   return (
                     <div key={cat}>
                       <div className="flex justify-between text-[11px] mb-1">

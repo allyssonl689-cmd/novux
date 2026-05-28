@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="ng" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#16C7FF"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0B1020"/>
+      <stop offset="100%" stop-color="#0F1735"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGrad)"/>
+
+  <!-- Subtle border -->
+  <rect width="64" height="64" rx="16" fill="none" stroke="url(#ng)" stroke-width="1" opacity="0.3"/>
+
+  <!-- N lettermark: two vertical stems + diagonal -->
+  <!-- Left stem -->
+  <path d="M16 48 L16 16" stroke="url(#ng)" stroke-width="5.5" stroke-linecap="round"/>
+  <!-- Diagonal -->
+  <path d="M16 16 L48 48" stroke="url(#ng)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right stem -->
+  <path d="M48 16 L48 48" stroke="url(#ng)" stroke-width="5.5" stroke-linecap="round"/>
+
+  <!-- Glow overlay on N -->
+  <g filter="url(#glow)" opacity="0.5">
+    <path d="M16 48 L16 16 L48 48 L48 16" stroke="url(#ng)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  </g>
+</svg>
