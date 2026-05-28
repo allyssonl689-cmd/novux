@@ -188,12 +188,12 @@ export default function TransactionsPage() {
                           <>
                             <span className="text-[10px] text-muted-foreground/40">·</span>
                             {tx.tags.slice(0, 3).map(tag => (
-                              <span key={tag} className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary/80">
+                              <span key={tag} className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-primary/10 text-primary/80">
                                 #{tag}
                               </span>
                             ))}
                             {tx.tags.length > 3 && (
-                              <span className="text-[9px] text-muted-foreground">+{tx.tags.length - 3}</span>
+                              <span className="text-[10px] text-muted-foreground">+{tx.tags.length - 3}</span>
                             )}
                           </>
                         )}

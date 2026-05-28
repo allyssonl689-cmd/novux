@@ -5,10 +5,14 @@ import {
   ShieldCheck, Plane, Monitor, BarChart2, Home, Car, BookOpen, LucideIcon,
 } from 'lucide-react';
 import { goalService, Goal, CreateGoalInput } from '@/services/goalService';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
 
-const COLORS = ['#10B981','#8B5CF6','#F59E0B','#0EA5E9','#EF4444','#EC4899'];
+const COLORS = [
+  'hsl(161 90% 42%)', 'hsl(245 85% 68%)', 'hsl(43 90% 55%)',
+  'hsl(193 100% 50%)', 'hsl(343 90% 62%)', 'hsl(316 80% 62%)',
+];
 const GOAL_ICONS: Record<string, LucideIcon> = {
   'Emergência': ShieldCheck,
   'Viagem': Plane,
@@ -108,8 +112,14 @@ export default function GoalsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="max-w-[1100px] mx-auto space-y-6">
+        <Skeleton className="h-7 w-48" />
+        <div className="grid grid-cols-3 gap-3">
+          {[...Array(3)].map((_,i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[...Array(3)].map((_,i) => <Skeleton key={i} className="h-52 rounded-2xl" />)}
+        </div>
       </div>
     );
   }
@@ -261,7 +271,7 @@ export default function GoalsPage() {
       <AnimatePresence>
         {showForm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop"
             onClick={e => { if (e.target === e.currentTarget) { setShowForm(false); setEditingId(null); } }}>
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9 }}
               className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">

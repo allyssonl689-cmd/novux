@@ -5,12 +5,16 @@ import { usePeriod } from '@/contexts/PeriodContext';
 import { Wallet, TrendingUp, TrendingDown, Zap, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { buildFinancialIndicators } from '@/lib/financial-indicators';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
 const fmtK = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}k` : String(Math.round(v));
 
-const PIE_COLORS = ['#10B981','#8B5CF6','#F59E0B','#0EA5E9','#EF4444','#EC4899','#14B8A6','#F97316'];
+const PIE_COLORS = [
+  'hsl(161 90% 42%)', 'hsl(245 85% 68%)', 'hsl(43 90% 55%)', 'hsl(193 100% 50%)',
+  'hsl(343 90% 62%)', 'hsl(316 80% 62%)', 'hsl(172 80% 42%)', 'hsl(25 90% 55%)',
+];
 
 function Tip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
@@ -68,10 +72,10 @@ function KPI({ label, value, sub, icon: Icon, color, delta, idx }: {
 }
 
 const INSIGHT_CFG: Record<string, { color: string; Icon: any }> = {
-  critical: { color: '#EF4444', Icon: AlertTriangle },
-  warning:  { color: '#F59E0B', Icon: AlertTriangle },
-  positive: { color: '#10B981', Icon: CheckCircle2 },
-  info:     { color: '#0EA5E9', Icon: Info },
+  critical: { color: 'hsl(var(--destructive))', Icon: AlertTriangle },
+  warning:  { color: 'hsl(var(--warning))',     Icon: AlertTriangle },
+  positive: { color: 'hsl(var(--success))',     Icon: CheckCircle2 },
+  info:     { color: 'hsl(var(--primary))',     Icon: Info },
 };
 
 function buildMonthlySummary(transactions: { type: string; value: number; date: string }[]) {
@@ -93,8 +97,28 @@ function buildMonthlySummary(transactions: { type: string; value: number; date: 
     });
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="max-w-[1400px] mx-auto space-y-6">
+      <div className="flex items-end justify-between">
+        <div className="space-y-2"><Skeleton className="h-3 w-32" /><Skeleton className="h-7 w-48" /></div>
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[...Array(4)].map((_,i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[...Array(3)].map((_,i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <Skeleton className="lg:col-span-3 h-80 rounded-2xl" />
+        <Skeleton className="lg:col-span-2 h-80 rounded-2xl" />
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
-  const { transactions, insights } = useFinance();
+  const { transactions, insights, isLoading } = useFinance();
   const { getRange } = usePeriod();
   const [chartMode, setChartMode] = useState<'bar' | 'area'>('bar');
 
@@ -141,12 +165,14 @@ export default function DashboardPage() {
   const indicators = useMemo(() => buildFinancialIndicators(periodTxs), [periodTxs]);
   const score = indicators ? Math.max(0, Math.round((1 - indicators.riskRatio) * 1000)) : 720;
   const scoreLabel = score>=800?'Excelente':score>=700?'Muito Bom':score>=500?'Regular':'Atenção';
-  const scoreColor = score>=700 ? 'hsl(161 100% 45%)' : score>=500 ? 'hsl(43 95% 58%)' : 'hsl(4 86% 68%)';
+  const scoreColor = score>=700 ? 'hsl(var(--success))' : score>=500 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
 
   const recent = useMemo(() => [...periodTxs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [periodTxs]);
   const savingsRate = stats.income > 0 ? ((stats.income - stats.expense) / stats.income * 100).toFixed(1) : '0';
 
   const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+
+  if (isLoading) return <DashboardSkeleton />;
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -219,28 +245,28 @@ export default function DashboardPage() {
                 <XAxis dataKey="shortMonth" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                 <Tooltip content={<Tip />} cursor={{ fill: 'hsl(var(--secondary))' }} wrapperStyle={{ background: 'transparent', border: 'none', padding: 0, outline: 'none' }} />
-                <Bar dataKey="income"  name="Receitas" fill="#10B981" radius={[5,5,0,0]} barSize={14} />
-                <Bar dataKey="expense" name="Despesas" fill="#EF4444" radius={[5,5,0,0]} barSize={14} />
-                <Bar dataKey="savings" name="Economia" fill="#8B5CF6" radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="income"  name="Receitas" fill="hsl(161 90% 42%)" radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="expense" name="Despesas" fill="hsl(343 90% 62%)" radius={[5,5,0,0]} barSize={14} />
+                <Bar dataKey="savings" name="Economia" fill="hsl(245 85% 68%)" radius={[5,5,0,0]} barSize={14} />
               </BarChart>
             ) : (
               <AreaChart data={monthlySummary}>
                 <defs>
                   <linearGradient id="gInc" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
+                    <stop offset="0%" stopColor="hsl(161 90% 42%)" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(161 90% 42%)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="gExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#EF4444" stopOpacity={0.2} />
-                    <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
+                    <stop offset="0%" stopColor="hsl(343 90% 62%)" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="hsl(343 90% 62%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                 <XAxis dataKey="shortMonth" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                 <Tooltip content={<Tip />} cursor={{ fill: 'hsl(var(--secondary))' }} wrapperStyle={{ background: 'transparent', border: 'none', padding: 0, outline: 'none' }} />
-                <Area type="monotone" dataKey="income"  name="Receitas" stroke="#10B981" fill="url(#gInc)" strokeWidth={2} />
-                <Area type="monotone" dataKey="expense" name="Despesas" stroke="#EF4444" fill="url(#gExp)" strokeWidth={2} />
+                <Area type="monotone" dataKey="income"  name="Receitas" stroke="hsl(161 90% 42%)" fill="url(#gInc)" strokeWidth={2} />
+                <Area type="monotone" dataKey="expense" name="Despesas" stroke="hsl(343 90% 62%)" fill="url(#gExp)" strokeWidth={2} />
               </AreaChart>
             )}
           </ResponsiveContainer>
@@ -263,7 +289,7 @@ export default function DashboardPage() {
 
           <div className="space-y-3">
             {stats.categories.slice(0,5).map(cat => {
-              const barColor = cat.pct>=90 ? 'hsl(4,86%,68%)' : cat.pct>=70 ? 'hsl(43,95%,58%)' : cat.color;
+              const barColor = cat.pct>=90 ? 'hsl(var(--destructive))' : cat.pct>=70 ? 'hsl(var(--warning))' : cat.color;
               return (
                 <div key={cat.name}>
                   <div className="flex items-center justify-between mb-1">
@@ -371,10 +397,10 @@ export default function DashboardPage() {
           {/* Metrics */}
           <div className="space-y-3">
             {[
-              { label: 'Controle de gastos', val: Math.round(score*0.3), max: 300, color: `hsl(var(--chart-1))` },
-              { label: 'Taxa de poupança',   val: Math.round(score*0.25),max: 250, color: 'hsl(161,100%,45%)' },
-              { label: 'Regularidade',       val: Math.round(score*0.2), max: 200, color: 'hsl(265,85%,70%)' },
-              { label: 'Diversificação',     val: Math.round(score*0.25),max: 250, color: 'hsl(43,95%,58%)'  },
+              { label: 'Controle de gastos', val: Math.round(score*0.3), max: 300, color: 'hsl(var(--chart-1))' },
+              { label: 'Taxa de poupança',   val: Math.round(score*0.25),max: 250, color: 'hsl(var(--success))' },
+              { label: 'Regularidade',       val: Math.round(score*0.2), max: 200, color: 'hsl(var(--accent))' },
+              { label: 'Diversificação',     val: Math.round(score*0.25),max: 250, color: 'hsl(var(--warning))' },
             ].map(m => (
               <div key={m.label}>
                 <div className="flex justify-between text-[11px] mb-1.5">

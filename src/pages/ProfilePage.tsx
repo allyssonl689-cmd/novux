@@ -156,7 +156,7 @@ export default function ProfilePage() {
           </div>
           <button onClick={toggleTheme}
             className="relative w-12 h-6 rounded-full transition-all duration-300"
-            style={{ background: theme === 'dark' ? '#10b981' : 'hsl(230 18% 22%)' }}>
+            style={{ background: theme === 'dark' ? 'hsl(var(--success))' : 'hsl(var(--secondary))' }}>
             <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-300 ${theme === 'dark' ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </button>
         </div>
@@ -340,7 +340,7 @@ export default function ProfilePage() {
       <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
         onClick={handleSave}
         className="w-full rounded-2xl py-3.5 text-sm font-bold text-white flex items-center justify-center gap-2 transition-all"
-        style={{ background: saved ? '#10b981' : 'hsl(var(--primary))' }}>
+        style={{ background: saved ? 'hsl(var(--success))' : 'hsl(var(--primary))' }}>
         {saved ? <><CheckCircle2 className="h-4 w-4" />Configurações salvas!</> : 'Salvar configurações'}
       </motion.button>
 

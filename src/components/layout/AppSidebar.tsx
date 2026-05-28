@@ -68,7 +68,7 @@ export function AppSidebar() {
                         }`} />
                         {!collapsed && <span className="flex-1 truncate">{item.title}</span>}
                         {!collapsed && (item as any).badge && (
-                          <span className="badge-cyan text-[9px] px-1.5">{(item as any).badge}</span>
+                          <span className="badge-cyan">{(item as any).badge}</span>
                         )}
                       </NavLink>
                     </SidebarMenuButton>
