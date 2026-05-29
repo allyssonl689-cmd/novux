@@ -9,7 +9,7 @@ const router = Router();
 router.post('/register',         authLimiter, AuthController.register);
 router.post('/login',            authLimiter, bruteForceGuard, AuthController.login);
 router.post('/login/2fa',        authLimiter, AuthController.loginWith2FA);
-router.post('/refresh',          authLimiter, AuthController.refresh);
+router.post('/refresh',          AuthController.refresh); // protegido pelo cookie — sem authLimiter
 router.post('/logout',           authenticate, AuthController.logout);
 router.post('/change-password',  authenticate, AuthController.changePassword);
 router.get('/me',                authenticate, AuthController.me);

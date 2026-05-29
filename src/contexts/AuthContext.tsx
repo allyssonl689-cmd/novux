@@ -21,11 +21,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // Restaura sessão via cookie HttpOnly ao carregar a aplicação
+  // Timeout de 8s para não travar a UI se o backend estiver hibernando (Render free tier)
   useEffect(() => {
+    const timeout = setTimeout(() => setIsLoading(false), 8000);
     authService.tryRestoreSession()
       .then(restored => { if (restored) setUser(restored); })
       .catch(() => {})
-      .finally(() => setIsLoading(false));
+      .finally(() => { clearTimeout(timeout); setIsLoading(false); });
+    return () => clearTimeout(timeout);
   }, []);
 
   const login = useCallback(async (email: string, password: string): Promise<Login2FARequired | void> => {
