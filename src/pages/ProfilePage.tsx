@@ -145,29 +145,40 @@ export default function ProfilePage() {
 
       {/* Profile card */}
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
-        <div className="h-16 w-16 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0"
-          style={{ background: 'hsl(var(--primary) / 0.15)', border: '1px solid hsl(var(--primary) / 0.25)' }}>
-          <span style={{ color: 'hsl(var(--primary))' }}>{(user?.name ?? user?.email ?? 'U')[0].toUpperCase()}</span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-lg font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>{user?.name ?? 'Usuário'}</p>
-          <p className="text-xs text-muted-foreground">{user?.email ?? '—'}</p>
-          <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-            <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${isPremiumPreview ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-secondary text-muted-foreground'}`}>
-              <Sparkles className="h-2.5 w-2.5" />{isPremiumPreview ? 'PRO' : 'FREE'}
-            </span>
-            {twoFAEnabled && (
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-muted text-success border border-success/20">
-                <Shield className="h-2.5 w-2.5" />2FA Ativo
+        className="rounded-2xl border border-border bg-card p-5">
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0"
+            style={{ background: 'hsl(var(--primary) / 0.15)', border: '1px solid hsl(var(--primary) / 0.25)' }}>
+            <span style={{ color: 'hsl(var(--primary))' }}>{(user?.name ?? user?.email ?? 'U')[0].toUpperCase()}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-base font-bold text-foreground truncate">{user?.name ?? 'Usuário'}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email ?? '—'}</p>
+            <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${isPremiumPreview ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-secondary text-muted-foreground'}`}>
+                <Sparkles className="h-2.5 w-2.5" />{isPremiumPreview ? 'PRO' : 'FREE'}
               </span>
-            )}
+              {twoFAEnabled && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-muted text-success border border-success/20">
+                  <Shield className="h-2.5 w-2.5" />2FA Ativo
+                </span>
+              )}
+            </div>
           </div>
         </div>
-        <button onClick={() => setPremiumPreview(!isPremiumPreview)}
-          className={`text-xs font-bold px-4 py-2 rounded-xl transition-all ${isPremiumPreview ? 'bg-secondary text-muted-foreground hover:text-foreground' : 'btn-novux'}`}>
-          {isPremiumPreview ? 'Voltar ao Free' : 'Testar Pro'}
-        </button>
+        {/* Botão Seja Premium abaixo — não sobrepõe o e-mail no mobile */}
+        {!isPremiumPreview && (
+          <button onClick={() => setPremiumPreview(true)}
+            className="btn-novux w-full mt-4 py-2 text-xs font-bold rounded-xl">
+            Seja Premium!
+          </button>
+        )}
+        {isPremiumPreview && (
+          <button onClick={() => setPremiumPreview(false)}
+            className="w-full mt-4 py-2 text-xs font-semibold rounded-xl bg-secondary text-muted-foreground hover:text-foreground transition-all">
+            Voltar ao Free
+          </button>
+        )}
       </motion.div>
 
       {/* Stats */}

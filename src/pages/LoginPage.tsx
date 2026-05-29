@@ -5,103 +5,67 @@ import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 
-/* Animated chart line that morphs into the Novux logo mark */
+/* N lettermark animado — gráfico de barras → logo Novux */
 function IntroLogo({ done }: { done: boolean }) {
   return (
     <div className="relative flex items-center justify-center w-20 h-20">
-      {/* Glow ring */}
+      {/* Glow ring de fundo */}
       <motion.div
         className="absolute inset-0 rounded-2xl"
-        style={{ background: 'hsl(var(--primary))' }}
+        style={{ background: 'linear-gradient(135deg, hsl(193 100% 54% / 0.15), hsl(258 87% 66% / 0.12))' }}
         initial={{ opacity: 0, scale: 0.6 }}
-        animate={done
-          ? { opacity: 1, scale: 1, borderRadius: '1rem' }
-          : { opacity: [0, 0.15, 0.08, 0.2, 0.1], scale: [0.6, 1.1, 0.95, 1.05, 1] }
-        }
-        transition={done
-          ? { duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }
-          : { duration: 1.2, ease: 'easeInOut' }
-        }
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.34, 1.56, 0.64, 1] }}
       />
-
-      {/* Chart SVG → morphs to wallet icon */}
-      <motion.svg
-        viewBox="0 0 40 40"
-        className="relative z-10 w-10 h-10"
-        style={{ color: 'hsl(var(--primary-foreground))' }}
+      {/* Borda com gradiente */}
+      <motion.div
+        className="absolute inset-0 rounded-2xl"
+        style={{ border: '1px solid hsl(193 100% 54% / 0.3)' }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.1, duration: 0.3 }}
-      >
-        {/* Chart bars — visible during intro, fade out on done */}
-        <AnimatePresence>
-          {!done && (
-            <motion.g
-              key="chart"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.3 }}
-              fill="currentColor"
-            >
-              {/* bar 1 */}
-              <motion.rect x="4" y="28" width="6" height="8" rx="1.5"
-                initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
-                transition={{ delay: 0.15, duration: 0.35, ease: 'backOut' }}
-                style={{ transformOrigin: 'bottom' }}
-              />
-              {/* bar 2 */}
-              <motion.rect x="13" y="20" width="6" height="16" rx="1.5"
-                initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
-                transition={{ delay: 0.25, duration: 0.35, ease: 'backOut' }}
-                style={{ transformOrigin: 'bottom' }}
-              />
-              {/* bar 3 */}
-              <motion.rect x="22" y="14" width="6" height="22" rx="1.5"
-                initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
-                transition={{ delay: 0.35, duration: 0.35, ease: 'backOut' }}
-                style={{ transformOrigin: 'bottom' }}
-              />
-              {/* bar 4 */}
-              <motion.rect x="31" y="8" width="6" height="28" rx="1.5"
-                initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
-                transition={{ delay: 0.45, duration: 0.35, ease: 'backOut' }}
-                style={{ transformOrigin: 'bottom' }}
-              />
-              {/* trend line */}
-              <motion.polyline
-                points="7,27 16,19 25,13 34,7"
-                fill="none" stroke="currentColor" strokeWidth="2.5"
-                strokeLinecap="round" strokeLinejoin="round"
-                strokeOpacity={0.5}
-                initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                transition={{ delay: 0.5, duration: 0.4, ease: 'easeOut' }}
-              />
-            </motion.g>
-          )}
-        </AnimatePresence>
+        transition={{ delay: 0.2, duration: 0.4 }}
+      />
 
-        {/* Wallet icon — appears after morph */}
-        <AnimatePresence>
-          {done && (
-            <motion.g
-              key="wallet"
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-              fill="currentColor"
-            >
-              {/* wallet body */}
-              <rect x="4" y="12" width="32" height="22" rx="4" />
-              {/* wallet flap */}
-              <path d="M4 17h32v-3a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v3z" opacity={0.6} />
-              {/* coin slot */}
-              <rect x="26" y="20" width="8" height="7" rx="3.5" fill="hsl(var(--primary))" opacity={0.35} />
-              <circle cx="30" cy="23.5" r="2" fill="hsl(var(--primary-foreground))" opacity={0.9} />
-            </motion.g>
-          )}
-        </AnimatePresence>
-      </motion.svg>
+      <AnimatePresence mode="wait">
+        {!done ? (
+          /* Fase 1: barras de gráfico crescendo */
+          <motion.svg key="chart" viewBox="0 0 40 40" className="relative z-10 w-10 h-10"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.6 }}
+            transition={{ duration: 0.25 }}>
+            <motion.rect x="4" y="28" width="6" height="8" rx="1.5" fill="hsl(193 100% 54% / 0.6)"
+              initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+              transition={{ delay: 0.1, duration: 0.3, ease: 'backOut' }} style={{ transformOrigin: 'bottom' }} />
+            <motion.rect x="13" y="20" width="6" height="16" rx="1.5" fill="hsl(193 100% 54% / 0.75)"
+              initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+              transition={{ delay: 0.2, duration: 0.3, ease: 'backOut' }} style={{ transformOrigin: 'bottom' }} />
+            <motion.rect x="22" y="13" width="6" height="23" rx="1.5" fill="hsl(193 100% 54% / 0.88)"
+              initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+              transition={{ delay: 0.3, duration: 0.3, ease: 'backOut' }} style={{ transformOrigin: 'bottom' }} />
+            <motion.rect x="31" y="7" width="6" height="29" rx="1.5" fill="hsl(193 100% 54%)"
+              initial={{ scaleY: 0 }} animate={{ scaleY: 1 }}
+              transition={{ delay: 0.4, duration: 0.3, ease: 'backOut' }} style={{ transformOrigin: 'bottom' }} />
+          </motion.svg>
+        ) : (
+          /* Fase 2: N lettermark Novux com gradiente */
+          <motion.svg key="nmark" viewBox="0 0 40 40" fill="none" className="relative z-10 w-10 h-10"
+            initial={{ opacity: 0, scale: 0.5, rotate: -10 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}>
+            <defs>
+              <linearGradient id="lg" x1="8" y1="8" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#16C7FF" />
+                <stop offset="100%" stopColor="#8B5CF6" />
+              </linearGradient>
+            </defs>
+            {/* Glow suave atrás do N */}
+            <path d="M10 30 L10 10 L30 30 L30 10" stroke="url(#lg)" strokeWidth="6"
+              strokeLinecap="round" strokeLinejoin="round" strokeOpacity={0.25} />
+            {/* N principal */}
+            <path d="M10 30 L10 10 L30 30 L30 10" stroke="url(#lg)" strokeWidth="3.5"
+              strokeLinecap="round" strokeLinejoin="round" />
+          </motion.svg>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

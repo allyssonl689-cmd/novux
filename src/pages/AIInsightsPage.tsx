@@ -42,7 +42,7 @@ function ProGate({ onClose }: { onClose?: () => void }) {
       </div>
       <button className="btn-novux flex items-center gap-2 px-6 py-2.5 text-xs font-bold rounded-xl">
         <Sparkles className="h-3.5 w-3.5" />
-        Conhecer Plano Pro
+        Seja Premium!
       </button>
       {onClose && (
         <button onClick={onClose} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
@@ -64,7 +64,7 @@ function LimitReachedBanner({ remaining }: { remaining: number }) {
         <p className="text-xs font-semibold text-amber-600 dark:text-amber-400">Limite diário atingido</p>
         <p className="text-[10px] text-muted-foreground mt-0.5">
           Você usou todas as {FREE_DAILY_LIMIT} mensagens gratuitas de hoje. Amanhã o limite é renovado.{' '}
-          <span className="font-semibold text-primary cursor-pointer hover:opacity-80">Upgrade para Pro →</span>
+          <span className="font-semibold text-primary cursor-pointer hover:opacity-80">Seja Premium! →</span>
         </p>
       </div>
     </motion.div>
@@ -190,7 +190,7 @@ export default function AIInsightsPage() {
         <p className="text-xs text-muted-foreground mt-1">Análises financeiras com inteligência artificial real via Groq LLaMA</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ height: 'calc(100vh - 190px)' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ height: 'calc(100dvh - 190px)', minHeight: '420px' }}>
 
         {/* Chat */}
         <div className="lg:col-span-3 flex flex-col rounded-2xl border border-border bg-card overflow-hidden">
@@ -241,13 +241,13 @@ export default function AIInsightsPage() {
           {/* Limit banner */}
           {!IS_PREMIUM && <LimitReachedBanner remaining={remaining ?? FREE_DAILY_LIMIT} />}
 
-          {/* Quick actions */}
-          <div className="px-4 py-2.5 border-t border-border">
-            <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-2">Sugestões rápidas</p>
-            <div className="flex flex-wrap gap-1.5">
+          {/* Quick actions — no mobile mostra só 2, com scroll horizontal */}
+          <div className="px-3 py-2 border-t border-border">
+            <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Sugestões rápidas</p>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
               {QUICK.map(q => (
                 <button key={q.text} onClick={() => handleSend(q.text)} disabled={loading || !canSend}
-                  className="rounded-xl border border-border bg-card px-3 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-secondary transition-all disabled:opacity-40">
+                  className="rounded-xl border border-border bg-card px-2.5 py-1.5 text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40 hover:bg-secondary transition-all disabled:opacity-40 whitespace-nowrap shrink-0">
                   {q.text}
                 </button>
               ))}
@@ -329,7 +329,7 @@ export default function AIInsightsPage() {
                   style={{ width: `${((FREE_DAILY_LIMIT - (remaining ?? FREE_DAILY_LIMIT)) / FREE_DAILY_LIMIT) * 100}%` }} />
               </div>
               <button className="btn-novux w-full mt-3 py-2 text-[11px] font-bold rounded-xl flex items-center justify-center gap-1.5">
-                <Crown className="h-3 w-3" /> Upgrade para Pro
+                <Crown className="h-3 w-3" /> Seja Premium!
               </button>
             </motion.div>
           )}

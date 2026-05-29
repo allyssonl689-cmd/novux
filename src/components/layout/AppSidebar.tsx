@@ -33,7 +33,7 @@ const navMain = [
 const navBottom = [
   { title: 'Relatórios',    url: '/relatorios',   icon: BarChart3 },
   { title: 'Perfil',        url: '/perfil',       icon: User },
-  { title: 'Configurações', url: '/configuracoes',icon: Settings,    soon: true },
+  { title: 'Configurações', url: '/configuracoes',icon: Settings },
 ];
 
 type NavItem = {
@@ -166,7 +166,7 @@ export function AppSidebar() {
               IA ilimitada, relatórios avançados, carteiras e muito mais.
             </p>
             <button className="btn-novux w-full rounded-lg py-1.5 text-[10px] font-bold">
-              Conhecer Pro →
+              Seja Premium!
             </button>
           </div>
         )}

@@ -7,20 +7,36 @@ import {
   Utensils, Car, Home, Smile, HeartPulse, BookOpen, Briefcase,
   BarChart2, Laptop, Smartphone, CreditCard, Shirt, Activity,
   Package, Gift, RotateCcw, CheckCircle2, Circle, LucideIcon,
-  Tag, Paperclip, DollarSign,
+  Tag, Paperclip, DollarSign, Plane, PawPrint, Banknote,
+  Shield, Receipt, Heart, ChefHat, Tv, Phone, Building2,
 } from 'lucide-react';
 import { transactionService } from '@/services/transactionService';
 
 interface Props { open: boolean; onClose: () => void; editId?: string | null }
 
-const EXPENSE_CATS = ['Alimentação','Transporte','Moradia','Lazer','Saúde','Educação','Assinaturas','Cartão','Vestuário','Saúde/Bem-estar','Outros'];
-const INCOME_CATS  = ['Salário','Freelance','Investimentos','Presente','Reembolso','Outros'];
-const CAT_ICONS: Record<string, LucideIcon> = {
-  'Alimentação': Utensils, 'Transporte': Car, 'Moradia': Home, 'Lazer': Smile,
-  'Saúde': HeartPulse, 'Educação': BookOpen, 'Salário': Briefcase,
-  'Investimentos': BarChart2, 'Freelance': Laptop, 'Assinaturas': Smartphone,
-  'Cartão': CreditCard, 'Vestuário': Shirt, 'Saúde/Bem-estar': Activity,
-  'Outros': Package, 'Presente': Gift, 'Reembolso': RotateCcw,
+const EXPENSE_CATS = [
+  'Alimentação','Restaurantes','Transporte','Moradia','Lazer','Viagens',
+  'Saúde','Saúde Mental','Educação','Assinaturas','Streaming','Telefone',
+  'Cartão','Vestuário','Pets','Empréstimos','Seguros','Impostos',
+  'Doações','Presente','Reembolso','Outros',
+];
+const INCOME_CATS = ['Salário','Freelance','Investimentos','Aluguel recebido','Presente','Reembolso','Outros'];
+
+export const CAT_ICONS: Record<string, LucideIcon> = {
+  'Alimentação':     Utensils,   'Restaurantes':     ChefHat,
+  'Transporte':      Car,        'Moradia':          Home,
+  'Lazer':           Smile,      'Viagens':          Plane,
+  'Saúde':           HeartPulse, 'Saúde Mental':     Activity,
+  'Educação':        BookOpen,   'Assinaturas':      Smartphone,
+  'Streaming':       Tv,         'Telefone':         Phone,
+  'Cartão':          CreditCard, 'Vestuário':        Shirt,
+  'Pets':            PawPrint,   'Empréstimos':      Banknote,
+  'Seguros':         Shield,     'Impostos':         Receipt,
+  'Doações':         Heart,      'Presente':         Gift,
+  'Reembolso':       RotateCcw,  'Outros':           Package,
+  'Salário':         Briefcase,  'Freelance':        Laptop,
+  'Investimentos':   BarChart2,  'Aluguel recebido': Building2,
+  'Saúde/Bem-estar': Activity,
 };
 const RECURRENCE_OPTS: { value: RecurrenceType; label: string }[] = [
   { value: 'none', label: 'Não repete' }, { value: 'daily', label: 'Diariamente' },

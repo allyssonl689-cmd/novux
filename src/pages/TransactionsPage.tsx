@@ -4,34 +4,14 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
 import {
   Search, Plus, Trash2, Pencil, TrendingUp, TrendingDown, ArrowUpDown,
-  Utensils, Car, Home, Smile, HeartPulse, BookOpen, Briefcase,
-  BarChart2, Laptop, Smartphone, CreditCard, Shirt, Activity,
-  Package, Gift, RotateCcw, CheckCircle2, Circle, LucideIcon, FileUp,
+  CheckCircle2, Circle, FileUp, Package,
 } from 'lucide-react';
-import { TransactionForm } from '@/components/TransactionForm';
+import { TransactionForm, CAT_ICONS } from '@/components/TransactionForm';
 import { CSVImportModal } from '@/components/CSVImportModal';
 import { Transaction } from '@/lib/types';
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-const CAT_ICONS: Record<string, LucideIcon> = {
-  'Alimentação': Utensils,
-  'Transporte': Car,
-  'Moradia': Home,
-  'Lazer': Smile,
-  'Saúde': HeartPulse,
-  'Educação': BookOpen,
-  'Salário': Briefcase,
-  'Investimentos': BarChart2,
-  'Freelance': Laptop,
-  'Assinaturas': Smartphone,
-  'Cartão': CreditCard,
-  'Vestuário': Shirt,
-  'Saúde/Bem-estar': Activity,
-  'Outros': Package,
-  'Presente': Gift,
-  'Reembolso': RotateCcw,
-};
 
 export default function TransactionsPage() {
   const { transactions, deleteTransaction, toggleTransactionPaid } = useFinance();
@@ -103,32 +83,35 @@ export default function TransactionsPage() {
             <p className="text-xs text-muted-foreground mt-1">{filtered.length} transações encontradas</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => setCsvOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all">
-              <FileUp className="h-3.5 w-3.5" /> Importar CSV
+            {/* Mobile: só ícone; desktop: texto completo */}
+            <button onClick={() => setCsvOpen(true)} title="Importar CSV"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 text-xs font-semibold rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all">
+              <FileUp className="h-3.5 w-3.5 shrink-0" />
+              <span className="hidden sm:inline">Importar CSV</span>
             </button>
-            <button onClick={() => { setEditId(null); setFormOpen(true); }}
-              className="btn-novux flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl">
-              <Plus className="h-3.5 w-3.5" /> Novo Lançamento
+            <button onClick={() => { setEditId(null); setFormOpen(true); }} title="Novo Lançamento"
+              className="btn-novux flex items-center gap-2 px-3 sm:px-4 py-2.5 text-xs font-bold rounded-xl">
+              <Plus className="h-3.5 w-3.5 shrink-0" strokeWidth={2.5} />
+              <span className="hidden sm:inline">Novo Lançamento</span>
             </button>
           </div>
         </div>
       </motion.div>
 
-      {/* Month totals */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Month totals — 1 col mobile, 3 cols sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {[
-          { l: 'Receitas do Mês',  v: fmt(monthTotals.income),                     c: '#10B981', Icon: TrendingUp   },
-          { l: 'Despesas do Mês',  v: fmt(monthTotals.expense),                    c: '#EF4444', Icon: TrendingDown },
-          { l: 'Saldo do Mês',     v: fmt(monthTotals.income-monthTotals.expense), c: monthTotals.income>=monthTotals.expense?'#0EA5E9':'#EF4444', Icon: ArrowUpDown },
+          { l: 'Receitas do Mês',  v: fmt(monthTotals.income),                     c: '#19D38A', Icon: TrendingUp   },
+          { l: 'Despesas do Mês',  v: fmt(monthTotals.expense),                    c: '#FF5A5F', Icon: TrendingDown },
+          { l: 'Saldo do Mês',     v: fmt(monthTotals.income-monthTotals.expense), c: monthTotals.income>=monthTotals.expense?'#16C7FF':'#FF5A5F', Icon: ArrowUpDown },
         ].map((s,i) => (
           <motion.div key={s.l} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i*0.06 }}
-            className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-1.5">
-              <s.Icon className="h-3.5 w-3.5" style={{ color: s.c }} />
+            className="rounded-xl border border-border bg-card p-3.5 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1.5">
+            <div className="flex items-center gap-2">
+              <s.Icon className="h-3.5 w-3.5 shrink-0" style={{ color: s.c }} />
               <span className="text-[11px] text-muted-foreground">{s.l}</span>
             </div>
-            <p className="text-lg font-bold mono" style={{ color: s.c, fontFamily:'Outfit,sans-serif' }}>{s.v}</p>
+            <p className="text-base sm:text-lg font-bold mono ml-auto sm:ml-0" style={{ color: s.c, fontFamily:'Outfit,sans-serif' }}>{s.v}</p>
           </motion.div>
         ))}
       </div>

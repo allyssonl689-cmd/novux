@@ -54,9 +54,11 @@ function MonthNavigator() {
       <button
         onClick={() => { setMonth(now.getMonth()); setYear(now.getFullYear()); applyMonth(now.getMonth(), now.getFullYear()); }}
         title="Voltar para o mês atual"
-        className="flex items-center gap-1.5 rounded-xl border border-border bg-secondary/50 px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-all min-w-[130px] justify-center"
+        className="flex items-center gap-1 rounded-xl border border-border bg-secondary/50 px-2.5 sm:px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-all min-w-[90px] sm:min-w-[130px] justify-center"
         style={isCurrentMonth ? { borderColor: 'hsl(193 100% 50% / 0.4)', color: 'hsl(193 100% 65%)' } : {}}>
-        {MONTH_NAMES[month]} {year}
+        <span className="hidden sm:inline">{MONTH_NAMES[month]}</span>
+        <span className="sm:hidden">{MONTH_NAMES[month].slice(0, 3)}</span>
+        {' '}{year}
       </button>
 
       <button
@@ -261,35 +263,37 @@ export function MainLayout() {
 
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* ── Header ── */}
-          <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border px-4 py-2.5"
+          <header className="sticky top-0 z-30 flex items-center gap-1.5 border-b border-border px-2 sm:px-4 py-2"
             style={{ background: 'hsl(var(--background) / 0.92)', backdropFilter: 'blur(12px)' }}>
 
             <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors shrink-0" />
 
-            {/* Month navigator — center */}
+            {/* Month navigator */}
             <div className="flex-1 flex justify-center">
               <MonthNavigator />
             </div>
 
-            {/* Period selector */}
-            <PeriodSelector />
+            {/* Period selector — oculto em xs */}
+            <div className="hidden sm:block">
+              <PeriodSelector />
+            </div>
 
             {/* Theme toggle */}
             <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-              className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+              className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all shrink-0">
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
 
-            {/* Export (premium) */}
+            {/* Export (premium) — oculto em xs */}
             {isPremiumPreview && (
               <button onClick={exportCSV} title="Exportar CSV"
-                className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+                className="hidden sm:flex h-8 w-8 rounded-xl border border-border items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                 <Download className="h-3.5 w-3.5" />
               </button>
             )}
 
             {/* Alert bell */}
-            <div className="relative">
+            <div className="relative shrink-0">
               <button
                 onClick={() => setNotifOpen(v => !v)}
                 className="relative h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
@@ -303,16 +307,10 @@ export function MainLayout() {
 
             {/* New transaction CTA */}
             <button onClick={() => setFormOpen(true)}
-              className="btn-novux flex items-center gap-1.5 px-4 py-2 text-xs rounded-xl">
+              className="btn-novux flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl shrink-0">
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
               <span className="hidden sm:inline">Lançamento</span>
             </button>
-
-            {/* Avatar */}
-            <div className="h-8 w-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0"
-              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
-              <span style={{ fontFamily: 'Syne, sans-serif' }}>N</span>
-            </div>
           </header>
 
           {/* ── Page ── */}

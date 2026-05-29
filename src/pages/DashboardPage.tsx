@@ -39,17 +39,17 @@ function KPI({ label, value, sub, icon: Icon, color, delta, idx }: {
     <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 24 }}
-      className="rounded-2xl border border-border bg-card p-5 card-hover relative overflow-hidden group"
+      className="rounded-2xl border border-border bg-card p-4 card-hover relative overflow-hidden group"
       style={{ boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(var(--border))' }}>
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at 80% 20%, ${color}08 0%, transparent 60%)` }} />
-      <div className="flex items-start justify-between mb-4">
-        <span className="text-xs font-medium text-muted-foreground leading-none">{label}</span>
-        <div className="h-8 w-8 rounded-xl flex items-center justify-center" style={{ background: `${color}18` }}>
-          <Icon className="h-4 w-4" style={{ color }} />
+      <div className="flex items-start justify-between mb-3">
+        <span className="text-[11px] font-medium text-muted-foreground leading-tight">{label}</span>
+        <div className="h-7 w-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${color}18` }}>
+          <Icon className="h-3.5 w-3.5" style={{ color }} />
         </div>
       </div>
-      <p className="text-2xl font-bold text-foreground leading-none" style={{ fontFamily: 'Outfit,sans-serif' }}>{value}</p>
+      <p className="text-xl sm:text-2xl font-bold text-foreground leading-none break-all" style={{ fontFamily: 'Outfit,sans-serif' }}>{value}</p>
       {(sub || delta !== undefined) && (
         <div className="mt-2.5 flex items-center gap-1.5 text-[11px]">
           {delta !== undefined && (
@@ -202,8 +202,8 @@ export default function DashboardPage() {
         <KPI idx={3} label="Patrimônio Líquido"  value={fmtSigned(stats.income - stats.expense)} sub="acumulado no período"            icon={PiggyBank}      color={CHART.goal}                         />
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-3 gap-3">
+      {/* Summary strip — 1 col mobile, 3 cols sm+ */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {[
           { label: 'Taxa de poupança', val: `${savingsRate}%`, note: Number(savingsRate)>=20?'✓ Acima da meta':'Meta: 20%', ok: Number(savingsRate)>=20 },
           { label: 'Saldo livre estimado', val: fmtSigned(stats.income - stats.expense), note: stats.balance >= 0 ? 'disponível para investir' : 'despesas acima da receita', ok: stats.balance >= 0 },

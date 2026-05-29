@@ -144,9 +144,22 @@ export async function parseTransaction(text: string): Promise<ParsedTransaction 
   const groqKey = process.env.GROQ_API_KEY;
 
   if (groqKey) {
+    console.log('[TelegramParser] Tentando Groq LLaMA...');
     const groqResult = await parseWithGroq(text, groqKey);
-    if (groqResult) return groqResult;
+    if (groqResult) {
+      console.log(`[TelegramParser] ✅ Groq LLaMA — tipo=${groqResult.type} valor=${groqResult.value} categoria="${groqResult.category}" desc="${groqResult.description}"`);
+      return groqResult;
+    }
+    console.log('[TelegramParser] ⚠️  Groq falhou ou retornou null — usando regex fallback');
+  } else {
+    console.log('[TelegramParser] ℹ️  GROQ_API_KEY não configurada — usando regex fallback');
   }
 
-  return parseWithRegex(text);
+  const regexResult = parseWithRegex(text);
+  if (regexResult) {
+    console.log(`[TelegramParser] 🔍 Regex — tipo=${regexResult.type} valor=${regexResult.value} categoria="${regexResult.category}"`);
+  } else {
+    console.log('[TelegramParser] ❌ Regex não reconheceu a mensagem');
+  }
+  return regexResult;
 }
