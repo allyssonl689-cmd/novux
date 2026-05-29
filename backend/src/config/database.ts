@@ -6,7 +6,9 @@ export const db = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false,
+  ssl: env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED }
+    : false,
 });
 
 db.on('error', (err) => {

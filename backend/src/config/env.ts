@@ -21,6 +21,9 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 
+  // false por padrão para compatibilidade com Supabase Session Pooler (cert auto-assinado)
+  DATABASE_SSL_REJECT_UNAUTHORIZED: z.coerce.boolean().default(false),
+
   GOOGLE_CLIENT_ID: z.string().min(10, 'GOOGLE_CLIENT_ID inválido').optional(),
 
   GROQ_API_KEY: z.string().optional(),
