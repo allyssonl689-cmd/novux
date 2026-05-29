@@ -149,10 +149,3 @@ Auth      → JWT (15min access + 7d refresh com hash SHA-256)
 ```
 
 ---
-
-## Migrações SQL pendentes para executar no Supabase
-
-```
-backend/src/migrations/007_telegram_links.sql   — tabelas de vinculação Telegram
-backend/src/migrations/008_security_compliance.sql — brute force, audit log, referral, planos
-```
