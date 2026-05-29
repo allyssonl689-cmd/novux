@@ -2,7 +2,9 @@
 
 **Seu copiloto financeiro inteligente.**
 
-Plataforma SaaS de gestão financeira pessoal com IA real (Groq LLaMA), análise de gastos, metas, investimentos e insights automáticos. Interface dark-mode premium, design system próprio e arquitetura pronta para escala.
+Plataforma SaaS de gestão financeira pessoal com IA real (Groq LLaMA 3.3 70B), bot Telegram, análise de gastos, metas, investimentos e insights automáticos. Interface dark/light mode premium, design system próprio (brand book), conformidade LGPD e arquitetura pronta para escala.
+
+> **Última atualização:** 30 de maio de 2026 — v1.2.0
 
 ---
 
@@ -30,8 +32,10 @@ Plataforma SaaS de gestão financeira pessoal com IA real (Groq LLaMA), análise
 | Item | Valor |
 |---|---|
 | Produto | Novux Finance |
-| Versão | 1.0.0 |
+| Versão | 1.2.0 |
 | Frontend (Web) | https://novux-export.vercel.app |
+| Landing Page | https://novux-export.vercel.app/landing |
+| Bot Telegram | [@Novuxx_bot](https://t.me/Novuxx_bot) |
 | Backend (API) | https://novux.onrender.com |
 | Repositório | https://github.com/allyssonl689-cmd/novux |
 
@@ -156,12 +160,13 @@ novux/
 ## Funcionalidades
 
 ### Módulo Financeiro
-- **Dashboard** — KPIs em tempo real: Saldo, Receitas, Despesas, Patrimônio Líquido
-- **Lançamentos** — CRUD completo com categorias, tags, notas e comprovante (PDF/imagem)
-- **Recorrência** — Transações mensais repetidas automaticamente (N meses), com cálculo de data seguro (sem overflow)
+- **Dashboard** — KPIs em tempo real: Saldo, Receitas, Despesas, Patrimônio Líquido + dot animado
+- **Lançamentos** — CRUD completo com 28 categorias, tags, notas, comprovante, recorrência mensal
+- **Recorrência** — Transações mensais repetidas automaticamente (N meses) com cálculo seguro de data (sem overflow de meses curtos)
 - **Status de pagamento** — Marcar como "pago/recebido" ou "em aberto"
 - **Importação CSV** — Upload e mapeamento de planilhas bancárias
 - **Filtro de período** — Mês atual, trimestre, semestre, ano, período personalizado
+- **Configurações** — Moeda padrão, limite de orçamento por categoria, notificações, exportação
 
 ### IA Copilot (Groq LLaMA 3.3 70B)
 - Chat financeiro com contexto completo do usuário (receitas, despesas, histórico)
@@ -179,11 +184,30 @@ novux/
 - Breakdown por categoria (pie chart + barra)
 - Exportação CSV
 
-### Autenticação
-- Registro/login com email + senha
+### Autenticação e Segurança
+- Registro/login com email + senha (validação de força de senha)
 - Google OAuth (rota preparada)
-- JWT access token (15min) + refresh token (7 dias, httpOnly)
-- 2FA preparado (rota ativa)
+- JWT access token (15min) + refresh token (7 dias, hash SHA-256 no banco)
+- 2FA (TOTP) — Google Authenticator / Authy
+- Brute force protection — bloqueio após 5 tentativas por 15min
+- Audit log de ações sensíveis (login, logout, export, delete)
+- CSP, X-Frame-Options, Referrer-Policy via Vercel headers
+
+### LGPD / Compliance
+- Consentimento explícito no cadastro
+- Política de Privacidade (`/privacidade`)
+- Termos de Uso (`/termos`)
+- Exportação de dados (CSV/JSON)
+- Exclusão completa de conta (`DELETE /api/auth/account`)
+
+### Páginas Públicas
+- Landing page (`/landing`) — Hero, Features, Planos, FAQ, Footer
+- Central de Ajuda (`/ajuda`) — 20+ perguntas em 6 categorias
+- Política de Privacidade (`/privacidade`)
+- Termos de Uso (`/termos`)
+
+### Admin
+- Dashboard Admin (`/admin`) — métricas de usuários, planos, crescimento, top categorias
 
 ### PWA
 - Instalável como app (manifest + service worker)

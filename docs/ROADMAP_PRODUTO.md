@@ -6,7 +6,7 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 
 ---
 
-## Status do Deploy (atualizado em 2026-05-29)
+## Status do Deploy (atualizado em 2026-05-30)
 
 | Serviço | URL | Status |
 |---|---|---|
@@ -47,6 +47,11 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 - [x] Onboarding modal (primeiro acesso)
 - [x] Dashboard Admin (/admin)
 - [x] Programa de Indicação (estrutura — código + rastreio)
+- [x] Padronização de fontes (Poppins em todas as páginas)
+- [x] Header contextual (sem seletor de mês em Perfil/Configurações/Admin)
+- [x] Política de Privacidade (/privacidade) e Termos de Uso (/termos)
+- [x] Consentimento LGPD no cadastro (checkbox obrigatório)
+- [x] Categorias expandidas (22 categorias de despesa + 6 de receita)
 
 ### ✅ Segurança — Implementado
 
