@@ -7,9 +7,13 @@ import { useTheme } from '@/contexts/ThemeContext';
 import {
   Bell, Shield, Download, ChevronRight, Sparkles, Sun, Moon,
   CheckCircle2, Zap, LogOut, Smartphone, Lock, QrCode, X,
-  RefreshCw, Eye, EyeOff,
+  RefreshCw, Eye, EyeOff, Send, Link2, Unlink, Copy,
 } from 'lucide-react';
 import { twoFactorService, notificationService } from '@/services/twoFactorService';
+import { apiFetch } from '@/services/api';
+
+interface TelegramStatus { linked: boolean; username?: string; linkedAt?: string }
+interface TelegramTokenRes { token: string; linked: boolean }
 
 export default function ProfilePage() {
   const { transactions, isPremiumPreview, setPremiumPreview } = useFinance();
@@ -37,6 +41,43 @@ export default function ProfilePage() {
   }, []);
 
   async function handleLogout() { await logout(); navigate('/login'); }
+
+  // ── Telegram ──────────────────────────────────────────
+  const [tgStatus, setTgStatus]     = useState<TelegramStatus | null>(null);
+  const [tgToken, setTgToken]       = useState('');
+  const [tgLoading, setTgLoading]   = useState(false);
+  const [tgCopied, setTgCopied]     = useState(false);
+
+  useEffect(() => {
+    apiFetch<{ success: boolean; data: TelegramStatus }>('/api/telegram/status')
+      .then(r => setTgStatus(r.data))
+      .catch(() => setTgStatus({ linked: false }));
+  }, []);
+
+  async function handleGenerateToken() {
+    setTgLoading(true);
+    try {
+      const r = await apiFetch<{ success: boolean; data: TelegramTokenRes }>('/api/telegram/link-token', { method: 'POST' });
+      setTgToken(r.data.token);
+    } catch { /* silently ignore */ }
+    finally { setTgLoading(false); }
+  }
+
+  function copyToken() {
+    navigator.clipboard.writeText(`/conectar ${tgToken}`);
+    setTgCopied(true);
+    setTimeout(() => setTgCopied(false), 2000);
+  }
+
+  async function handleUnlinkTelegram() {
+    setTgLoading(true);
+    try {
+      await apiFetch('/api/telegram/unlink', { method: 'DELETE' });
+      setTgStatus({ linked: false });
+      setTgToken('');
+    } catch { /* silently ignore */ }
+    finally { setTgLoading(false); }
+  }
 
   function exportCSV() {
     const csv = ['Data,Tipo,Categoria,Descrição,Valor,Moeda,Tags',
@@ -343,6 +384,85 @@ export default function ProfilePage() {
         style={{ background: saved ? 'hsl(var(--success))' : 'hsl(var(--primary))' }}>
         {saved ? <><CheckCircle2 className="h-4 w-4" />Configurações salvas!</> : 'Salvar configurações'}
       </motion.button>
+
+      {/* ── Telegram Bot ── */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.21 }}
+        className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+          <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'hsl(193 100% 54% / 0.12)', border: '1px solid hsl(193 100% 54% / 0.2)' }}>
+            <Send className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-bold text-foreground">Telegram Bot</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              Registre lançamentos pelo{' '}
+              <a href="https://t.me/Novuxx_bot" target="_blank" rel="noreferrer" className="text-primary hover:underline">@Novuxx_bot</a>
+            </p>
+          </div>
+          {tgStatus?.linked && (
+            <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full bg-success-muted text-success border border-success/20">
+              <CheckCircle2 className="h-3 w-3" />Vinculado
+            </span>
+          )}
+        </div>
+        <div className="px-5 py-4 space-y-3">
+          {tgStatus?.linked ? (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Conta vinculada{tgStatus.username ? ` como @${tgStatus.username}` : ''}.
+                Envie mensagens ao bot para registrar lançamentos automaticamente.
+              </p>
+              <div className="rounded-xl border border-border bg-secondary/40 p-3 text-[11px] text-muted-foreground space-y-1">
+                <p>💬 <span className="text-foreground font-medium">"Gastei 89 no mercado"</span></p>
+                <p>💬 <span className="text-foreground font-medium">"Recebi 3000 de salário"</span></p>
+                <p>💬 <span className="text-foreground font-medium">"Netflix 55 todo mês"</span></p>
+                <p className="pt-1 text-muted-foreground/70">Comandos: /saldo /extrato /resumo</p>
+              </div>
+              <button onClick={handleUnlinkTelegram} disabled={tgLoading}
+                className="flex items-center gap-2 text-xs font-semibold text-destructive hover:opacity-75 transition-opacity disabled:opacity-40">
+                <Unlink className="h-3.5 w-3.5" />
+                {tgLoading ? 'Desvinculando...' : 'Desvincular Telegram'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Vincule sua conta para registrar transações diretamente pelo Telegram, sem abrir o app.
+              </p>
+              {!tgToken ? (
+                <button onClick={handleGenerateToken} disabled={tgLoading}
+                  className="btn-novux flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl w-full justify-center disabled:opacity-60">
+                  {tgLoading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Link2 className="h-3.5 w-3.5" />}
+                  {tgLoading ? 'Gerando...' : 'Gerar código de vinculação'}
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-primary/25 bg-primary/5 p-3.5 space-y-2">
+                    <p className="text-[11px] text-muted-foreground">
+                      1. Abra o bot:{' '}
+                      <a href="https://t.me/Novuxx_bot" target="_blank" rel="noreferrer" className="text-primary font-semibold">t.me/Novuxx_bot</a>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">2. Envie este comando (clique para copiar):</p>
+                    <button onClick={copyToken}
+                      className="w-full flex items-center justify-between gap-2 rounded-lg border border-primary/25 bg-primary/8 px-3 py-2 text-xs font-mono text-primary hover:bg-primary/12 transition-all">
+                      <span>/conectar {tgToken}</span>
+                      {tgCopied
+                        ? <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" />
+                        : <Copy className="h-3.5 w-3.5 shrink-0" />}
+                    </button>
+                    <p className="text-[10px] text-muted-foreground/60">⏱ Expira em 10 minutos</p>
+                  </div>
+                  <button onClick={handleGenerateToken} disabled={tgLoading}
+                    className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+                    <RefreshCw className="h-3 w-3" /> Gerar novo código
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </motion.div>
 
       <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.22 }}
         onClick={handleLogout}

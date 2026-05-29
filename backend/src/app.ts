@@ -22,6 +22,7 @@ import reportRoutes      from './routes/reports';
 import userRoutes        from './routes/users';
 import twoFactorRoutes   from './routes/twoFactor';
 import aiRoutes          from './routes/ai';
+import telegramRoutes    from './routes/telegram';
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use('/api/goals',         goalRoutes);
 app.use('/api/reports',       reportRoutes);
 app.use('/api/users',         userRoutes);
 app.use('/api/ai',            aiRoutes);
+app.use('/api/telegram',      telegramRoutes);
 
 // 404
 app.use((_req, res) => {
@@ -63,9 +65,17 @@ app.use(errorHandler);
 
 async function start(): Promise<void> {
   await connectDatabase();
-  app.listen(env.PORT, () => {
+  app.listen(env.PORT, async () => {
     console.log(`🚀 Servidor rodando em http://localhost:${env.PORT}`);
     console.log(`📦 Ambiente: ${env.NODE_ENV}`);
+
+    // Registrar webhook do Telegram automaticamente em produção
+    if (env.NODE_ENV === 'production' && (env as any).TELEGRAM_BOT_TOKEN && (env as any).BACKEND_URL) {
+      const { registerWebhook } = await import('./services/telegramService');
+      const webhookUrl = `${(env as any).BACKEND_URL}/api/telegram/webhook`;
+      const ok = await registerWebhook(webhookUrl, (env as any).TELEGRAM_WEBHOOK_SECRET);
+      console.log(`🤖 Telegram webhook ${ok ? 'registrado' : 'FALHOU'}: ${webhookUrl}`);
+    }
   });
 }
 

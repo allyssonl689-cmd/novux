@@ -22,6 +22,10 @@ const envSchema = z.object({
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 
   GROQ_API_KEY: z.string().optional(),
+
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+  BACKEND_URL: z.string().optional(), // ex: https://novux.onrender.com
 });
 
 const parsed = envSchema.safeParse(process.env);
