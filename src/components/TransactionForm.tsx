@@ -30,6 +30,19 @@ const RECURRENCE_OPTS: { value: RecurrenceType; label: string }[] = [
 
 const SUGGESTED_TAGS = ['urgente','fixo','variável','alimentação','lazer','trabalho','pessoal','imposto'];
 
+/**
+ * Adiciona `months` meses a uma data no formato 'YYYY-MM-DD' sem overflow.
+ * Ex: addMonthsClamped('2026-01-31', 1) → '2026-02-28' (não Mar 3)
+ */
+function addMonthsClamped(dateStr: string, months: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const targetYear  = y + Math.floor((m - 1 + months) / 12);
+  const targetMonth = ((m - 1 + months) % 12) + 1;          // 1-based
+  const lastDay     = new Date(targetYear, targetMonth, 0).getDate(); // dia 0 do próx. mês
+  const day         = Math.min(d, lastDay);
+  return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 export function TransactionForm({ open, onClose, editId }: Props) {
   const { transactions, addTransaction, updateTransaction, addTransactions } = useFinance();
   const editing = editId ? transactions.find(t => t.id === editId) : undefined;
@@ -115,10 +128,11 @@ export function TransactionForm({ open, onClose, editId }: Props) {
       if (editing) {
         await updateTransaction({ ...baseData, id: editing.id });
       } else if (recurrence === 'monthly' && recMonths > 1) {
-        const txList = Array.from({ length: recMonths }, (_, i) => {
-          const d = new Date(date); d.setMonth(d.getMonth() + i);
-          return { ...baseData, date: d.toISOString().split('T')[0], isRecurring: i > 0 };
-        });
+        const txList = Array.from({ length: recMonths }, (_, i) => ({
+          ...baseData,
+          date: addMonthsClamped(date, i),
+          isRecurring: i > 0,
+        }));
         await addTransactions(txList);
       } else {
         await addTransaction(baseData);
