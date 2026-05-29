@@ -384,7 +384,7 @@ export default function ProfilePage() {
             <Zap className="h-4 w-4 text-primary" />
             <div>
               <p className="text-xs font-semibold text-foreground">Versão</p>
-              <p className="text-[11px] text-muted-foreground">Novux Finance v2.1 · Powered by Claude AI</p>
+              <p className="text-[11px] text-muted-foreground">Novux Finance v2.1 · Powered by Allysson Lima</p>
             </div>
           </div>
         </div>

@@ -4,10 +4,23 @@
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\" -Force)",
       "Bash(Select-Object Name, Mode)",
       "Bash(grep -E \"\\\\.\\(md|txt\\)$\")",
-      "Bash(mkdir -p \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\config\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\controllers\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\middleware\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\models\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\routes\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\services\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\validators\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\migrations\")"
+      "Bash(mkdir -p \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\config\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\controllers\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\middleware\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\models\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\routes\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\services\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\validators\" \"c:\\\\Users\\\\allysson.lima\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\Área de Trabalho\\\\all\\\\novux-export\\\\backend\\\\src\\\\migrations\")",
+      "Bash(npx ts-node *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"const o = require\\('otplib'\\); console.log\\(Object.keys\\(o\\)\\)\")",
+      "Bash(node -e \"const { TOTP, generateSecret } = require\\('otplib'\\); console.log\\(typeof TOTP, typeof generateSecret\\)\")",
+      "Bash(cd \"/c/Users/allysson.lima/OneDrive - Empreendimentos Farmacêuticos Globo Ltda/Área de Trabalho/all/novux-export\" && cat package.json | grep -E \"jspdf|pdf\")",
+      "Read(//c/c/Users/allysson.lima/OneDrive - Empreendimentos Farmacêuticos Globo Ltda/Área de Trabalho/all/novux-export/**)",
+      "Bash(node -e \"const j = require\\('./node_modules/jspdf/dist/jspdf.umd.js'\\); const d = new j.jsPDF\\(\\); console.log\\(typeof d.roundedRect, typeof d.rect, Object.keys\\(d\\).filter\\(k=>k.includes\\('rect'\\)\\)\\)\")",
+      "Bash(node -e \"const j = require\\('./node_modules/jspdf/dist/jspdf.umd.js'\\); const d = new j.jsPDF\\(\\); console.log\\(Object.keys\\(d\\).filter\\(k=>typeof d[k]==='function'\\).sort\\(\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"const p = require\\('./node_modules/jspdf/package.json'\\); console.log\\('main:', p.main, 'module:', p.module, 'exports:', JSON.stringify\\(p.exports?.['.'], null, 2\\)\\)\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\allysson.lima\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\Área de Trabalho\\all\\novux-export\\backend\\src"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }
