@@ -32,7 +32,7 @@ export async function refreshAccessToken(): Promise<string> {
 
   if (!res.ok) {
     tokenStore.clear();
-    window.location.href = '/login';
+    // Não redireciona aqui — quem decide redirecionar é o chamador (apiFetch ou tryRestoreSession)
     throw new Error('Token refresh failed');
   }
 
@@ -68,6 +68,8 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
       } catch {
         isRefreshing = false;
+        tokenStore.clear();
+        window.location.href = '/login';
         throw new Error('Sessão expirada. Faça login novamente.');
       }
     } else {
