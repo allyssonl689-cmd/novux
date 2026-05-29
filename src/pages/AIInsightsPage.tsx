@@ -33,7 +33,7 @@ function ProGate({ onClose }: { onClose?: () => void }) {
         <Crown className="h-8 w-8 text-primary" />
       </div>
       <div>
-        <p className="text-base font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>
+        <p className="text-base font-bold text-foreground" >
           Recurso Pro
         </p>
         <p className="text-xs text-muted-foreground mt-2 leading-relaxed max-w-xs">
@@ -177,7 +177,7 @@ export default function AIInsightsPage() {
     <div className="max-w-[1400px] mx-auto">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-5">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>IA Copiloto</h1>
+          <h1 className="text-2xl font-bold text-foreground" >IA Copiloto</h1>
           <span className="text-xs font-semibold px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-primary">
             {IS_PREMIUM ? 'Pro · Ilimitado' : `${remaining ?? '...'} mensagens restantes hoje`}
           </span>
@@ -204,7 +204,7 @@ export default function AIInsightsPage() {
               <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-card" />
             </div>
             <div>
-              <p className="text-sm font-bold text-foreground leading-none" style={{ fontFamily: 'Syne,sans-serif' }}>NovuxAI</p>
+              <p className="text-sm font-bold text-foreground leading-none" >NovuxAI</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">Powered by Groq LLaMA · Seus dados carregados</p>
             </div>
             <div className="ml-auto flex items-center gap-1.5 text-[10px] text-muted-foreground">

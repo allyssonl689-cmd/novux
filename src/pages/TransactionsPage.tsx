@@ -79,7 +79,7 @@ export default function TransactionsPage() {
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>Lançamentos</h1>
+            <h1 className="text-2xl font-bold text-foreground" >Lançamentos</h1>
             <p className="text-xs text-muted-foreground mt-1">{filtered.length} transações encontradas</p>
           </div>
           <div className="flex gap-2">

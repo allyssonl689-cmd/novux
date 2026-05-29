@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
@@ -8,6 +8,9 @@ import { TransactionForm } from '@/components/TransactionForm';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePeriod, PERIOD_LABELS, type PeriodPreset } from '@/contexts/PeriodContext';
+
+/* Rotas que usam header simplificado (sem navegador de mês e sem botão Lançamento) */
+const SIMPLE_HEADER_ROUTES = ['/perfil', '/configuracoes', '/admin'];
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -245,6 +248,8 @@ export function MainLayout() {
   const { insights, transactions, isPremiumPreview } = useFinance();
   const { theme, toggleTheme } = useTheme();
   const { showOnboarding } = useOnboarding();
+  const location = useLocation();
+  const isSimpleHeader = SIMPLE_HEADER_ROUTES.some(r => location.pathname.startsWith(r));
 
   // Mostra onboarding após 1s se for primeiro acesso
   useState(() => { if (showOnboarding) setTimeout(() => setShowOnb(true), 1000); });
@@ -274,15 +279,22 @@ export function MainLayout() {
 
             <SidebarTrigger className="text-muted-foreground hover:text-foreground transition-colors shrink-0" />
 
-            {/* Month navigator */}
-            <div className="flex-1 flex justify-center">
-              <MonthNavigator />
-            </div>
+            {/* Month navigator — oculto em páginas sem contexto de período */}
+            {!isSimpleHeader && (
+              <div className="flex-1 flex justify-center">
+                <MonthNavigator />
+              </div>
+            )}
 
-            {/* Period selector — oculto em xs */}
-            <div className="hidden sm:block">
-              <PeriodSelector />
-            </div>
+            {/* Spacer para header simples */}
+            {isSimpleHeader && <div className="flex-1" />}
+
+            {/* Period selector — oculto em xs e em páginas simples */}
+            {!isSimpleHeader && (
+              <div className="hidden sm:block">
+                <PeriodSelector />
+              </div>
+            )}
 
             {/* Theme toggle */}
             <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
@@ -290,8 +302,8 @@ export function MainLayout() {
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
 
-            {/* Export (premium) — oculto em xs */}
-            {isPremiumPreview && (
+            {/* Export (premium) — oculto em xs e em páginas simples */}
+            {!isSimpleHeader && isPremiumPreview && (
               <button onClick={exportCSV} title="Exportar CSV"
                 className="hidden sm:flex h-8 w-8 rounded-xl border border-border items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                 <Download className="h-3.5 w-3.5" />
@@ -311,12 +323,14 @@ export function MainLayout() {
               {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} dismissed={dismissed} setDismissed={setDismissed} />}
             </div>
 
-            {/* New transaction CTA */}
-            <button onClick={() => setFormOpen(true)}
-              className="btn-novux flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl shrink-0">
-              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-              <span className="hidden sm:inline">Lançamento</span>
-            </button>
+            {/* New transaction CTA — oculto em páginas simples */}
+            {!isSimpleHeader && (
+              <button onClick={() => setFormOpen(true)}
+                className="btn-novux flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl shrink-0">
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                <span className="hidden sm:inline">Lançamento</span>
+              </button>
+            )}
           </header>
 
           {/* ── Page ── */}

@@ -129,7 +129,7 @@ export default function GoalsPage() {
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>Metas Financeiras</h1>
+            <h1 className="text-2xl font-bold text-foreground" >Metas Financeiras</h1>
             <p className="text-xs text-muted-foreground mt-1">Acompanhe seus objetivos com inteligência</p>
           </div>
           <button onClick={openCreate}

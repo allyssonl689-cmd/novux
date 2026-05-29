@@ -25,7 +25,7 @@ export default function InvestmentsPage() {
   return (
     <div className="max-w-[1400px] mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily:'Syne,sans-serif' }}>Investimentos</h1>
+        <h1 className="text-2xl font-bold text-foreground" >Investimentos</h1>
         <p className="text-xs text-muted-foreground mt-1">Compare produtos e simule crescimento patrimonial</p>
       </motion.div>
 
@@ -34,7 +34,7 @@ export default function InvestmentsPage() {
         className="rounded-2xl border border-border bg-card p-5">
         <div className="flex items-center gap-2 mb-5">
           <Zap className="h-4 w-4 text-primary" />
-          <h2 className="text-sm font-bold text-foreground" style={{ fontFamily:'Syne,sans-serif' }}>Simulador de Juros Compostos</h2>
+          <h2 className="text-sm font-bold text-foreground" >Simulador de Juros Compostos</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">

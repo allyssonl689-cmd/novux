@@ -122,7 +122,7 @@ export default function ReportsPage() {
     <div className="max-w-[1400px] mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily:'Syne,sans-serif' }}>Relatórios</h1>
+          <h1 className="text-2xl font-bold text-foreground" >Relatórios</h1>
           <p className="text-xs text-muted-foreground mt-1">Análise detalhada do seu comportamento financeiro</p>
         </div>
 

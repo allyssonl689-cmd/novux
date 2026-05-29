@@ -139,7 +139,7 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>Perfil & Configurações</h1>
+        <h1 className="text-2xl font-bold text-foreground" >Perfil & Configurações</h1>
         <p className="text-xs text-muted-foreground mt-1">Personalize sua experiência</p>
       </motion.div>
 

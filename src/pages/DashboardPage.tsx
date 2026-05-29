@@ -18,7 +18,7 @@ function Tip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-xl border border-border bg-card p-3 shadow-2xl text-xs min-w-[140px]" style={{ boxShadow: '0 8px 32px hsl(0 0% 0% / 0.25)' }}>
-      <p className="font-semibold text-foreground mb-2" style={{ fontFamily: 'Syne,sans-serif' }}>{label}</p>
+      <p className="font-semibold text-foreground mb-2" >{label}</p>
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5">
@@ -180,15 +180,15 @@ export default function DashboardPage() {
         <div className="flex items-end justify-between">
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">Painel Financeiro</p>
-            <h1 className="text-2xl font-bold text-foreground leading-none" style={{ fontFamily: 'Syne,sans-serif' }}>
+            <h1 className="text-2xl font-bold text-foreground leading-none" >
               {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
             </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
-            <div className="relative h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
-            </div>
+            <span className="relative flex h-2.5 w-2.5 shrink-0 items-center justify-center">
+              <span className="absolute h-full w-full animate-ping rounded-full bg-success opacity-40" />
+              <span className="relative h-2 w-2 rounded-full bg-success" />
+            </span>
             <span className="text-[11px] text-muted-foreground">Dados em tempo real</span>
           </div>
         </div>
@@ -224,7 +224,7 @@ export default function DashboardPage() {
           className="lg:col-span-3 rounded-2xl border border-border bg-card p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-sm font-bold text-foreground" style={{ fontFamily: 'Syne,sans-serif' }}>Fluxo de Caixa</h3>
+              <h3 className="text-sm font-bold text-foreground" >Fluxo de Caixa</h3>
               <p className="text-xs text-muted-foreground mt-0.5">Receitas, despesas e economia</p>
             </div>
             <div className="flex gap-1 p-1 rounded-xl bg-secondary/60">
@@ -273,7 +273,7 @@ export default function DashboardPage() {
         {/* Categories donut */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
           className="lg:col-span-2 rounded-2xl border border-border bg-card p-5">
-          <h3 className="text-sm font-bold text-foreground mb-4" style={{ fontFamily: 'Syne,sans-serif' }}>Gastos por Categoria</h3>
+          <h3 className="text-sm font-bold text-foreground mb-4" >Gastos por Categoria</h3>
 
           {stats.categories.length > 0 && (
             <div className="flex justify-center mb-4">
