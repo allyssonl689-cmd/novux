@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import {
@@ -165,8 +165,8 @@ export function AppSidebar() {
             <p className="text-[10px] leading-relaxed mb-2.5" style={{ color: 'hsl(var(--sidebar-foreground) / 0.65)' }}>
               IA ilimitada, relatórios avançados, carteiras e muito mais.
             </p>
-            <button className="btn-novux w-full rounded-lg py-1.5 text-[10px] font-bold">
-              Seja Premium!
+            <button className="btn-novux w-full rounded-lg py-1.5 text-[10px] font-bold flex items-center justify-center gap-1.5">
+              <Crown className="h-3 w-3" /> Seja Premium!
             </button>
           </div>
         )}

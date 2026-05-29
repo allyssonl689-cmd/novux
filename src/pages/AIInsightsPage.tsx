@@ -190,7 +190,7 @@ export default function AIInsightsPage() {
         <p className="text-xs text-muted-foreground mt-1">Análises financeiras com inteligência artificial real via Groq LLaMA</p>
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ height: 'calc(100dvh - 190px)', minHeight: '420px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4" style={{ height: 'calc(100dvh - 160px)', minHeight: '500px' }}>
 
         {/* Chat */}
         <div className="lg:col-span-3 flex flex-col rounded-2xl border border-border bg-card overflow-hidden">

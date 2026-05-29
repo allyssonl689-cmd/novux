@@ -1,0 +1,94 @@
+import { motion } from 'framer-motion';
+import { Shield, ArrowLeft } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+export default function PrivacidadePage() {
+  return (
+    <div className="min-h-screen bg-background py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Link>
+
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center gap-3 mb-2">
+            <Shield className="h-6 w-6 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Política de Privacidade</h1>
+          </div>
+          <p className="text-sm text-muted-foreground mb-8">Última atualização: maio de 2026 · Em conformidade com a LGPD (Lei 13.709/2018)</p>
+
+          <div className="prose prose-sm max-w-none space-y-8 text-foreground">
+
+            <Section title="1. Controlador dos Dados">
+              <p>O controlador responsável pelo tratamento dos seus dados pessoais é a <strong>Novux Finance</strong>, plataforma de gestão financeira pessoal. Para exercer seus direitos ou entrar em contato sobre privacidade, utilize o e-mail: <a href="mailto:privacidade@novux.app" className="text-primary hover:underline">privacidade@novux.app</a>.</p>
+            </Section>
+
+            <Section title="2. Dados Coletados">
+              <ul className="space-y-2 text-muted-foreground list-disc pl-4">
+                <li><strong className="text-foreground">Dados de cadastro:</strong> nome, endereço de e-mail e senha (armazenada em hash bcrypt)</li>
+                <li><strong className="text-foreground">Dados financeiros:</strong> transações, categorias, metas e investimentos que você inserir</li>
+                <li><strong className="text-foreground">Dados de uso:</strong> logs de acesso, IP, data e hora das operações (finalidade de segurança)</li>
+                <li><strong className="text-foreground">Integração Telegram:</strong> chat_id e username do Telegram, se você optar pela integração</li>
+                <li><strong className="text-foreground">Cookies:</strong> apenas cookies técnicos essenciais ao funcionamento da plataforma</li>
+              </ul>
+            </Section>
+
+            <Section title="3. Finalidade do Tratamento">
+              <ul className="space-y-2 text-muted-foreground list-disc pl-4">
+                <li>Prestação do serviço de gestão financeira pessoal</li>
+                <li>Geração de insights e análises por inteligência artificial</li>
+                <li>Segurança da conta e prevenção a acessos não autorizados</li>
+                <li>Cumprimento de obrigações legais e regulatórias</li>
+                <li>Comunicação sobre atualizações do serviço</li>
+              </ul>
+            </Section>
+
+            <Section title="4. Base Legal">
+              <p className="text-muted-foreground">O tratamento dos dados é realizado com base no <strong className="text-foreground">consentimento explícito</strong> fornecido no momento do cadastro (LGPD, Art. 7º, I) e na <strong className="text-foreground">execução de contrato</strong> para prestação do serviço (LGPD, Art. 7º, V).</p>
+            </Section>
+
+            <Section title="5. Compartilhamento de Dados">
+              <p className="text-muted-foreground">Seus dados <strong className="text-foreground">não são vendidos</strong> a terceiros. Compartilhamos dados apenas com:</p>
+              <ul className="space-y-2 text-muted-foreground list-disc pl-4 mt-2">
+                <li><strong className="text-foreground">Supabase (PostgreSQL):</strong> armazenamento do banco de dados, servidores nos EUA</li>
+                <li><strong className="text-foreground">Groq (IA):</strong> processamento das mensagens do chat IA — dados não são usados para treinamento</li>
+                <li><strong className="text-foreground">Render:</strong> hospedagem do servidor backend</li>
+              </ul>
+            </Section>
+
+            <Section title="6. Seus Direitos (LGPD Art. 18)">
+              <ul className="space-y-2 text-muted-foreground list-disc pl-4">
+                <li><strong className="text-foreground">Acesso:</strong> visualizar todos os seus dados na plataforma</li>
+                <li><strong className="text-foreground">Retificação:</strong> editar transações e informações de perfil a qualquer momento</li>
+                <li><strong className="text-foreground">Portabilidade:</strong> exportar todos os dados em CSV ou JSON via Configurações</li>
+                <li><strong className="text-foreground">Exclusão:</strong> apagar todos os dados da conta via Perfil → Gerenciamento de Conta</li>
+                <li><strong className="text-foreground">Revogação do consentimento:</strong> a qualquer momento, sem prejuízo ao tratamento anterior</li>
+              </ul>
+            </Section>
+
+            <Section title="7. Retenção de Dados">
+              <p className="text-muted-foreground">Os dados são mantidos enquanto a conta estiver ativa. Após a exclusão da conta, os dados são removidos permanentemente em até 30 dias, exceto onde a lei exigir retenção por prazo maior.</p>
+            </Section>
+
+            <Section title="8. Segurança">
+              <p className="text-muted-foreground">Adotamos medidas técnicas de segurança incluindo criptografia de senhas (bcrypt), tokens JWT com curta validade, rate limiting, auditoria de acessos e comunicação via HTTPS.</p>
+            </Section>
+
+            <Section title="9. Contato">
+              <p className="text-muted-foreground">Para exercer seus direitos ou tirar dúvidas sobre privacidade: <a href="mailto:privacidade@novux.app" className="text-primary hover:underline">privacidade@novux.app</a></p>
+            </Section>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h2 className="text-lg font-bold text-foreground mb-3">{title}</h2>
+      {children}
+    </div>
+  );
+}

@@ -7,7 +7,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import {
   Bell, Shield, Download, ChevronRight, Sparkles, Sun, Moon,
   CheckCircle2, Zap, LogOut, Smartphone, Lock, QrCode, X,
-  RefreshCw, Eye, EyeOff, Send, Link2, Unlink, Copy,
+  RefreshCw, Eye, EyeOff, Send, Link2, Unlink, Copy, Crown,
 } from 'lucide-react';
 import { twoFactorService, notificationService } from '@/services/twoFactorService';
 import { apiFetch } from '@/services/api';
@@ -133,7 +133,7 @@ export default function ProfilePage() {
     { l: 'Transações', v: transactions.length },
     { l: 'Meses monitorados', v: new Set(transactions.map(t => t.date.substring(0, 7))).size },
     { l: 'Categorias', v: new Set(transactions.map(t => t.category)).size },
-    { l: 'Plano atual', v: isPremiumPreview ? 'Pro' : 'Free' },
+    { l: 'Plano atual', v: isPremiumPreview ? 'Premium' : 'Free' },
   ];
 
   return (
@@ -156,7 +156,8 @@ export default function ProfilePage() {
             <p className="text-xs text-muted-foreground truncate">{user?.email ?? '—'}</p>
             <div className="mt-1.5 flex items-center gap-2 flex-wrap">
               <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${isPremiumPreview ? 'bg-primary/10 text-primary border border-primary/20' : 'bg-secondary text-muted-foreground'}`}>
-                <Sparkles className="h-2.5 w-2.5" />{isPremiumPreview ? 'PRO' : 'FREE'}
+                {isPremiumPreview ? <Crown className="h-2.5 w-2.5" /> : <Sparkles className="h-2.5 w-2.5" />}
+                {isPremiumPreview ? 'Premium' : 'Free'}
               </span>
               {twoFAEnabled && (
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-success-muted text-success border border-success/20">
@@ -169,8 +170,8 @@ export default function ProfilePage() {
         {/* Botão Seja Premium abaixo — não sobrepõe o e-mail no mobile */}
         {!isPremiumPreview && (
           <button onClick={() => setPremiumPreview(true)}
-            className="btn-novux w-full mt-4 py-2 text-xs font-bold rounded-xl">
-            Seja Premium!
+            className="btn-novux w-full mt-4 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-2">
+            <Crown className="h-3.5 w-3.5" /> Seja Premium!
           </button>
         )}
         {isPremiumPreview && (

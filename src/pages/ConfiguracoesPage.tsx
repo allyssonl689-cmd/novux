@@ -76,8 +76,8 @@ function Toggle({ checked, onChange, label, sub }: {
       </div>
       <button
         onClick={() => onChange(!checked)}
-        className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${checked ? 'bg-primary' : 'bg-secondary border border-border'}`}>
-        <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        className={`relative h-6 w-11 rounded-full transition-colors duration-200 shrink-0 ${checked ? 'bg-primary' : 'bg-muted border border-border'}`}>
+        <span className={`absolute top-[3px] h-[18px] w-[18px] rounded-full bg-white shadow-sm transition-all duration-200 ${checked ? 'left-[23px]' : 'left-[3px]'}`} />
       </button>
     </div>
   );
@@ -243,34 +243,45 @@ export default function ConfiguracoesPage() {
         </div>
       </Section>
 
-      {/* ── Zona de perigo ── */}
-      <Section title="Zona de Perigo" icon={AlertTriangle}>
-        <p className="text-xs text-muted-foreground mb-4">
-          Ações irreversíveis. Tenha certeza antes de prosseguir.
+      {/* ── Gestão de dados e privacidade ── */}
+      <Section title="Gestão de Dados e Privacidade" icon={AlertTriangle}>
+        <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+          As operações abaixo afetam permanentemente os dados associados à sua conta.
+          Em conformidade com a <strong>LGPD (Lei 13.709/2018)</strong>, você tem direito à
+          portabilidade (exportação), retificação e exclusão dos seus dados pessoais.
+          Estas ações são <strong>irreversíveis</strong> e não podem ser desfeitas após confirmação.
         </p>
-        {!confirmDelete ? (
-          <button onClick={() => setConfirmDelete(true)}
-            className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/10 transition-all">
-            <Trash2 className="h-3.5 w-3.5" />
-            Limpar todas as transações
-          </button>
-        ) : (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/8 p-4 space-y-3">
-            <p className="text-xs font-semibold text-destructive">
-              ⚠️ Isso apagará todas as {transactions.length} transações permanentemente. Não há como desfazer.
-            </p>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmDelete(false)}
-                className="flex-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
-                Cancelar
-              </button>
-              <button
-                className="flex-1 rounded-xl bg-destructive px-3 py-2 text-xs font-semibold text-white hover:opacity-90 transition-all">
-                Confirmar exclusão
-              </button>
+        <div className="space-y-3">
+          {!confirmDelete ? (
+            <button onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-2.5 text-xs font-semibold text-destructive hover:bg-destructive/10 transition-all">
+              <Trash2 className="h-3.5 w-3.5" />
+              Excluir histórico de transações
+            </button>
+          ) : (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/8 p-4 space-y-3">
+              <p className="text-xs font-semibold text-destructive">
+                Esta operação removerá permanentemente {transactions.length} registros financeiros
+                do seu histórico. Os dados não poderão ser recuperados após a confirmação.
+              </p>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmDelete(false)}
+                  className="flex-1 rounded-xl border border-border bg-secondary px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition-all">
+                  Cancelar
+                </button>
+                <button className="flex-1 rounded-xl bg-destructive px-3 py-2 text-xs font-semibold text-white hover:opacity-90 transition-all">
+                  Confirmar exclusão
+                </button>
+              </div>
             </div>
+          )}
+          <div className="pt-2 border-t border-border/50">
+            <p className="text-[11px] text-muted-foreground">
+              Para solicitar a exclusão completa da conta e todos os dados associados,
+              acesse <strong>Perfil → Zona de Gerenciamento de Conta</strong>.
+            </p>
           </div>
-        )}
+        </div>
       </Section>
 
       {/* ── Botão salvar ── */}

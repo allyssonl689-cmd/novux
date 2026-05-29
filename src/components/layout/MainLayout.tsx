@@ -1,6 +1,7 @@
 import { Outlet } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
+import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
 import { Bell, Plus, Sun, Moon, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { TransactionForm } from '@/components/TransactionForm';
@@ -237,11 +238,16 @@ function NotificationPanel({ onClose, dismissed, setDismissed }: {
 }
 
 export function MainLayout() {
-  const [formOpen, setFormOpen] = useState(false);
+  const [formOpen, setFormOpen]   = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  const [showOnb, setShowOnb]     = useState(false);
   const { insights, transactions, isPremiumPreview } = useFinance();
   const { theme, toggleTheme } = useTheme();
+  const { showOnboarding } = useOnboarding();
+
+  // Mostra onboarding após 1s se for primeiro acesso
+  useState(() => { if (showOnboarding) setTimeout(() => setShowOnb(true), 1000); });
   const alertCount = insights.filter((i, idx) =>
     !dismissed.has(idx) && (i.level === 'critical' || i.level === 'warning')
   ).length;
@@ -321,6 +327,7 @@ export function MainLayout() {
       </div>
 
       <TransactionForm open={formOpen} onClose={() => setFormOpen(false)} editId={null} />
+      {showOnb && <OnboardingModal onClose={() => setShowOnb(false)} />}
     </SidebarProvider>
   );
 }

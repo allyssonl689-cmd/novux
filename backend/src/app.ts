@@ -23,6 +23,7 @@ import userRoutes        from './routes/users';
 import twoFactorRoutes   from './routes/twoFactor';
 import aiRoutes          from './routes/ai';
 import telegramRoutes    from './routes/telegram';
+import adminRoutes       from './routes/admin';
 
 const app = express();
 
@@ -54,6 +55,7 @@ app.use('/api/reports',       reportRoutes);
 app.use('/api/users',         userRoutes);
 app.use('/api/ai',            aiRoutes);
 app.use('/api/telegram',      telegramRoutes);
+app.use('/api/admin',         adminRoutes);
 
 // 404
 app.use((_req, res) => {

@@ -15,11 +15,16 @@ import TransactionsPage from "@/pages/TransactionsPage";
 import GoalsPage        from "@/pages/GoalsPage";
 import AIInsightsPage   from "@/pages/AIInsightsPage";
 import InvestmentsPage  from "@/pages/InvestmentsPage";
-import ProfilePage         from "@/pages/ProfilePage";
-import ConfiguracoesPage   from "@/pages/ConfiguracoesPage";
-import LoginPage           from "@/pages/LoginPage";
-import RegisterPage        from "@/pages/RegisterPage";
-import NotFound            from "./pages/NotFound";
+import ProfilePage      from "@/pages/ProfilePage";
+import ConfiguracoesPage from "@/pages/ConfiguracoesPage";
+import AdminPage        from "@/pages/AdminPage";
+import LandingPage      from "@/pages/LandingPage";
+import AjudaPage        from "@/pages/AjudaPage";
+import PrivacidadePage  from "@/pages/PrivacidadePage";
+import TermosPage       from "@/pages/TermosPage";
+import LoginPage        from "@/pages/LoginPage";
+import RegisterPage     from "@/pages/RegisterPage";
+import NotFound         from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -35,8 +40,12 @@ const App = () => (
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                   {/* Rotas públicas */}
-                  <Route path="/login"    element={<LoginPage />} />
-                  <Route path="/register" element={<RegisterPage />} />
+                  <Route path="/landing"    element={<LandingPage />} />
+                  <Route path="/ajuda"      element={<AjudaPage />} />
+                  <Route path="/privacidade" element={<PrivacidadePage />} />
+                  <Route path="/termos"     element={<TermosPage />} />
+                  <Route path="/login"      element={<LoginPage />} />
+                  <Route path="/register"   element={<RegisterPage />} />
 
                   {/* Rotas protegidas */}
                   <Route element={<ProtectedRoute />}>
@@ -49,6 +58,7 @@ const App = () => (
                       <Route path="/investimentos" element={<InvestmentsPage />} />
                       <Route path="/perfil"        element={<ProfilePage />} />
                       <Route path="/configuracoes" element={<ConfiguracoesPage />} />
+                      <Route path="/admin"         element={<AdminPage />} />
                     </Route>
                   </Route>
 

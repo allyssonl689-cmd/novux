@@ -61,4 +61,49 @@ export class UserModel {
     );
     return rows.length > 0;
   }
+
+  static async getMetrics(): Promise<{
+    total: number; active30d: number; newThisMonth: number;
+    plans: Record<string, number>;
+  }> {
+    const { rows } = await db.query(`
+      SELECT
+        COUNT(*)                                                    AS total,
+        COUNT(*) FILTER (WHERE updated_at > NOW() - INTERVAL '30 days') AS active30d,
+        COUNT(*) FILTER (WHERE created_at > DATE_TRUNC('month', NOW())) AS new_this_month,
+        COUNT(*) FILTER (WHERE plan = 'free')                      AS free_count,
+        COUNT(*) FILTER (WHERE plan = 'premium')                   AS premium_count
+      FROM users WHERE is_active = true
+    `);
+    const r = rows[0] as any;
+    return {
+      total:         parseInt(r.total, 10),
+      active30d:     parseInt(r.active30d, 10),
+      newThisMonth:  parseInt(r.new_this_month, 10),
+      plans: { free: parseInt(r.free_count, 10), premium: parseInt(r.premium_count, 10) },
+    };
+  }
+
+  static async listAll(limit = 50, offset = 0): Promise<any[]> {
+    const { rows } = await db.query(
+      `SELECT id, name, email, plan, is_admin, onboarding_completed, created_at, updated_at
+       FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
+      [limit, offset]
+    );
+    return rows;
+  }
+
+  static async getReferralStats(userId: string): Promise<{ code: string; count: number }> {
+    const { rows } = await db.query<{ referral_code: string; count: string }>(
+      `SELECT u.referral_code,
+              (SELECT COUNT(*) FROM users WHERE referred_by = u.referral_code) AS count
+       FROM users u WHERE u.id = $1`,
+      [userId]
+    );
+    return { code: rows[0]?.referral_code ?? '', count: parseInt(rows[0]?.count ?? '0', 10) };
+  }
+
+  static async completeOnboarding(userId: string): Promise<void> {
+    await db.query('UPDATE users SET onboarding_completed = TRUE WHERE id = $1', [userId]);
+  }
 }

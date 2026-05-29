@@ -28,12 +28,13 @@ function getStrength(password: string): { score: number; label: string; color: s
 export default function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
-  const [name, setName]       = useState('');
-  const [email, setEmail]     = useState('');
-  const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [name, setName]           = useState('');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [showPwd, setShowPwd]     = useState(false);
+  const [consent, setConsent]     = useState(false);
+  const [error, setError]         = useState('');
+  const [loading, setLoading]     = useState(false);
   const [pwdFocused, setPwdFocused] = useState(false);
 
   const strength   = getStrength(password);
@@ -41,10 +42,8 @@ export default function RegisterPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!allPassed) {
-      setError('A senha não atende todos os requisitos de segurança.');
-      return;
-    }
+    if (!allPassed) { setError('A senha não atende todos os requisitos de segurança.'); return; }
+    if (!consent)   { setError('Você deve aceitar os Termos de Uso e a Política de Privacidade.'); return; }
     setError('');
     setLoading(true);
     try {
@@ -178,13 +177,26 @@ export default function RegisterPage() {
             )}
           </div>
 
+          {/* Consentimento LGPD */}
+          <label className="flex items-start gap-2.5 cursor-pointer">
+            <input type="checkbox" checked={consent} onChange={e => setConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border border-border accent-primary shrink-0" />
+            <span className="text-xs text-muted-foreground leading-relaxed">
+              Li e aceito os{' '}
+              <Link to="/termos" target="_blank" className="text-primary hover:underline font-medium">Termos de Uso</Link>
+              {' '}e a{' '}
+              <Link to="/privacidade" target="_blank" className="text-primary hover:underline font-medium">Política de Privacidade</Link>
+              , incluindo o tratamento dos meus dados pessoais conforme a LGPD.
+            </span>
+          </label>
+
           {error && (
             <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
           )}
 
           <button
             type="submit"
-            disabled={loading || (password.length > 0 && !allPassed)}
+            disabled={loading || (password.length > 0 && !allPassed) || !consent}
             className="btn-novux w-full py-2.5 text-sm font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -16,7 +16,8 @@ export class AuthController {
   static async login(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = loginSchema.parse(req.body);
-      const result = await AuthService.login(input);
+      const ip    = req.ip ?? req.socket?.remoteAddress;
+      const result = await AuthService.login(input, ip);
       res.json({ success: true, data: result });
     } catch (err) {
       next(err);
@@ -47,8 +48,19 @@ export class AuthController {
   static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const { refreshToken } = refreshTokenSchema.parse(req.body);
-      await AuthService.logout(refreshToken);
+      const ip = req.ip ?? req.socket?.remoteAddress;
+      await AuthService.logout(refreshToken, req.userId, ip);
       res.json({ success: true, message: 'Logout realizado com sucesso' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const ip = req.ip ?? req.socket?.remoteAddress;
+      await AuthService.deleteAccount(req.userId, ip);
+      res.json({ success: true, message: 'Conta e todos os dados excluídos permanentemente' });
     } catch (err) {
       next(err);
     }
