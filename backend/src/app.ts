@@ -1,4 +1,5 @@
 import './config/env';
+import { logger } from './config/logger';
 import dns from 'dns';
 dns.setDefaultResultOrder('ipv4first');
 import express from 'express';
@@ -68,8 +69,7 @@ app.use(errorHandler);
 async function start(): Promise<void> {
   await connectDatabase();
   app.listen(env.PORT, async () => {
-    console.log(`🚀 Servidor rodando em http://localhost:${env.PORT}`);
-    console.log(`📦 Ambiente: ${env.NODE_ENV}`);
+    logger.info('Servidor iniciado', { port: env.PORT, env: env.NODE_ENV });
 
     // Registrar webhook do Telegram automaticamente em produção
     if (env.NODE_ENV === 'production' && (env as any).TELEGRAM_BOT_TOKEN && (env as any).BACKEND_URL) {
@@ -82,7 +82,7 @@ async function start(): Promise<void> {
 }
 
 start().catch((err) => {
-  console.error('❌ Falha ao iniciar servidor:', err);
+  logger.error('Falha ao iniciar servidor', { error: String(err) });
   process.exit(1);
 });
 

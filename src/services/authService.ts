@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch, tokenStore, refreshAccessToken } from './api';
 
 export interface AuthUser {
   userId: string;
@@ -18,7 +18,6 @@ interface AuthResponse {
   success: boolean;
   data: {
     accessToken: string;
-    refreshToken: string;
     user: ApiUser;
   };
 }
@@ -38,8 +37,7 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify({ name, email, password }),
     });
-    localStorage.setItem('novux_access_token', res.data.accessToken);
-    localStorage.setItem('novux_refresh_token', res.data.refreshToken);
+    tokenStore.set(res.data.accessToken);
     return toAuthUser(res.data.user);
   },
 
@@ -52,8 +50,7 @@ export const authService = {
       return { requires2FA: true, tempToken: res.data.tempToken };
     }
     const d = res.data as AuthResponse['data'];
-    localStorage.setItem('novux_access_token', d.accessToken);
-    localStorage.setItem('novux_refresh_token', d.refreshToken);
+    tokenStore.set(d.accessToken);
     return toAuthUser(d.user);
   },
 
@@ -62,23 +59,15 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify({ tempToken, totpToken }),
     });
-    localStorage.setItem('novux_access_token', res.data.accessToken);
-    localStorage.setItem('novux_refresh_token', res.data.refreshToken);
+    tokenStore.set(res.data.accessToken);
     return toAuthUser(res.data.user);
   },
 
   async logout(): Promise<void> {
-    const refreshToken = localStorage.getItem('novux_refresh_token');
     try {
-      if (refreshToken) {
-        await apiFetch('/api/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ refreshToken }),
-        });
-      }
+      await apiFetch('/api/auth/logout', { method: 'POST' });
     } finally {
-      localStorage.removeItem('novux_access_token');
-      localStorage.removeItem('novux_refresh_token');
+      tokenStore.clear();
     }
   },
 
@@ -92,12 +81,21 @@ export const authService = {
       method: 'POST',
       body: JSON.stringify({ credential }),
     });
-    localStorage.setItem('novux_access_token', res.data.accessToken);
-    localStorage.setItem('novux_refresh_token', res.data.refreshToken);
+    tokenStore.set(res.data.accessToken);
     return toAuthUser(res.data.user);
   },
 
+  // Tenta restaurar sessão via cookie HttpOnly — chamado no boot da aplicação
+  async tryRestoreSession(): Promise<AuthUser | null> {
+    try {
+      await refreshAccessToken();
+      return await this.me();
+    } catch {
+      return null;
+    }
+  },
+
   isAuthenticated(): boolean {
-    return !!localStorage.getItem('novux_access_token');
+    return !!tokenStore.get();
   },
 };

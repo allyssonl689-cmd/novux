@@ -1,5 +1,14 @@
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
+// Access token armazenado apenas em memória — nunca no localStorage
+let _accessToken: string | null = null;
+
+export const tokenStore = {
+  get: (): string | null => _accessToken,
+  set: (t: string): void  => { _accessToken = t; },
+  clear: (): void         => { _accessToken = null; },
+};
+
 type RefreshSubscriber = (token: string) => void;
 
 let isRefreshing = false;
@@ -14,34 +23,27 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
-async function refreshAccessToken(): Promise<string> {
-  const refreshToken = localStorage.getItem('novux_refresh_token');
-  if (!refreshToken) throw new Error('No refresh token');
-
+export async function refreshAccessToken(): Promise<string> {
+  // O refresh token é enviado automaticamente via cookie HttpOnly
   const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   });
 
   if (!res.ok) {
-    localStorage.removeItem('novux_access_token');
-    localStorage.removeItem('novux_refresh_token');
+    tokenStore.clear();
     window.location.href = '/login';
     throw new Error('Token refresh failed');
   }
 
   const json = await res.json();
   const newToken: string = json.data.accessToken;
-  localStorage.setItem('novux_access_token', newToken);
-  if (json.data.refreshToken) {
-    localStorage.setItem('novux_refresh_token', json.data.refreshToken);
-  }
+  tokenStore.set(newToken);
   return newToken;
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = localStorage.getItem('novux_access_token');
+  const token = tokenStore.get();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -49,7 +51,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  let res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+  let res = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers,
+    credentials: 'include', // necessário para enviar o cookie HttpOnly de refresh
+  });
 
   if (res.status === 401) {
     if (!isRefreshing) {
@@ -59,7 +65,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         isRefreshing = false;
         onRefreshed(newToken);
         headers['Authorization'] = `Bearer ${newToken}`;
-        res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+        res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
       } catch {
         isRefreshing = false;
         throw new Error('Sessão expirada. Faça login novamente.');
@@ -71,7 +77,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
           resolve();
         });
       });
-      res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+      res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
     }
   }
 

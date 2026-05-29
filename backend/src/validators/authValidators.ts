@@ -19,5 +19,15 @@ export const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'Refresh token é obrigatório'),
 });
 
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Senha atual é obrigatória'),
+  newPassword: z
+    .string()
+    .min(8, 'Nova senha deve ter pelo menos 8 caracteres')
+    .regex(/[A-Z]/, 'Nova senha deve conter pelo menos uma letra maiúscula')
+    .regex(/[0-9]/, 'Nova senha deve conter pelo menos um número'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

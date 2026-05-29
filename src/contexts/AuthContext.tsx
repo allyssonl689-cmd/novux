@@ -20,17 +20,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Restaura sessão via cookie HttpOnly ao carregar a aplicação
   useEffect(() => {
-    if (!authService.isAuthenticated()) {
-      setIsLoading(false);
-      return;
-    }
-    authService.me()
-      .then(setUser)
-      .catch(() => {
-        localStorage.removeItem('novux_access_token');
-        localStorage.removeItem('novux_refresh_token');
-      })
+    authService.tryRestoreSession()
+      .then(restored => { if (restored) setUser(restored); })
+      .catch(() => {})
       .finally(() => setIsLoading(false));
   }, []);
 

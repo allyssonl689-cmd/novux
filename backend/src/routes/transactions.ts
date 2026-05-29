@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import { TransactionController } from '../controllers/transactionController';
 import { authenticate } from '../middleware/authMiddleware';
+import { dataLimiter } from '../middleware/rateLimiter';
 import { upload } from '../middleware/upload';
 
 const router = Router();
 router.use(authenticate);
+router.use(dataLimiter);
 
 router.get('/',                   TransactionController.list);
 router.get('/export/csv',         TransactionController.exportCSV);

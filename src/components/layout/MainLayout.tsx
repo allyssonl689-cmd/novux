@@ -8,6 +8,8 @@ import { TransactionForm } from '@/components/TransactionForm';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { usePeriod, PERIOD_LABELS, type PeriodPreset } from '@/contexts/PeriodContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 /* Rotas que usam header simplificado (sem navegador de mês e sem botão Lançamento) */
 const SIMPLE_HEADER_ROUTES = ['/perfil', '/configuracoes', '/admin'];
@@ -248,8 +250,11 @@ export function MainLayout() {
   const { insights, transactions, isPremiumPreview } = useFinance();
   const { theme, toggleTheme } = useTheme();
   const { showOnboarding } = useOnboarding();
+  const { logout, isAuthenticated } = useAuth();
   const location = useLocation();
   const isSimpleHeader = SIMPLE_HEADER_ROUTES.some(r => location.pathname.startsWith(r));
+
+  useInactivityLogout(logout, isAuthenticated);
 
   // Mostra onboarding após 1s se for primeiro acesso
   useState(() => { if (showOnboarding) setTimeout(() => setShowOnb(true), 1000); });

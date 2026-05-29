@@ -21,6 +21,8 @@ const envSchema = z.object({
   RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000),
   RATE_LIMIT_MAX: z.coerce.number().default(100),
 
+  GOOGLE_CLIENT_ID: z.string().min(10, 'GOOGLE_CLIENT_ID inválido').optional(),
+
   GROQ_API_KEY: z.string().optional(),
 
   TELEGRAM_BOT_TOKEN: z.string().optional(),

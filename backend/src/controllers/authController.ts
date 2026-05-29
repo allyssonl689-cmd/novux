@@ -1,13 +1,39 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
-import { registerSchema, loginSchema, refreshTokenSchema } from '../validators/authValidators';
+import { registerSchema, loginSchema, changePasswordSchema } from '../validators/authValidators';
+import { env } from '../config/env';
+
+const REFRESH_COOKIE = 'novux_refresh';
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 dias em ms
+
+function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE, token, {
+    httpOnly: true,
+    secure: env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: COOKIE_MAX_AGE,
+    path: '/api/auth',
+  });
+}
+
+function clearRefreshCookie(res: Response): void {
+  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+}
+
+function getRefreshCookie(req: Request): string | undefined {
+  const header = req.headers.cookie;
+  if (!header) return undefined;
+  const match = header.split(';').find(c => c.trim().startsWith(`${REFRESH_COOKIE}=`));
+  return match ? decodeURIComponent(match.trim().slice(REFRESH_COOKIE.length + 1)) : undefined;
+}
 
 export class AuthController {
   static async register(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = registerSchema.parse(req.body);
       const result = await AuthService.register(input);
-      res.status(201).json({ success: true, data: result });
+      setRefreshCookie(res, result.refreshToken);
+      res.status(201).json({ success: true, data: { accessToken: result.accessToken, user: result.user } });
     } catch (err) {
       next(err);
     }
@@ -18,7 +44,14 @@ export class AuthController {
       const input = loginSchema.parse(req.body);
       const ip    = req.ip ?? req.socket?.remoteAddress;
       const result = await AuthService.login(input, ip);
-      res.json({ success: true, data: result });
+
+      if ('requires2FA' in result) {
+        res.json({ success: true, data: result });
+        return;
+      }
+
+      setRefreshCookie(res, result.refreshToken);
+      res.json({ success: true, data: { accessToken: result.accessToken, user: result.user } });
     } catch (err) {
       next(err);
     }
@@ -29,7 +62,8 @@ export class AuthController {
       const { tempToken, totpToken } = req.body as { tempToken: string; totpToken: string };
       if (!tempToken || !totpToken) throw new Error('Dados incompletos');
       const result = await AuthService.loginWith2FA(tempToken, totpToken);
-      res.json({ success: true, data: result });
+      setRefreshCookie(res, result.refreshToken);
+      res.json({ success: true, data: { accessToken: result.accessToken, user: result.user } });
     } catch (err) {
       next(err);
     }
@@ -37,7 +71,11 @@ export class AuthController {
 
   static async refresh(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = refreshTokenSchema.parse(req.body);
+      const refreshToken = getRefreshCookie(req);
+      if (!refreshToken) {
+        res.status(401).json({ success: false, message: 'Sessão não encontrada. Faça login novamente.' });
+        return;
+      }
       const result = await AuthService.refresh(refreshToken);
       res.json({ success: true, data: result });
     } catch (err) {
@@ -47,10 +85,26 @@ export class AuthController {
 
   static async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { refreshToken } = refreshTokenSchema.parse(req.body);
+      const refreshToken = getRefreshCookie(req);
       const ip = req.ip ?? req.socket?.remoteAddress;
-      await AuthService.logout(refreshToken, req.userId, ip);
+      if (refreshToken) {
+        await AuthService.logout(refreshToken, req.userId, ip);
+      }
+      clearRefreshCookie(res);
       res.json({ success: true, message: 'Logout realizado com sucesso' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async changePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+      const ip = req.ip ?? req.socket?.remoteAddress;
+      await AuthService.changePassword(req.userId, currentPassword, newPassword, ip);
+      // Invalida o cookie de refresh (refresh tokens foram deletados no service)
+      clearRefreshCookie(res);
+      res.json({ success: true, message: 'Senha alterada com sucesso. Faça login novamente.' });
     } catch (err) {
       next(err);
     }
@@ -60,6 +114,7 @@ export class AuthController {
     try {
       const ip = req.ip ?? req.socket?.remoteAddress;
       await AuthService.deleteAccount(req.userId, ip);
+      clearRefreshCookie(res);
       res.json({ success: true, message: 'Conta e todos os dados excluídos permanentemente' });
     } catch (err) {
       next(err);

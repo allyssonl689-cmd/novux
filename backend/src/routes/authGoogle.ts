@@ -1,13 +1,16 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { OAuth2Client } from 'google-auth-library';
+import { createHash } from 'crypto';
 import { db } from '../config/database';
 import { signAccessToken, signRefreshToken } from '../config/auth';
 import { env } from '../config/env';
 
 const router = Router();
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_ID = env.GOOGLE_CLIENT_ID ?? '';
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+const REFRESH_COOKIE = 'novux_refresh';
 
 router.post('/google', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -18,7 +21,7 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
     }
 
     if (!GOOGLE_CLIENT_ID) {
-      res.status(501).json({ success: false, message: 'Login com Google não configurado no servidor' });
+      res.status(503).json({ success: false, message: 'Login com Google indisponível no momento' });
       return;
     }
 
@@ -31,7 +34,6 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
 
     const { email, name, picture } = payload;
 
-    // Upsert user
     const { rows } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
       `INSERT INTO users (name, email, password_hash, avatar_url)
        VALUES ($1, $2, 'google-oauth', $3)
@@ -45,15 +47,24 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
     const tokenPayload = { userId: user.id, email: user.email };
     const accessToken = signAccessToken(tokenPayload);
     const refreshToken = signRefreshToken(tokenPayload);
+    const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
     await db.query(
-      'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
-      [user.id, refreshToken, expiresAt]
+      'INSERT INTO refresh_tokens (user_id, token, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
+      [user.id, refreshToken, tokenHash, expiresAt]
     );
 
-    res.json({ success: true, data: { accessToken, refreshToken, user } });
+    res.cookie(REFRESH_COOKIE, refreshToken, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: '/api/auth',
+    });
+
+    res.json({ success: true, data: { accessToken, user } });
   } catch (err) {
     next(err);
   }

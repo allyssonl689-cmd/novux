@@ -17,3 +17,13 @@ export const authLimiter = rateLimit({
   legacyHeaders: false,
   message: { success: false, message: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
+
+// Limite por usuário autenticado para rotas de dados (previne scraping e abuso)
+export const dataLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minuto
+  max: env.NODE_ENV === 'development' ? 500 : 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => (req as any).userId ?? req.ip ?? 'anon',
+  message: { success: false, message: 'Muitas requisições. Aguarde um momento.' },
+});

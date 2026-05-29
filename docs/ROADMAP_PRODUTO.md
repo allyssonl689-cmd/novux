@@ -57,16 +57,24 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 
 - [x] Senhas com bcrypt (12 rounds)
 - [x] JWT access (15min) + refresh token (7d) com hash SHA-256 no banco
+- [x] Refresh token em cookie HttpOnly/Secure/SameSite=Strict (access token apenas em memória)
 - [x] Rate limiting global e específico para login
+- [x] Rate limiting por usuário nas rotas de dados (transactions, goals, reports)
 - [x] Brute force protection (bloqueio após 5 tentativas por 15min)
 - [x] Helmet (headers HTTP de segurança)
 - [x] CORS configurado
 - [x] Validação de inputs com Zod
-- [x] Content Security Policy (CSP) via Vercel headers
+- [x] Content Security Policy (CSP) via Vercel headers — unsafe-eval removido
 - [x] X-Frame-Options DENY
 - [x] Webhook Telegram com secret token
-- [x] Audit log de ações sensíveis (login, logout, export, delete)
+- [x] Audit log de ações sensíveis (login, logout, export, delete, password_change)
 - [x] 2FA (TOTP) disponível
+- [x] pending_2fa persistido no banco (não mais em Map em memória)
+- [x] SSL do banco com rejectUnauthorized: true em produção
+- [x] Rota POST /api/auth/change-password (com invalidação de sessões)
+- [x] Logout automático por inatividade (30 min sem interação)
+- [x] Logs estruturados em JSON (logger próprio)
+- [x] GOOGLE_CLIENT_ID validado via Zod no env.ts
 
 ### ✅ LGPD / Compliance — Implementado
 
@@ -82,11 +90,15 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 
 ### 🔄 Em Progresso / Próximas Prioridades
 
-#### Segurança (média prioridade)
-- [ ] Migrar tokens JWT do localStorage para httpOnly cookies (junto com mobile)
-- [ ] CSRF protection (após migração para cookies)
-- [ ] Email verification no cadastro (requer serviço de email)
-- [ ] Bloqueio por IP além de por email (brute force mais robusto)
+#### Segurança — Requer Serviços Externos (pendências)
+- [ ] **CAPTCHA no login/registro** — integrar hCaptcha ou Cloudflare Turnstile (gratuito)
+- [ ] **Logs centralizados e tamper-resistant** — enviar logs JSON para Datadog, Loki ou CloudWatch (hoje apenas stdout)
+- [ ] **Alertas de comportamento anômalo** — Sentry ou Datadog Alerts para logins falhos em massa, escalada de privilégio
+- [ ] **WAF (Web Application Firewall)** — Cloudflare ou AWS WAF para proteção na borda
+- [ ] **Scan de dependências vulneráveis no CI** — Snyk ou `npm audit` automatizado no GitHub Actions
+- [ ] **CSP com nonces (remoção do unsafe-inline)** — requer configuração de build no Vite com plugin de nonce
+- [ ] **Email verification no cadastro** — requer serviço de email (Resend ou SendGrid)
+- [ ] **Bloqueio por IP além de por email** — requer Redis para armazenamento de rate limit distribuído
 
 #### Billing / Monetização (alta prioridade)
 - [ ] Sistema de pagamentos (Stripe ou Mercado Pago)

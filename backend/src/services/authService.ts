@@ -23,9 +23,6 @@ interface AuthTokens {
 
 type LoginResult = AuthTokens | { requires2FA: true; tempToken: string };
 
-// short-lived map: tempToken → userId (in-memory, cleared after use or 5min)
-const pending2FA = new Map<string, { userId: string; expiresAt: number }>();
-
 export class AuthService {
   static async register(input: RegisterInput, ip?: string): Promise<AuthTokens> {
     const exists = await UserModel.emailExists(input.email);
@@ -65,7 +62,17 @@ export class AuthService {
 
     if (totpEnabled) {
       const tempToken = randomBytes(32).toString('base64url');
-      pending2FA.set(tempToken, { userId: user.id, expiresAt: Date.now() + 5 * 60 * 1000 });
+      const tokenHash = hashToken(tempToken);
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      // Armazena no banco (persistente, escala em múltiplas instâncias)
+      await db.query(
+        `INSERT INTO pending_2fa (token_hash, user_id, expires_at)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (token_hash) DO NOTHING`,
+        [tokenHash, user.id, expiresAt]
+      );
+
       return { requires2FA: true, tempToken };
     }
 
@@ -83,23 +90,30 @@ export class AuthService {
   }
 
   static async loginWith2FA(tempToken: string, totpToken: string): Promise<AuthTokens> {
-    const entry = pending2FA.get(tempToken);
-    if (!entry || entry.expiresAt < Date.now()) {
-      pending2FA.delete(tempToken);
-      throw new AppError('Sessão expirada. Faça login novamente.', 401);
-    }
+    const tokenHash = hashToken(tempToken);
 
-    const { rows } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null; is_active: boolean; created_at: Date; updated_at: Date; totp_secret: string | null }>(
+    const { rows: pendingRows } = await db.query<{ user_id: string }>(
+      'SELECT user_id FROM pending_2fa WHERE token_hash = $1 AND expires_at > NOW()',
+      [tokenHash]
+    );
+    const entry = pendingRows[0];
+    if (!entry) throw new AppError('Sessão expirada. Faça login novamente.', 401);
+
+    // Remove antes de validar para prevenir replay
+    await db.query('DELETE FROM pending_2fa WHERE token_hash = $1', [tokenHash]);
+
+    const { rows } = await db.query<{
+      id: string; name: string; email: string; avatar_url: string | null;
+      is_active: boolean; created_at: Date; updated_at: Date; totp_secret: string | null;
+    }>(
       'SELECT id, name, email, avatar_url, is_active, created_at, updated_at, totp_secret FROM users WHERE id = $1',
-      [entry.userId]
+      [entry.user_id]
     );
     const user = rows[0];
     if (!user || !user.totp_secret) throw new AppError('Usuário não encontrado', 404);
 
     const result = verifySync({ token: totpToken, secret: user.totp_secret });
     if (!result?.valid) throw new AppError('Código 2FA inválido', 400);
-
-    pending2FA.delete(tempToken);
 
     const publicUser: PublicUser = {
       id: user.id,
@@ -118,7 +132,6 @@ export class AuthService {
     const payload = verifyRefreshToken(refreshToken);
     const tokenHash = hashToken(refreshToken);
 
-    // Aceita busca por hash (novos) ou token direto (legado)
     const { rows } = await db.query(
       `SELECT id FROM refresh_tokens
        WHERE (token_hash = $1 OR token = $2) AND expires_at > NOW()`,
@@ -139,9 +152,36 @@ export class AuthService {
     if (userId) await audit(userId, 'logout', 'account', ip);
   }
 
+  static async changePassword(userId: string, currentPassword: string, newPassword: string, ip?: string): Promise<void> {
+    const { rows } = await db.query<{ password_hash: string }>(
+      'SELECT password_hash FROM users WHERE id = $1',
+      [userId]
+    );
+    const user = rows[0];
+    if (!user) throw new AppError('Usuário não encontrado', 404);
+
+    // Rejeita troca de senha em contas OAuth (sem senha local)
+    if (user.password_hash === 'google-oauth') {
+      throw new AppError('Conta Google não possui senha local para alterar', 400);
+    }
+
+    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!valid) throw new AppError('Senha atual incorreta', 401);
+
+    const newHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
+    await db.query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [newHash, userId]
+    );
+
+    // Invalida todos os refresh tokens (força re-login nos outros dispositivos)
+    await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+
+    await audit(userId, 'password_change', 'account', ip);
+  }
+
   static async deleteAccount(userId: string, ip?: string): Promise<void> {
     await audit(userId, 'delete_account', 'account', ip);
-    // CASCADE deleta: transactions, goals, categories, refresh_tokens, telegram_links, audit_log
     await db.query('DELETE FROM users WHERE id = $1', [userId]);
   }
 
