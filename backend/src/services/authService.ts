@@ -34,7 +34,6 @@ export class AuthService {
     const password_hash = await bcrypt.hash(input.password, env.BCRYPT_ROUNDS);
     const user = await UserModel.create({
       name: input.name, email: input.email, password_hash,
-      lgpd_consent: input.lgpdConsent,
     });
 
     await audit(user.id, 'register', 'account', ip, { name: input.name });
@@ -111,7 +110,7 @@ export class AuthService {
       created_at: user.created_at,
       updated_at: user.updated_at,
     };
-    await audit(publicUser.id, 'login', 'account', ip);
+    await audit(publicUser.id, 'login', 'account', undefined);
     return this.issueTokens(publicUser);
   }
 
