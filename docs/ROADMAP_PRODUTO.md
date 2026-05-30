@@ -52,6 +52,12 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 - [x] Política de Privacidade (/privacidade) e Termos de Uso (/termos)
 - [x] Consentimento LGPD no cadastro (checkbox obrigatório)
 - [x] Categorias expandidas (22 categorias de despesa + 6 de receita)
+- [x] E-mail de boas-vindas após cadastro (Brevo)
+- [x] E-mail de confirmação de cadastro com link de 24h
+- [x] Verificação de e-mail: página /verify-email + banner no app
+- [x] Gate de IA baseado em plano real (user.plan === 'premium')
+- [x] Relatório PDF funcional (já implementado no ReportsPage)
+- [x] Informações do controlador LGPD na Política de Privacidade
 
 ### ✅ Segurança — Implementado
 
@@ -90,15 +96,15 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 
 ### 🔄 Em Progresso / Próximas Prioridades
 
-#### Segurança — Requer Serviços Externos (pendências)
-- [ ] **CAPTCHA no login/registro** — integrar hCaptcha ou Cloudflare Turnstile (gratuito)
-- [ ] **Logs centralizados e tamper-resistant** — enviar logs JSON para Datadog, Loki ou CloudWatch (hoje apenas stdout)
-- [ ] **Alertas de comportamento anômalo** — Sentry ou Datadog Alerts para logins falhos em massa, escalada de privilégio
-- [ ] **WAF (Web Application Firewall)** — Cloudflare ou AWS WAF para proteção na borda
-- [ ] **Scan de dependências vulneráveis no CI** — Snyk ou `npm audit` automatizado no GitHub Actions
-- [ ] **CSP com nonces (remoção do unsafe-inline)** — requer configuração de build no Vite com plugin de nonce
-- [ ] **Email verification no cadastro** — requer serviço de email (Resend ou SendGrid)
-- [ ] **Bloqueio por IP além de por email** — requer Redis para armazenamento de rate limit distribuído
+#### Segurança — Pendentes
+- [x] **Email verification no cadastro** — ✅ implementado com Brevo
+- [ ] **CAPTCHA no login/registro** — Cloudflare Turnstile (gratuito, sem domínio)
+- [ ] **Logs centralizados** — Datadog, Loki ou CloudWatch
+- [ ] **Alertas de comportamento anômalo** — Sentry
+- [ ] **WAF** — Cloudflare (gratuito no plano free)
+- [ ] **Scan de dependências no CI** — GitHub Actions + npm audit
+- [ ] **CSP com nonces** — remoção do unsafe-inline
+- [ ] **Bloqueio por IP** — requer Redis distribuído
 
 #### Billing / Monetização (alta prioridade)
 - [ ] Sistema de pagamentos (Stripe ou Mercado Pago)
@@ -108,10 +114,12 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 - [ ] Webhook de pagamento para ativar/desativar plano
 - [ ] Emissão de nota fiscal (CNPJ necessário)
 
-#### Comunicação (alta prioridade)
-- [ ] Email transacional: confirmação de cadastro, reset de senha (Resend ou SendGrid)
-- [ ] Email de boas-vindas com dicas de primeiros passos
-- [ ] Notificação de pagamento e renovação
+#### Comunicação
+- [x] Provedor de e-mail: Brevo HTTP API (sem SMTP, sem bloqueio de cloud)
+- [x] E-mail de boas-vindas após cadastro
+- [x] E-mail de confirmação de cadastro
+- [x] E-mail de reset de senha
+- [ ] Notificação de pagamento e renovação (depende de billing)
 
 #### Produto (média prioridade)
 - [ ] App mobile nativo (React Native ou Flutter)
