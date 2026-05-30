@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import { authService, AuthUser } from '@/services/authService';
+import { AuthExpiredError } from '@/services/api';
 
 export interface Login2FARequired { requires2FA: true; tempToken: string }
 
@@ -40,12 +41,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(!cached);
 
   useEffect(() => {
-    // Sempre tenta restaurar a sessão via cookie HttpOnly para obter um access token válido
+    // Timeout de segurança para cold start do Render (pode levar 30-60s)
     const timeout = setTimeout(() => {
-      // Timeout de segurança: se o backend demorar muito (cold start Render),
-      // não trava a UI. Com cache, o usuário já está na app; sem cache, vai ao login.
+      // Backend não respondeu a tempo — se há sessão em cache, mantém o usuário logado;
+      // o access token será obtido na primeira chamada API via refresh automático.
+      // Se não há cache, redireciona ao login.
       setIsLoading(false);
-    }, 20_000);
+    }, 30_000);
 
     authService.tryRestoreSession()
       .then(restored => {
@@ -53,14 +55,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(restored);
           saveSession(restored);
         } else {
-          // Refresh falhou — sessão expirada ou inválida
+          // Sem cookie ou cookie inválido → desloga
           clearSession();
           setUser(null);
         }
       })
-      .catch(() => {
-        clearSession();
-        setUser(null);
+      .catch((err: unknown) => {
+        if (err instanceof AuthExpiredError) {
+          // 401 definitivo: token expirado ou revogado → desloga
+          clearSession();
+          setUser(null);
+        }
+        // Erro de rede (backend offline/hibernando): mantém sessão em cache.
+        // O usuário continua na app; o token será renovado na próxima chamada API.
       })
       .finally(() => {
         clearTimeout(timeout);

@@ -23,17 +23,30 @@ function onRefreshed(token: string) {
   refreshSubscribers = [];
 }
 
+// Erro lançado quando o servidor responde 401 — sessão definitivamente inválida
+export class AuthExpiredError extends Error {
+  constructor() { super('Sessão expirada'); this.name = 'AuthExpiredError'; }
+}
+
 export async function refreshAccessToken(): Promise<string> {
-  // O refresh token é enviado automaticamente via cookie HttpOnly
-  const res = await fetch(`${BASE_URL}/api/auth/refresh`, {
-    method: 'POST',
-    credentials: 'include',
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+  } catch {
+    // Erro de rede (backend hibernando/offline) — NÃO é sessão inválida
+    throw new Error('Network error during refresh');
+  }
+
+  if (res.status === 401) {
+    tokenStore.clear();
+    throw new AuthExpiredError();
+  }
 
   if (!res.ok) {
-    tokenStore.clear();
-    // Não redireciona aqui — quem decide redirecionar é o chamador (apiFetch ou tryRestoreSession)
-    throw new Error('Token refresh failed');
+    throw new Error(`Refresh failed: ${res.status}`);
   }
 
   const json = await res.json();
@@ -66,11 +79,13 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
         onRefreshed(newToken);
         headers['Authorization'] = `Bearer ${newToken}`;
         res = await fetch(`${BASE_URL}${path}`, { ...options, headers, credentials: 'include' });
-      } catch {
+      } catch (refreshErr) {
         isRefreshing = false;
-        tokenStore.clear();
-        window.location.href = '/login';
-        throw new Error('Sessão expirada. Faça login novamente.');
+        if (refreshErr instanceof AuthExpiredError) {
+          tokenStore.clear();
+          window.location.href = '/login';
+        }
+        throw refreshErr;
       }
     } else {
       await new Promise<void>(resolve => {
