@@ -1,6 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { randomBytes, createHash } from 'crypto';
 import { verifySync } from 'otplib';
+import { sendPasswordResetEmail } from './emailService';
 import { db } from '../config/database';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../config/auth';
 import { UserModel } from '../models/UserModel';
@@ -178,6 +179,58 @@ export class AuthService {
     await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
 
     await audit(userId, 'password_change', 'account', ip);
+  }
+
+  static async forgotPassword(email: string, ip?: string): Promise<void> {
+    const user = await UserModel.findByEmail(email);
+    // Resposta idêntica independente de o e-mail existir (evita user enumeration)
+    if (!user) return;
+    if (user.password_hash === 'google-oauth') return;
+
+    // Invalida tokens anteriores deste usuário
+    await db.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
+
+    const token = randomBytes(32).toString('base64url');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+    await db.query(
+      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expiresAt]
+    );
+
+    const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`;
+    await sendPasswordResetEmail(user.email, user.name, resetUrl);
+    await audit(user.id, 'password_reset_requested', 'account', ip);
+  }
+
+  static async resetPassword(token: string, newPassword: string, ip?: string): Promise<void> {
+    const tokenHash = hashToken(token);
+
+    const { rows } = await db.query<{ id: string; user_id: string }>(
+      `SELECT id, user_id FROM password_reset_tokens
+       WHERE token_hash = $1 AND expires_at > NOW() AND used = false`,
+      [tokenHash]
+    );
+    const entry = rows[0];
+    if (!entry) throw new AppError('Link inválido ou expirado. Solicite um novo.', 400);
+
+    // Marca como usado antes de alterar a senha (evita replay em caso de erro)
+    await db.query(
+      'UPDATE password_reset_tokens SET used = true WHERE id = $1',
+      [entry.id]
+    );
+
+    const newHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
+    await db.query(
+      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+      [newHash, entry.user_id]
+    );
+
+    // Invalida todos os refresh tokens (segurança: força re-login)
+    await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [entry.user_id]);
+    await audit(entry.user_id, 'password_reset', 'account', ip);
   }
 
   static async deleteAccount(userId: string, ip?: string): Promise<void> {

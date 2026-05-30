@@ -6,7 +6,8 @@ type AuditAction =
   | 'export_data' | 'view_data'
   | 'password_change' | 'totp_enabled' | 'totp_disabled'
   | 'telegram_link' | 'telegram_unlink'
-  | 'admin_view_users';
+  | 'admin_view_users'
+  | 'password_reset_requested' | 'password_reset';
 
 export async function audit(
   userId: string | null,

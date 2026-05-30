@@ -28,6 +28,16 @@ const envSchema = z.object({
 
   GROQ_API_KEY: z.string().optional(),
 
+  // E-mail (SMTP) — opcional; se não configurado, reset tokens são logados no console
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().default(587),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+
+  // URL do frontend — usada para gerar links nos e-mails
+  FRONTEND_URL: z.string().default('http://localhost:5173'),
+
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
   BACKEND_URL: z.string().optional(), // ex: https://novux.onrender.com

@@ -22,9 +22,11 @@ import LandingPage      from "@/pages/LandingPage";
 import AjudaPage        from "@/pages/AjudaPage";
 import PrivacidadePage  from "@/pages/PrivacidadePage";
 import TermosPage       from "@/pages/TermosPage";
-import LoginPage        from "@/pages/LoginPage";
-import RegisterPage     from "@/pages/RegisterPage";
-import NotFound         from "./pages/NotFound";
+import LoginPage           from "@/pages/LoginPage";
+import RegisterPage        from "@/pages/RegisterPage";
+import ForgotPasswordPage  from "@/pages/ForgotPasswordPage";
+import ResetPasswordPage   from "@/pages/ResetPasswordPage";
+import NotFound            from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
@@ -44,8 +46,10 @@ const App = () => (
                   <Route path="/ajuda"      element={<AjudaPage />} />
                   <Route path="/privacidade" element={<PrivacidadePage />} />
                   <Route path="/termos"     element={<TermosPage />} />
-                  <Route path="/login"      element={<LoginPage />} />
-                  <Route path="/register"   element={<RegisterPage />} />
+                  <Route path="/login"           element={<LoginPage />} />
+                  <Route path="/register"        element={<RegisterPage />} />
+                  <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                  <Route path="/reset-password"  element={<ResetPasswordPage />} />
 
                   {/* Rotas protegidas */}
                   <Route element={<ProtectedRoute />}>

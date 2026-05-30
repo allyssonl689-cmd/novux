@@ -110,6 +110,31 @@ export class AuthController {
     }
   }
 
+  static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body as { email: string };
+      if (!email) { res.status(400).json({ success: false, message: 'E-mail obrigatório' }); return; }
+      const ip = req.ip ?? req.socket?.remoteAddress;
+      await AuthService.forgotPassword(email, ip);
+      // Resposta sempre 200 para não vazar se o e-mail existe
+      res.json({ success: true, message: 'Se esse e-mail estiver cadastrado, você receberá um link em instantes.' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token, newPassword } = req.body as { token: string; newPassword: string };
+      if (!token || !newPassword) { res.status(400).json({ success: false, message: 'Dados incompletos' }); return; }
+      const ip = req.ip ?? req.socket?.remoteAddress;
+      await AuthService.resetPassword(token, newPassword, ip);
+      res.json({ success: true, message: 'Senha redefinida com sucesso. Faça login com a nova senha.' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
   static async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const ip = req.ip ?? req.socket?.remoteAddress;
