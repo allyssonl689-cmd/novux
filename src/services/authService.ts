@@ -5,6 +5,8 @@ export interface AuthUser {
   email: string;
   name?: string;
   avatarUrl?: string;
+  plan: 'free' | 'premium';
+  emailVerified: boolean;
 }
 
 interface ApiUser {
@@ -12,6 +14,8 @@ interface ApiUser {
   name?: string;
   email: string;
   avatar_url?: string;
+  plan?: string;
+  email_verified?: boolean;
 }
 
 interface AuthResponse {
@@ -24,11 +28,18 @@ interface AuthResponse {
 
 interface MeResponse {
   success: boolean;
-  data: { id: string; name?: string; email: string; avatar_url?: string };
+  data: { id: string; name?: string; email: string; avatar_url?: string; plan?: string; email_verified?: boolean };
 }
 
 function toAuthUser(u: ApiUser): AuthUser {
-  return { userId: u.id, email: u.email, name: u.name, avatarUrl: u.avatar_url };
+  return {
+    userId: u.id,
+    email: u.email,
+    name: u.name,
+    avatarUrl: u.avatar_url,
+    plan: (u.plan === 'premium' ? 'premium' : 'free'),
+    emailVerified: u.email_verified ?? false,
+  };
 }
 
 export const authService = {
@@ -73,7 +84,11 @@ export const authService = {
 
   async me(): Promise<AuthUser> {
     const res = await apiFetch<MeResponse>('/api/users/me');
-    return { userId: res.data.id, email: res.data.email, name: res.data.name, avatarUrl: res.data.avatar_url };
+    return toAuthUser(res.data);
+  },
+
+  async resendVerification(): Promise<void> {
+    await apiFetch('/api/auth/resend-verification', { method: 'POST' });
   },
 
   async loginWithGoogle(credential: string): Promise<AuthUser> {

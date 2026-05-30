@@ -154,6 +154,25 @@ export class AuthController {
     }
   }
 
+  static async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { token } = req.query as { token?: string };
+      if (!token) { res.status(400).json({ success: false, message: 'Token obrigatório' }); return; }
+      await AuthService.verifyEmail(token);
+      res.json({ success: true, message: 'E-mail verificado com sucesso!' });
+    } catch (err) { next(err); }
+  }
+
+  static async resendVerification(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = await import('../models/UserModel').then(m => m.UserModel.findById(req.userId));
+      if (!user) { res.status(404).json({ success: false, message: 'Usuário não encontrado' }); return; }
+      if ((user as any).email_verified) { res.json({ success: true, message: 'E-mail já verificado' }); return; }
+      await AuthService.resendVerification(req.userId, user.email, user.name ?? undefined);
+      res.json({ success: true, message: 'E-mail de verificação reenviado' });
+    } catch (err) { next(err); }
+  }
+
   static async me(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       res.json({ success: true, data: { userId: req.userId, email: req.userEmail } });

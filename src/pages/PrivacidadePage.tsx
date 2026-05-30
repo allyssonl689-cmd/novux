@@ -74,8 +74,21 @@ export default function PrivacidadePage() {
               <p className="text-muted-foreground">Adotamos medidas técnicas de segurança incluindo criptografia de senhas (bcrypt), tokens JWT com curta validade, rate limiting, auditoria de acessos e comunicação via HTTPS.</p>
             </Section>
 
-            <Section title="9. Contato">
-              <p className="text-muted-foreground">Para exercer seus direitos ou tirar dúvidas sobre privacidade: <a href="mailto:privacidade@novux.app" className="text-primary hover:underline">privacidade@novux.app</a></p>
+            <Section title="9. Controlador dos Dados — Informações de Contato">
+              <div className="rounded-xl border border-border bg-card/50 p-4 space-y-1 text-sm text-muted-foreground">
+                <p><strong className="text-foreground">Produto:</strong> Novux Finance</p>
+                <p><strong className="text-foreground">Responsável pelo tratamento de dados (DPO):</strong> Allysson Lima</p>
+                <p><strong className="text-foreground">E-mail para privacidade:</strong>{' '}
+                  <a href="mailto:allyssonl689@gmail.com" className="text-primary hover:underline">allyssonl689@gmail.com</a>
+                </p>
+                <p><strong className="text-foreground">Canal de suporte:</strong>{' '}
+                  <a href="mailto:suporte@novux.app" className="text-primary hover:underline">suporte@novux.app</a>
+                </p>
+                <p className="text-xs pt-1 text-muted-foreground/70">
+                  Para exercer seus direitos previstos na LGPD (acesso, retificação, exclusão, portabilidade),
+                  entre em contato pelos canais acima. Respondemos em até 15 dias úteis.
+                </p>
+              </div>
             </Section>
           </div>
         </motion.div>

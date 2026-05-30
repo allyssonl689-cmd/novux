@@ -2,17 +2,56 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
-import { Bell, Plus, Sun, Moon, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X } from 'lucide-react';
+import { Bell, Plus, Sun, Moon, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X, MailWarning } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { TransactionForm } from '@/components/TransactionForm';
 import { useFinance } from '@/contexts/FinanceContext';
 import { useTheme } from '@/contexts/ThemeContext';
-import { usePeriod, PERIOD_LABELS, type PeriodPreset } from '@/contexts/PeriodContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { apiFetch } from '@/services/api';
+import { usePeriod, PERIOD_LABELS, type PeriodPreset } from '@/contexts/PeriodContext';
 import { useInactivityLogout } from '@/hooks/useInactivityLogout';
 
 /* Rotas que usam header simplificado (sem navegador de mês e sem botão Lançamento) */
 const SIMPLE_HEADER_ROUTES = ['/perfil', '/configuracoes', '/admin'];
+
+function EmailVerificationBanner() {
+  const { user } = useAuth();
+  const [sending, setSending] = useState(false);
+  const [sent, setSent]       = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  if (!user || user.emailVerified || dismissed) return null;
+
+  async function resend() {
+    setSending(true);
+    try {
+      await apiFetch('/api/auth/resend-verification', { method: 'POST' });
+      setSent(true);
+    } catch { /* ignore */ }
+    finally { setSending(false); }
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-4 py-2.5 text-xs"
+      style={{ background: 'hsl(38 93% 50% / 0.12)', borderBottom: '1px solid hsl(38 93% 50% / 0.25)' }}>
+      <MailWarning className="h-3.5 w-3.5 text-warning shrink-0" />
+      <span className="text-warning flex-1">
+        Verifique seu e-mail para garantir acesso completo ao Novux.
+        {' '}{sent
+          ? <span className="font-semibold">E-mail reenviado! Verifique sua caixa.</span>
+          : <button onClick={resend} disabled={sending}
+              className="font-semibold underline hover:no-underline disabled:opacity-60">
+              {sending ? 'Enviando...' : 'Reenviar verificação'}
+            </button>
+        }
+      </span>
+      <button onClick={() => setDismissed(true)} className="text-warning/60 hover:text-warning transition-colors">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
 
 const MONTH_NAMES = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
@@ -337,6 +376,9 @@ export function MainLayout() {
               </button>
             )}
           </header>
+
+          {/* ── Banner e-mail não verificado ── */}
+          <EmailVerificationBanner />
 
           {/* ── Page ── */}
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">

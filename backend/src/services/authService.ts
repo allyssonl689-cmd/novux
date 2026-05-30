@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import { randomBytes, createHash } from 'crypto';
 import { verifySync } from 'otplib';
-import { sendPasswordResetEmail } from './emailService';
+import { sendPasswordResetEmail, sendWelcomeEmail, sendEmailVerificationEmail } from './emailService';
 import { db } from '../config/database';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../config/auth';
 import { UserModel } from '../models/UserModel';
@@ -35,6 +35,24 @@ export class AuthService {
     });
 
     await audit(user.id, 'register', 'account', ip, { name: input.name });
+
+    // Gera token de verificação de e-mail
+    const verifyToken = randomBytes(32).toString('base64url');
+    const verifyHash  = hashToken(verifyToken);
+    const verifyExp   = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
+    await db.query(
+      `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, verifyHash, verifyExp]
+    );
+    const verifyUrl = `${env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
+
+    // Dispara e-mails em background — não bloqueia o registro
+    Promise.all([
+      sendWelcomeEmail(user.email, user.name).catch(e => console.error('[Email] welcome:', e)),
+      sendEmailVerificationEmail(user.email, user.name, verifyUrl).catch(e => console.error('[Email] verify:', e)),
+    ]);
+
     return this.issueTokens(user);
   }
 
@@ -246,6 +264,32 @@ export class AuthService {
     // Invalida todos os refresh tokens (segurança: força re-login)
     await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [entry.user_id]);
     await audit(entry.user_id, 'password_reset', 'account', ip);
+  }
+
+  static async verifyEmail(token: string): Promise<void> {
+    const tokenHash = hashToken(token);
+    const { rows } = await db.query<{ user_id: string }>(
+      `SELECT user_id FROM email_verification_tokens
+       WHERE token_hash = $1 AND expires_at > NOW() AND used = false`,
+      [tokenHash]
+    );
+    if (!rows[0]) throw new AppError('Link inválido ou expirado. Solicite um novo.', 400);
+    await db.query('UPDATE email_verification_tokens SET used = true WHERE token_hash = $1', [tokenHash]);
+    await UserModel.verifyEmail(rows[0].user_id);
+  }
+
+  static async resendVerification(userId: string, email: string, name?: string): Promise<void> {
+    await db.query('UPDATE email_verification_tokens SET used = true WHERE user_id = $1', [userId]);
+    const token    = randomBytes(32).toString('base64url');
+    const tokenHash = hashToken(token);
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    await db.query(
+      `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [userId, tokenHash, expiresAt]
+    );
+    const verifyUrl = `${env.FRONTEND_URL}/verify-email?token=${token}`;
+    await sendEmailVerificationEmail(email, name, verifyUrl);
   }
 
   static async deleteAccount(userId: string, ip?: string): Promise<void> {

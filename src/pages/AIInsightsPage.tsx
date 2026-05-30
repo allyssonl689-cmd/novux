@@ -5,11 +5,11 @@ import { apiFetch } from '@/services/api';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { Send, Bot, User, Sparkles, Zap, RefreshCw, TrendingUp, BarChart3, Lock, Crown } from 'lucide-react';
 import { CHART } from '@/lib/tokens';
+import { useAuth } from '@/contexts/AuthContext';
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const FREE_DAILY_LIMIT = 5;
-const IS_PREMIUM = true; // hardcoded until billing — same as rest of app
 
 interface Message { id: string; role: 'user' | 'ai'; text: string; loading?: boolean; ts: number }
 
@@ -73,6 +73,8 @@ function LimitReachedBanner({ remaining }: { remaining: number }) {
 
 export default function AIInsightsPage() {
   const { transactions } = useFinance();
+  const { user } = useAuth();
+  const IS_PREMIUM = user?.plan === 'premium';
   const [msgs, setMsgs] = useState<Message[]>([{
     id: '0', role: 'ai', ts: Date.now(),
     text: 'Olá! Sou o NovuxAI, seu copiloto financeiro pessoal 🚀\n\nTenho acesso completo ao seu histórico financeiro e posso te ajudar com:\n• Análises detalhadas de gastos\n• Estratégias de investimento\n• Orçamento personalizado\n• Projeções futuras\n\nO que você quer descobrir sobre suas finanças hoje?',

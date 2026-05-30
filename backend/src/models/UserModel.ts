@@ -4,7 +4,10 @@ import { User, PublicUser } from './types';
 export class UserModel {
   static async findById(id: string): Promise<PublicUser | null> {
     const { rows } = await db.query<PublicUser>(
-      'SELECT id, name, email, avatar_url, is_active, created_at, updated_at FROM users WHERE id = $1',
+      `SELECT id, name, email, avatar_url, is_active, plan,
+              COALESCE(email_verified, false) AS email_verified,
+              created_at, updated_at
+       FROM users WHERE id = $1`,
       [id]
     );
     return rows[0] ?? null;
@@ -105,5 +108,12 @@ export class UserModel {
 
   static async completeOnboarding(userId: string): Promise<void> {
     await db.query('UPDATE users SET onboarding_completed = TRUE WHERE id = $1', [userId]);
+  }
+
+  static async verifyEmail(userId: string): Promise<void> {
+    await db.query(
+      'UPDATE users SET email_verified = TRUE WHERE id = $1',
+      [userId]
+    );
   }
 }
