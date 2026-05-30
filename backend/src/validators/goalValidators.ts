@@ -7,7 +7,7 @@ export const createGoalSchema = z.object({
   current_value: z.number().min(0).optional().default(0),
   deadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish().transform(v => v ?? null),
   category: z.string().max(100).nullish().transform(v => v ?? null),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullish().transform(v => v ?? null),
+  color: z.string().max(50).nullish().transform(v => v ?? null),
 });
 
 export const updateGoalSchema = createGoalSchema.partial().extend({
