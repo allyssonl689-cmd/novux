@@ -31,7 +31,7 @@ const envSchema = z.object({
   // E-mail via Brevo API (recomendado — não usa SMTP, não é bloqueado por cloud)
   BREVO_API_KEY: z.string().optional(),
   // E-mail do remetente verificado no Brevo
-  EMAIL_FROM: z.string().default('Novux Finance <allysson1689@gmail.com>'),
+  EMAIL_FROM: z.string().default('Novux Finance <allyssonl689@gmail.com>'),
 
   // E-mail (SMTP) — fallback, mantido para compatibilidade
   SMTP_HOST: z.string().optional(),
