@@ -6,6 +6,7 @@ import { usePeriod } from '@/contexts/PeriodContext';
 import { Send, Bot, User, Sparkles, Zap, RefreshCw, TrendingUp, BarChart3, Lock, Crown } from 'lucide-react';
 import { CHART } from '@/lib/tokens';
 import { useAuth } from '@/contexts/AuthContext';
+import { goalService, Goal } from '@/services/goalService';
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -75,6 +76,12 @@ export default function AIInsightsPage() {
   const { transactions } = useFinance();
   const { user } = useAuth();
   const IS_PREMIUM = user?.plan === 'premium';
+
+  // Carrega metas
+  const [goals, setGoals] = useState<Goal[]>([]);
+  useEffect(() => {
+    goalService.list().then(setGoals).catch(() => {});
+  }, []);
   const [msgs, setMsgs] = useState<Message[]>([{
     id: '0', role: 'ai', ts: Date.now(),
     text: 'Olá! Sou o NovuxAI, seu copiloto financeiro pessoal 🚀\n\nTenho acesso completo ao seu histórico financeiro e posso te ajudar com:\n• Análises detalhadas de gastos\n• Estratégias de investimento\n• Orçamento personalizado\n• Projeções futuras\n\nO que você quer descobrir sobre suas finanças hoje?',
@@ -99,7 +106,7 @@ export default function AIInsightsPage() {
   const { getRange } = usePeriod();
   const now = new Date();
 
-  // Panel shows current month; AI has access to ALL months
+  // ── Mês atual ───────────────────────────────────────────────
   const thisMonth = transactions.filter(t => {
     const d = new Date(t.date + 'T12:00:00');
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -107,11 +114,28 @@ export default function AIInsightsPage() {
   const income  = thisMonth.filter(t => t.type === 'income').reduce((s, t) => s + t.value, 0);
   const expense = thisMonth.filter(t => t.type === 'expense').reduce((s, t) => s + t.value, 0);
 
-  const byCategory: Record<string, number> = {};
-  thisMonth.filter(t => t.type === 'expense').forEach(t => { byCategory[t.category] = (byCategory[t.category] || 0) + t.value; });
-  const topCats = Object.entries(byCategory).sort((a, b) => b[1] - a[1]);
+  // Despesas por categoria (todas)
+  const byCatExpense: Record<string, number> = {};
+  thisMonth.filter(t => t.type === 'expense').forEach(t => {
+    byCatExpense[t.category] = (byCatExpense[t.category] || 0) + t.value;
+  });
 
-  // Build monthly summary for ALL months so AI can answer questions about past/future
+  // Receitas por categoria
+  const byCatIncome: Record<string, number> = {};
+  thisMonth.filter(t => t.type === 'income').forEach(t => {
+    byCatIncome[t.category] = (byCatIncome[t.category] || 0) + t.value;
+  });
+
+  // Pendentes (não pagos) do mês
+  const pendingExpenses = thisMonth.filter(t => t.type === 'expense' && !t.paid);
+  const pendingTotal    = pendingExpenses.reduce((s, t) => s + t.value, 0);
+
+  // Investimentos totais (histórico completo)
+  const totalInvested = transactions
+    .filter(t => t.category === 'Investimentos' && t.type === 'income')
+    .reduce((s, t) => s + t.value, 0);
+
+  // ── Histórico mensal (todos os meses) ───────────────────────
   const allMonthsSummary: Record<string, { income: number; expense: number }> = {};
   transactions.forEach(t => {
     const key = t.date.slice(0, 7);
@@ -124,19 +148,64 @@ export default function AIInsightsPage() {
     .map(([key, { income: inc, expense: exp }]) => {
       const [y, m] = key.split('-');
       const label = new Date(parseInt(y), parseInt(m) - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-      return `${label}: receita ${fmt(inc)}, despesa ${fmt(exp)}, saldo ${inc - exp >= 0 ? '+' : '-'}${fmt(Math.abs(inc - exp))}`;
+      return `${label}: receita ${fmt(inc)}, despesa ${fmt(exp)}, saldo ${inc >= exp ? '+' : '-'}${fmt(Math.abs(inc - exp))}`;
     });
 
+  // ── Últimas transações (10 mais recentes) ───────────────────
+  const recentTxs = [...transactions]
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10)
+    .map(t => `${t.date} | ${t.type === 'income' ? '+' : '-'}${fmt(t.value)} | ${t.category} | ${t.description}${t.paid === false ? ' [pendente]' : ''}`);
+
+  // ── Metas ────────────────────────────────────────────────────
+  const goalsContext = goals.map(g => {
+    const pct = g.targetValue > 0 ? Math.round((g.currentValue / g.targetValue) * 100) : 0;
+    const deadline = g.deadline
+      ? new Date(g.deadline + 'T12:00:00').toLocaleDateString('pt-BR')
+      : 'sem prazo';
+    return `"${g.title}": guardado ${fmt(g.currentValue)} de ${fmt(g.targetValue)} (${pct}%) | prazo: ${deadline} | ${g.isCompleted ? 'CONCLUÍDA' : 'em andamento'}`;
+  });
+
+  // ── Contexto completo enviado à IA ──────────────────────────
   const financialContext = {
+    // Período
     mes_atual: now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }),
+
+    // Mês atual — receitas
     receita_mes_atual: fmt(income),
+    receitas_por_categoria: Object.entries(byCatIncome).map(([c, v]) => `${c}: ${fmt(v)}`).join(', ') || 'nenhuma',
+
+    // Mês atual — despesas
     despesa_mes_atual: fmt(expense),
+    despesas_por_categoria: Object.entries(byCatExpense)
+      .sort((a, b) => b[1] - a[1])
+      .map(([c, v]) => `${c}: ${fmt(v)} (${expense > 0 ? Math.round(v / expense * 100) : 0}%)`)
+      .join(', ') || 'nenhuma',
+
+    // Saldo e poupança
     saldo_mes_atual: `${income - expense >= 0 ? '+' : '-'}${fmt(Math.abs(income - expense))}`,
     taxa_poupanca: income > 0 ? `${((income - expense) / income * 100).toFixed(1)}%` : '0%',
-    top_gastos_mes_atual: topCats.slice(0, 5).map(([c, v]) => `${c}: ${fmt(v)}`).join(', ') || 'nenhum',
+
+    // Pendentes
+    despesas_pendentes_mes: pendingExpenses.length > 0
+      ? `${pendingExpenses.length} lançamentos totalizando ${fmt(pendingTotal)}: ${pendingExpenses.slice(0, 5).map(t => `${t.description} (${fmt(t.value)})`).join(', ')}`
+      : 'nenhuma despesa pendente',
+
+    // Investimentos
+    total_investido_historico: fmt(totalInvested),
+
+    // Histórico
     total_transacoes_mes_atual: String(thisMonth.length),
     total_transacoes_historico: String(transactions.length),
-    historico_mensal: monthlyHistory.join(' | '),
+    historico_mensal: monthlyHistory.join(' | ') || 'sem histórico',
+
+    // Transações recentes
+    ultimas_transacoes: recentTxs.join('\n') || 'nenhuma',
+
+    // Metas
+    metas: goalsContext.length > 0 ? goalsContext.join('\n') : 'nenhuma meta cadastrada',
+    total_metas: String(goals.length),
+    metas_concluidas: String(goals.filter(g => g.isCompleted).length),
   };
 
   const canSend = IS_PREMIUM || (remaining === null || remaining > 0);
@@ -359,12 +428,12 @@ export default function AIInsightsPage() {
           </motion.div>
 
           {/* Top gastos */}
-          {topCats.length > 0 && (
+          {Object.keys(byCatExpense).length > 0 && (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
               className="rounded-2xl border border-border bg-card p-5">
               <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">Top Categorias</h3>
               <div className="space-y-2.5">
-                {topCats.slice(0, 5).map(([cat, val], i) => {
+                {Object.entries(byCatExpense).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([cat, val], i) => {
                   const pct = expense > 0 ? Math.round((val / expense) * 100) : 0;
                   const colors = [CHART.income, CHART.goal, CHART.warning, CHART.investment, CHART.expense];
                   return (

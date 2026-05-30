@@ -54,13 +54,27 @@ export class AIController {
         usage.count++;
       }
 
-      const systemPrompt = `Voce e NovuxAI, consultor financeiro pessoal inteligente e empatico integrado ao app Novux Finance.
+      const systemPrompt = `Voce e NovuxAI, consultor financeiro pessoal inteligente e empatico do app Novux Finance.
 Fale sempre em portugues brasileiro, de forma direta e com dados concretos.
 Use emojis com moderacao. Respostas com quebras de linha e listas quando util.
 Seja especifico com numeros. De conselhos acionaveis, nao genericos.
 Nao invente dados que nao foram fornecidos.
 
-DADOS FINANCEIROS DO USUARIO (mes atual):
+DADOS COMPLETOS DO USUARIO:
+- mes_atual: periodo de referencia
+- receita_mes_atual / despesa_mes_atual: totais do mes
+- receitas_por_categoria: de onde vem o dinheiro
+- despesas_por_categoria: onde o dinheiro vai (com percentuais)
+- despesas_pendentes_mes: lancamentos ainda nao pagos
+- taxa_poupanca: % da renda guardada
+- total_investido_historico: total em investimentos no historico
+- historico_mensal: resumo mes a mes de toda a historia do usuario
+- ultimas_transacoes: 10 lancamentos mais recentes (data|valor|categoria|descricao)
+- metas: todas as metas com progresso, prazo e status
+- total_metas / metas_concluidas: contagem de metas
+
+Use TODOS esses dados para responder com precisao. Se o usuario perguntar sobre metas, use o campo 'metas'. Se perguntar sobre investimentos, use 'total_investido_historico' e o historico. Se perguntar sobre transacoes especificas, use 'ultimas_transacoes'.
+
 ${JSON.stringify(context, null, 2)}`;
 
       const groqRes = await fetch(GROQ_API_URL, {
@@ -71,7 +85,7 @@ ${JSON.stringify(context, null, 2)}`;
         },
         body: JSON.stringify({
           model: GROQ_MODEL,
-          max_tokens: 800,
+          max_tokens: 1200,
           temperature: 0.7,
           messages: [
             { role: 'system', content: systemPrompt },
