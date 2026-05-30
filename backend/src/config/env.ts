@@ -28,7 +28,12 @@ const envSchema = z.object({
 
   GROQ_API_KEY: z.string().optional(),
 
-  // E-mail (SMTP) — opcional; se não configurado, reset tokens são logados no console
+  // E-mail via Brevo API (recomendado — não usa SMTP, não é bloqueado por cloud)
+  BREVO_API_KEY: z.string().optional(),
+  // E-mail do remetente verificado no Brevo
+  EMAIL_FROM: z.string().default('Novux Finance <allysson1689@gmail.com>'),
+
+  // E-mail (SMTP) — fallback, mantido para compatibilidade
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().default(587),
   SMTP_USER: z.string().optional(),
@@ -36,7 +41,7 @@ const envSchema = z.object({
   SMTP_FROM: z.string().optional(),
 
   // URL do frontend — usada para gerar links nos e-mails
-  FRONTEND_URL: z.string().default('http://localhost:5173'),
+  FRONTEND_URL: z.string().default('https://novux-export.vercel.app'),
 
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
