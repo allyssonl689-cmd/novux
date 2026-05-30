@@ -201,7 +201,22 @@ export class AuthService {
     );
 
     const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`;
-    await sendPasswordResetEmail(user.email, user.name, resetUrl);
+
+    // Envia e-mail com timeout de 8s — evita que SMTP bloqueado trave o request
+    // A resposta é sempre 200 independente do resultado (segurança: não vaza info)
+    try {
+      await Promise.race([
+        sendPasswordResetEmail(user.email, user.name, resetUrl),
+        new Promise<void>((_, reject) =>
+          setTimeout(() => reject(new Error('SMTP timeout')), 8_000)
+        ),
+      ]);
+    } catch (emailErr) {
+      // Loga o erro e a URL de reset para diagnóstico sem expor ao usuário
+      console.error('[forgotPassword] Falha ao enviar e-mail:', (emailErr as Error).message);
+      console.warn(`[forgotPassword] URL de reset para ${user.email}: ${resetUrl}`);
+    }
+
     await audit(user.id, 'password_reset_requested', 'account', ip);
   }
 
