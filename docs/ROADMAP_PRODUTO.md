@@ -10,11 +10,12 @@ Novux Finance é uma plataforma SaaS de gestão financeira pessoal com IA integr
 
 | Serviço | URL | Status |
 |---|---|---|
-| Frontend | https://novux-export.vercel.app | ✅ No ar |
-| Backend | https://novux.onrender.com | ✅ No ar |
-| Banco de dados | Supabase (PostgreSQL) | ✅ Conectado |
-| Bot Telegram | @Novuxx_bot | ✅ Operacional |
-| Repositório | https://github.com/allyssonl689-cmd/novux | ✅ Público |
+| Frontend | https://novux-export.vercel.app | ✅ No ar | Vercel
+| Backend | https://novux.onrender.com | ✅ No ar | Render
+| Banco de dados | Supabase (PostgreSQL) | ✅ Conectado | Supabase
+| Bot Telegram | @Novuxx_bot | ✅ Operacional | Telegram
+| Repositório | https://github.com/allyssonl689-cmd/novux | ✅ Público | Github
+| SMTP email | allyssonl689@gmail.com | email | https://app.brevo.com/senders/list
 
 ---
 
