@@ -9,6 +9,7 @@ function createTransporter() {
     port: env.SMTP_PORT,
     secure: env.SMTP_PORT === 465,
     auth: { user: env.SMTP_USER, pass: env.SMTP_PASS },
+    tls: { rejectUnauthorized: false },
   });
 }
 
@@ -27,7 +28,7 @@ export async function sendPasswordResetEmail(
   const firstName = name?.split(' ')[0] ?? 'usuário';
 
   await transporter.sendMail({
-    from: `"Novux Finance" <${env.SMTP_FROM ?? env.SMTP_USER}>`,
+    from: env.SMTP_FROM ?? `"Novux Finance" <${env.SMTP_USER}>`,
     to,
     subject: 'Redefinição de senha — Novux Finance',
     html: `
