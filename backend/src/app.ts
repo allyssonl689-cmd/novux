@@ -67,18 +67,28 @@ app.use((_req, res) => {
 app.use(errorHandler);
 
 async function start(): Promise<void> {
-  await connectDatabase();
-  app.listen(env.PORT, async () => {
+  // Abre a porta PRIMEIRO para o Render detectar o processo
+  // A conexão com o banco é feita em background para não bloquear o bind
+  app.listen(env.PORT, () => {
     logger.info('Servidor iniciado', { port: env.PORT, env: env.NODE_ENV });
-
-    // Registrar webhook do Telegram automaticamente em produção
-    if (env.NODE_ENV === 'production' && (env as any).TELEGRAM_BOT_TOKEN && (env as any).BACKEND_URL) {
-      const { registerWebhook } = await import('./services/telegramService');
-      const webhookUrl = `${(env as any).BACKEND_URL}/api/telegram/webhook`;
-      const ok = await registerWebhook(webhookUrl, (env as any).TELEGRAM_WEBHOOK_SECRET);
-      console.log(`🤖 Telegram webhook ${ok ? 'registrado' : 'FALHOU'}: ${webhookUrl}`);
-    }
   });
+
+  // Conecta ao banco após abrir a porta (evita timeout do Render)
+  try {
+    await connectDatabase();
+    logger.info('Banco de dados conectado');
+  } catch (err) {
+    logger.error('Falha ao conectar ao banco de dados', { error: (err as Error).message });
+    process.exit(1);
+  }
+
+  // Registrar webhook do Telegram após tudo estar pronto
+  if (env.NODE_ENV === 'production' && (env as any).TELEGRAM_BOT_TOKEN && (env as any).BACKEND_URL) {
+    const { registerWebhook } = await import('./services/telegramService');
+    const webhookUrl = `${(env as any).BACKEND_URL}/api/telegram/webhook`;
+    const ok = await registerWebhook(webhookUrl, (env as any).TELEGRAM_WEBHOOK_SECRET);
+    console.log(`🤖 Telegram webhook ${ok ? 'registrado' : 'FALHOU'}: ${webhookUrl}`);
+  }
 }
 
 start().catch((err) => {
