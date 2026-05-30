@@ -16,8 +16,12 @@ db.on('error', (err) => {
   process.exit(1);
 });
 
+let _dbReady = false;
+export const isDbReady = () => _dbReady;
+
 export async function connectDatabase(): Promise<void> {
   const client = await db.connect();
   client.release();
+  _dbReady = true;
   console.log('✅ Banco de dados conectado com sucesso');
 }

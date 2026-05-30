@@ -9,7 +9,7 @@ import compression from 'compression';
 import morgan from 'morgan';
 
 import { env } from './config/env';
-import { connectDatabase } from './config/database';
+import { connectDatabase, isDbReady } from './config/database';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -37,9 +37,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(globalLimiter);
 
-// Health check
+// Health check — inclui status do banco
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({ status: 'ok', db: isDbReady() ? 'connected' : 'connecting', timestamp: new Date().toISOString() });
+});
+
+// Retorna 503 para rotas de API enquanto o banco não estiver pronto
+app.use('/api', (req, res, next) => {
+  if (!isDbReady()) {
+    res.status(503).json({ success: false, message: 'Serviço iniciando, tente novamente em instantes.' });
+    return;
+  }
+  next();
 });
 
 // Servir arquivos de upload estaticamente

@@ -9,10 +9,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
 
-const COLORS = [
-  'hsl(161 90% 42%)', 'hsl(245 85% 68%)', 'hsl(43 90% 55%)',
-  'hsl(193 100% 50%)', 'hsl(343 90% 62%)', 'hsl(316 80% 62%)',
-];
+// Hex colors — brand book Novux (max 7 chars, compatível com VARCHAR(7) do banco)
+const COLORS = ['#19D38A', '#8B5CF6', '#F59E0B', '#16C7FF', '#FF5A5F', '#EC4899'];
 const GOAL_ICONS: Record<string, LucideIcon> = {
   'Emergência': ShieldCheck,
   'Viagem': Plane,
