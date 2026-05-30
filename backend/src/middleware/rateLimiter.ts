@@ -9,13 +9,22 @@ export const globalLimiter = rateLimit({
   message: { success: false, message: 'Muitas requisições. Tente novamente em alguns minutos.' },
 });
 
-// Limite mais restrito para rotas de autenticação (previne brute force)
+// Limite restrito para login/register (previne brute force)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: env.NODE_ENV === 'development' ? 200 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
+});
+
+// Limite mais permissivo para recuperação de senha (5 por hora por IP)
+export const passwordResetLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: env.NODE_ENV === 'development' ? 200 : 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Muitas solicitações de recuperação. Tente novamente em 1 hora.' },
 });
 
 // Limite por usuário autenticado para rotas de dados (previne scraping e abuso)

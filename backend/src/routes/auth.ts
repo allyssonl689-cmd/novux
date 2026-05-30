@@ -3,6 +3,7 @@ import { AuthController } from '../controllers/authController';
 import { authenticate } from '../middleware/authMiddleware';
 import { authLimiter } from '../middleware/rateLimiter';
 import { bruteForceGuard } from '../middleware/bruteForce';
+import { passwordResetLimiter } from '../middleware/rateLimiter';
 
 const router = Router();
 
@@ -14,7 +15,7 @@ router.post('/logout',           authenticate, AuthController.logout);
 router.post('/change-password',  authenticate, AuthController.changePassword);
 router.get('/me',                authenticate, AuthController.me);
 router.delete('/account',        authenticate, AuthController.deleteAccount);
-router.post('/forgot-password',  authLimiter, AuthController.forgotPassword);
-router.post('/reset-password',   authLimiter, AuthController.resetPassword);
+router.post('/forgot-password',  passwordResetLimiter, AuthController.forgotPassword);
+router.post('/reset-password',   passwordResetLimiter, AuthController.resetPassword);
 
 export default router;

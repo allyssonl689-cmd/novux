@@ -7,17 +7,25 @@ const REFRESH_COOKIE = 'novux_refresh';
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 dias em ms
 
 function setRefreshCookie(res: Response, token: string): void {
+  const isProd = env.NODE_ENV === 'production';
   res.cookie(REFRESH_COOKIE, token, {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: isProd,
+    // 'none' necessário em produção para cross-site (Vercel → Render)
+    // 'lax' em desenvolvimento (HTTP local não aceita 'none' sem secure)
+    sameSite: isProd ? 'none' : 'lax',
     maxAge: COOKIE_MAX_AGE,
     path: '/api/auth',
   });
 }
 
 function clearRefreshCookie(res: Response): void {
-  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth' });
+  const isProd = env.NODE_ENV === 'production';
+  res.clearCookie(REFRESH_COOKIE, {
+    path: '/api/auth',
+    sameSite: isProd ? 'none' : 'lax',
+    secure: isProd,
+  });
 }
 
 function getRefreshCookie(req: Request): string | undefined {
