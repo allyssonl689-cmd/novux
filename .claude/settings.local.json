@@ -15,7 +15,11 @@
       "Bash(node -e \"const j = require\\('./node_modules/jspdf/dist/jspdf.umd.js'\\); const d = new j.jsPDF\\(\\); console.log\\(Object.keys\\(d\\).filter\\(k=>typeof d[k]==='function'\\).sort\\(\\).join\\('\\\\n'\\)\\)\")",
       "Bash(node -e ' *)",
       "Bash(node -e \"const p = require\\('./node_modules/jspdf/package.json'\\); console.log\\('main:', p.main, 'module:', p.module, 'exports:', JSON.stringify\\(p.exports?.['.'], null, 2\\)\\)\")",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "Bash(grep *)",
+      "Bash(find \"C:\\\\\\\\Users\\\\\\\\allysson.lima\\\\\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\\\\\Área de Trabalho\\\\\\\\all\\\\\\\\novux-export\\\\\\\\backend\" -type f -name \"*.ts\" -o -name \"*.js\" -o -name \"*.py\")",
+      "Bash(ls *)",
+      "Bash(find \"C:\\\\\\\\Users\\\\\\\\allysson.lima\\\\\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\\\\\Área de Trabalho\\\\\\\\all\\\\\\\\novux-export\\\\\\\\backend\\\\\\\\src\" -type f -name \"*.ts\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\allysson.lima\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\Área de Trabalho\\all\\novux-export\\backend\\src"

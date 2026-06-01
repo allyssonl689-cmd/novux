@@ -7,7 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { FinanceProvider } from "@/contexts/FinanceContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PeriodProvider } from "@/contexts/PeriodContext";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { ProtectedRoute, AdminRoute } from "@/components/auth/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
 import DashboardPage    from "@/pages/DashboardPage";
 import ReportsPage      from "@/pages/ReportsPage";
@@ -53,7 +53,12 @@ const App = () => (
                   <Route path="/reset-password"  element={<ResetPasswordPage />} />
                   <Route path="/verify-email"    element={<VerifyEmailPage />} />
 
-                  {/* Rotas protegidas */}
+                  {/* Rota admin — layout próprio, sem sidebar */}
+                  <Route element={<AdminRoute />}>
+                    <Route path="/admin" element={<AdminPage />} />
+                  </Route>
+
+                  {/* Rotas protegidas com sidebar */}
                   <Route element={<ProtectedRoute />}>
                     <Route element={<MainLayout />}>
                       <Route path="/"              element={<DashboardPage />} />
@@ -64,7 +69,6 @@ const App = () => (
                       <Route path="/investimentos" element={<InvestmentsPage />} />
                       <Route path="/perfil"        element={<ProfilePage />} />
                       <Route path="/configuracoes" element={<ConfiguracoesPage />} />
-                      <Route path="/admin"         element={<AdminPage />} />
                     </Route>
                   </Route>
 

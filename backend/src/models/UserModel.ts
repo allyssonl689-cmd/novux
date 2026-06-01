@@ -18,7 +18,7 @@ function safeDecryptUser(row: any): PublicUser {
 export class UserModel {
   static async findById(id: string): Promise<PublicUser | null> {
     const { rows } = await db.query<any>(
-      `SELECT id, name, email, email_hash, avatar_url, is_active, plan,
+      `SELECT id, name, email, email_hash, avatar_url, is_active, plan, is_admin,
               COALESCE(email_verified, false) AS email_verified,
               created_at, updated_at
        FROM users WHERE id = $1`,

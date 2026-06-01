@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { HelpCircle, ChevronDown, ArrowLeft, Search, MessageCircle, Send } from 'lucide-react';
+import { HelpCircle, ChevronDown, ArrowLeft, Search, MessageCircle, Send, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const FAQS = [
   {
@@ -58,6 +59,7 @@ const FAQS = [
 ];
 
 export default function AjudaPage() {
+  const { theme, toggleTheme } = useTheme();
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
@@ -70,11 +72,23 @@ export default function AjudaPage() {
   })).filter(cat => cat.items.length > 0);
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-40 border-b border-border/50"
+        style={{ background: 'hsl(var(--background) / 0.92)', backdropFilter: 'blur(12px)' }}>
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+          <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Link>
+          <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+            {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+      </header>
+
+      <div className="py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Voltar
-        </Link>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
           <div className="h-14 w-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
@@ -138,6 +152,7 @@ export default function AjudaPage() {
             <Send className="h-3.5 w-3.5" /> Falar com suporte
           </a>
         </motion.div>
+      </div>
       </div>
     </div>
   );

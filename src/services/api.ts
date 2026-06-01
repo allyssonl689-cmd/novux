@@ -1,4 +1,6 @@
-const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
+// Em produção (Vercel) as chamadas são relativas — proxy em vercel.json repassa ao Render.
+// Em dev local o VITE_API_URL aponta para http://localhost:3001.
+const BASE_URL = import.meta.env.VITE_API_URL ?? '';
 
 // Access token armazenado apenas em memória — nunca no localStorage
 let _accessToken: string | null = null;

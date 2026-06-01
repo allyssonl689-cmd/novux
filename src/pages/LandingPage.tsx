@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import {
   BrainCircuit, BarChart3, Target, Send, Shield, Crown,
   Check, ChevronDown, Sparkles, ArrowRight, Wallet,
-  TrendingUp, TrendingDown, Zap, Globe,
+  TrendingUp, TrendingDown, Zap, Globe, Sun, Moon,
 } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 
 /* ── N Lettermark ── */
 function NovuxMark({ size = 32 }: { size?: number }) {
@@ -95,6 +96,7 @@ function FAQ({ q, a }: { q: string; a: string }) {
 }
 
 export default function LandingPage() {
+  const { theme, toggleTheme } = useTheme();
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
 
@@ -113,6 +115,10 @@ export default function LandingPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link to="/ajuda" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Ajuda</Link>
+            <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+              className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+              {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+            </button>
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Entrar</Link>
             <Link to="/register" className="btn-novux flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl">
               Começar grátis <ArrowRight className="h-3.5 w-3.5" />

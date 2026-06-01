@@ -18,6 +18,15 @@ export const authLimiter = rateLimit({
   message: { success: false, message: 'Muitas tentativas de login. Tente novamente em 15 minutos.' },
 });
 
+// Limite permissivo para renovação de token (chamado a cada page load)
+export const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: env.NODE_ENV === 'development' ? 1000 : 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Muitas renovações de sessão. Aguarde alguns minutos.' },
+});
+
 // Limite mais permissivo para recuperação de senha (5 por hora por IP)
 export const passwordResetLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,

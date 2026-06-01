@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -73,6 +73,8 @@ function IntroLogo({ done }: { done: boolean }) {
 export default function LoginPage() {
   const { login, loginWith2FA } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const from = searchParams.get('from') ?? '/';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPwd, setShowPwd] = useState(false);
@@ -104,8 +106,10 @@ export default function LoginPage() {
       if (result && 'requires2FA' in result) {
         setTempToken(result.tempToken);
         setTotpStep(true);
+      } else if (result && 'isAdmin' in result && result.isAdmin) {
+        navigate('/admin');
       } else {
-        navigate('/');
+        navigate(from === '/login' ? '/' : from);
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Erro ao fazer login');
@@ -119,8 +123,8 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await loginWith2FA(tempToken, totpCode);
-      navigate('/');
+      const u = await loginWith2FA(tempToken, totpCode);
+      navigate(u?.isAdmin ? '/admin' : (from === '/login' ? '/' : from));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Código inválido');
       setTotpCode('');

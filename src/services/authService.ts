@@ -7,6 +7,7 @@ export interface AuthUser {
   avatarUrl?: string;
   plan: 'free' | 'premium';
   emailVerified: boolean;
+  isAdmin: boolean;
 }
 
 interface ApiUser {
@@ -16,6 +17,7 @@ interface ApiUser {
   avatar_url?: string;
   plan?: string;
   email_verified?: boolean;
+  is_admin?: boolean;
 }
 
 interface AuthResponse {
@@ -39,6 +41,7 @@ function toAuthUser(u: ApiUser): AuthUser {
     avatarUrl: u.avatar_url,
     plan: (u.plan === 'premium' ? 'premium' : 'free'),
     emailVerified: u.email_verified ?? false,
+    isAdmin: u.is_admin ?? false,
   };
 }
 
