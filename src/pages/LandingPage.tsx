@@ -308,10 +308,10 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 mb-8">
             <div>
-              <div className="flex items-center gap-2 mb-3">
+              <Link to="/landing" className="flex items-center gap-2 mb-3 hover:opacity-80 transition-opacity w-fit">
                 <NovuxMark size={20} />
                 <span className="text-sm font-black" style={{ fontFamily: 'Poppins,sans-serif', letterSpacing: '-0.03em' }}>Novux</span>
-              </div>
+              </Link>
               <p className="text-xs text-muted-foreground">Seu copiloto financeiro inteligente.</p>
             </div>
             <div>

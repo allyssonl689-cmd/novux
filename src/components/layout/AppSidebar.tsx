@@ -1,6 +1,7 @@
-import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown, HelpCircle, Shield } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
@@ -32,6 +33,7 @@ const navMain = [
 
 const navBottom = [
   { title: 'Relatórios',    url: '/relatorios',   icon: BarChart3 },
+  { title: 'Ajuda',         url: '/ajuda',        icon: HelpCircle },
   { title: 'Perfil',        url: '/perfil',       icon: User },
   { title: 'Configurações', url: '/configuracoes',icon: Settings },
 ];
@@ -42,6 +44,7 @@ type NavItem = {
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
   soon?: boolean;
+  external?: boolean;
 };
 
 function NavItem({ item, collapsed, isActive }: { item: NavItem; collapsed: boolean; isActive: boolean }) {
@@ -57,10 +60,13 @@ function NavItem({ item, collapsed, isActive }: { item: NavItem; collapsed: bool
       : 'text-sidebar-foreground/55 group-hover:text-sidebar-accent-foreground'
   }`;
 
+  const target = item.external ? '_blank' : undefined;
+  const rel    = item.external ? 'noopener noreferrer' : undefined;
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild>
-        <NavLink to={item.url} end={item.url === '/'} activeClassName="" className={baseClass}>
+        <NavLink to={item.url} end={item.url === '/'} activeClassName="" className={baseClass} target={target} rel={rel}>
           <item.icon className={iconClass} />
           {!collapsed && (
             <>
@@ -77,6 +83,7 @@ function NavItem({ item, collapsed, isActive }: { item: NavItem; collapsed: bool
 
 export function AppSidebar() {
   const { state } = useSidebar();
+  const { user }  = useAuth();
   const collapsed = state === 'collapsed';
   const location  = useLocation();
 
@@ -90,7 +97,6 @@ export function AppSidebar() {
 
       {/* ── Logo ── */}
       <div className={`flex items-center gap-3 border-b border-sidebar-border ${collapsed ? 'p-3 justify-center' : 'px-4 py-4'}`}>
-        {/* N lettermark */}
         <div className="h-9 w-9 shrink-0 rounded-xl flex items-center justify-center"
           style={{ background: 'hsl(228 42% 18%)', border: '1px solid hsl(193 100% 54% / 0.2)' }}>
           <NovuxMark size={24} />
@@ -144,6 +150,14 @@ export function AppSidebar() {
               {navBottom.map(item => (
                 <NavItem key={item.title} item={item} collapsed={collapsed} isActive={isActive(item.url)} />
               ))}
+              {/* Item Admin — visível apenas para administradores */}
+              {user?.isAdmin && (
+                <NavItem
+                  item={{ title: 'Admin', url: '/admin', icon: Shield }}
+                  collapsed={collapsed}
+                  isActive={isActive('/admin')}
+                />
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -217,6 +217,11 @@ export default function RegisterPage() {
               Entrar
             </Link>
           </p>
+          <p className="text-center text-xs text-muted-foreground">
+            <Link to="/landing" className="hover:text-foreground transition-colors">
+              ← Voltar ao início
+            </Link>
+          </p>
         </form>
       </motion.div>
     </div>

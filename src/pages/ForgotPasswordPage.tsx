@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Loader2, ArrowLeft, MailCheck } from 'lucide-react';
+import { Loader2, ArrowLeft, MailCheck, Sun, Moon } from 'lucide-react';
 import { authService } from '@/services/authService';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ForgotPasswordPage() {
+  const { theme, toggleTheme } = useTheme();
   const [email, setEmail]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [sent, setSent]         = useState(false);
@@ -26,6 +28,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      {/* Theme toggle fixo */}
+      <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        className="fixed top-4 right-4 h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all z-10">
+        {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+      </button>
       <motion.div
         className="w-full max-w-sm"
         initial={{ opacity: 0, y: 20 }}

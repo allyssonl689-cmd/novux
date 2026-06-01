@@ -1,12 +1,18 @@
 import { motion } from 'framer-motion';
-import { FileText, ArrowLeft } from 'lucide-react';
+import { FileText, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function TermosPage() {
+  const { theme, toggleTheme } = useTheme();
   return (
     <div className="min-h-screen bg-background py-12 px-4">
+      <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        className="fixed top-4 right-4 h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all z-10">
+        {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+      </button>
       <div className="max-w-3xl mx-auto">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
 

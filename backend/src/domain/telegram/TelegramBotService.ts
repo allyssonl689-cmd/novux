@@ -10,6 +10,7 @@ import {
   sendMessage, sendConfirmation, removeKeyboard,
   answerCallback, fmtBRL,
 } from '../../services/telegramService';
+import { db } from '../../config/database';
 
 /* ─── Tipos do Update do Telegram ─── */
 export interface TgUser    { id: number; first_name: string; username?: string }
@@ -30,8 +31,28 @@ export interface TgUpdate {
   callback_query?: TgCallbackQuery;
 }
 
-/* Cache em memória de confirmações pendentes (chatId → pendente) */
-const pendingConfirmations = new Map<number, { parsed: ParsedTransaction; userId: string }>();
+/* ─── Helpers de persistência de confirmações no banco ─── */
+async function savePending(chatId: number, userId: string, parsed: ParsedTransaction): Promise<void> {
+  await db.query(
+    `INSERT INTO pending_telegram_tx (chat_id, user_id, parsed_data)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (chat_id) DO UPDATE SET user_id = $2, parsed_data = $3, expires_at = NOW() + INTERVAL '10 minutes'`,
+    [chatId, userId, JSON.stringify(parsed)]
+  );
+}
+
+async function getPending(chatId: number): Promise<{ parsed: ParsedTransaction; userId: string } | null> {
+  const { rows } = await db.query<{ user_id: string; parsed_data: ParsedTransaction }>(
+    `SELECT user_id, parsed_data FROM pending_telegram_tx WHERE chat_id = $1 AND expires_at > NOW()`,
+    [chatId]
+  );
+  if (!rows[0]) return null;
+  return { userId: rows[0].user_id, parsed: rows[0].parsed_data };
+}
+
+async function deletePending(chatId: number): Promise<void> {
+  await db.query(`DELETE FROM pending_telegram_tx WHERE chat_id = $1`, [chatId]);
+}
 
 /* ─── Formatação ─── */
 function formatDate(dateStr: string): string {
@@ -229,7 +250,7 @@ export async function handleFreeText(chatId: number, userId: string, text: strin
     return;
   }
 
-  pendingConfirmations.set(chatId, { parsed, userId });
+  await savePending(chatId, userId, parsed);
 
   const confidence = parsed.confidence === 'low'
     ? '\n\n⚠️ _Verifique os dados antes de confirmar._'
@@ -252,20 +273,20 @@ export async function handleCallback(update: TgCallbackQuery): Promise<void> {
   await removeKeyboard(chatId, messageId);
 
   if (data === 'cancel') {
+    await deletePending(chatId);
     await sendMessage(chatId, '❌ Lançamento cancelado.');
-    pendingConfirmations.delete(chatId);
     return;
   }
 
   if (data.startsWith('confirm:')) {
-    const pending = pendingConfirmations.get(chatId);
+    const pending = await getPending(chatId);
     if (!pending) {
       await sendMessage(chatId, '⚠️ Sessão expirada. Envie a mensagem novamente.');
       return;
     }
 
     const { parsed, userId } = pending;
-    pendingConfirmations.delete(chatId);
+    await deletePending(chatId);
     const today  = new Date().toISOString().split('T')[0];
     const txDate = parsed.date || today;
 
