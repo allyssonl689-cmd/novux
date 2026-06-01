@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, ChevronDown, ArrowLeft, Search, MessageCircle, Send, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
+import { PublicPageButtons } from '@/components/PublicPageButtons';
 
 const FAQS = [
   {
@@ -154,6 +155,8 @@ export default function AjudaPage() {
         </motion.div>
       </div>
       </div>
+      {/* hideHelp=true pois já estamos na página de ajuda */}
+      <PublicPageButtons hideHelp />
     </div>
   );
 }

@@ -15,6 +15,8 @@ export function ProtectedRoute() {
   }
 
   if (!isAuthenticated) {
+    // Rota raiz → landing page; demais rotas → login com ?from=
+    if (location.pathname === '/') return <Navigate to="/landing" replace />;
     const from = encodeURIComponent(location.pathname);
     return <Navigate to={`/login?from=${from}`} replace />;
   }

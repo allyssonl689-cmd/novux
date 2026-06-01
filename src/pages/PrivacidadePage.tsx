@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Shield, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
+import { PublicPageButtons } from '@/components/PublicPageButtons';
 
 export default function PrivacidadePage() {
   const { theme, toggleTheme } = useTheme();
@@ -99,6 +100,7 @@ export default function PrivacidadePage() {
           </div>
         </motion.div>
       </div>
+      <PublicPageButtons />
     </div>
   );
 }

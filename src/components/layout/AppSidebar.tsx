@@ -2,13 +2,22 @@ import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, Trending
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from '@/components/ui/sidebar';
 
-/* ── N lettermark SVG ── */
-function NovuxMark({ size = 32 }: { size?: number }) {
+/* ── N lettermark SVG — adapta ao tema ── */
+function NovuxMark({ size = 32, lightMode = false }: { size?: number; lightMode?: boolean }) {
+  if (lightMode) {
+    // Versão light: N em azul sólido (sem gradiente translúcido)
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 24 L8 8 L24 24 L24 8" stroke="#0099FF" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    );
+  }
   return (
     <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -82,9 +91,11 @@ function NavItem({ item, collapsed, isActive }: { item: NavItem; collapsed: bool
 }
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const { user }  = useAuth();
-  const collapsed = state === 'collapsed';
+  const { state }         = useSidebar();
+  const { user }          = useAuth();
+  const { theme }         = useTheme();
+  const collapsed         = state === 'collapsed';
+  const isLight           = theme === 'light';
   const location  = useLocation();
 
   function isActive(url: string) {
@@ -98,8 +109,10 @@ export function AppSidebar() {
       {/* ── Logo ── */}
       <div className={`flex items-center gap-3 border-b border-sidebar-border ${collapsed ? 'p-3 justify-center' : 'px-4 py-4'}`}>
         <div className="h-9 w-9 shrink-0 rounded-xl flex items-center justify-center"
-          style={{ background: 'hsl(228 42% 18%)', border: '1px solid hsl(193 100% 54% / 0.2)' }}>
-          <NovuxMark size={24} />
+          style={isLight
+            ? { background: 'hsl(214 32% 94%)', border: '1px solid hsl(215 20% 82%)' }
+            : { background: 'hsl(228 42% 18%)', border: '1px solid hsl(193 100% 54% / 0.2)' }}>
+          <NovuxMark size={24} lightMode={isLight} />
         </div>
 
         {!collapsed && (

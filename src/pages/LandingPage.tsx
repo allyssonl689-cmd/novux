@@ -3,10 +3,11 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import {
   BrainCircuit, BarChart3, Target, Send, Shield, Crown,
-  Check, ChevronDown, Sparkles, ArrowRight, Wallet,
-  TrendingUp, TrendingDown, Zap, Globe, Sun, Moon,
+  Check, ChevronDown, Sparkles, ArrowRight,
+  TrendingUp, Globe, Sun, Moon,
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
+import { PublicPageButtons } from '@/components/PublicPageButtons';
 
 /* ── N Lettermark ── */
 function NovuxMark({ size = 32 }: { size?: number }) {
@@ -113,13 +114,18 @@ export default function LandingPage() {
               Novux <span className="font-light text-muted-foreground">Finance</span>
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <Link to="/ajuda" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Ajuda</Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Toggle tema — antes do Ajuda */}
             <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
               className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
-            <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Entrar</Link>
+            <Link to="/ajuda" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Ajuda</Link>
+            {/* Iniciar Sessão — botão destacado */}
+            <Link to="/login"
+              className="hidden sm:flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border border-border bg-secondary/60 text-foreground hover:bg-secondary transition-all">
+              Iniciar Sessão
+            </Link>
             <Link to="/register" className="btn-novux flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl">
               Começar grátis <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -233,8 +239,17 @@ export default function LandingPage() {
             {PLANS.map(plan => (
               <motion.div key={plan.name} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className={`rounded-2xl border p-6 text-left relative ${plan.highlight ? 'border-primary/40' : 'border-border bg-card'}`}
-                style={plan.highlight ? { background: 'linear-gradient(145deg, hsl(228 47% 14%), hsl(228 42% 17%))', boxShadow: '0 0 32px hsl(193 100% 54% / 0.12)' } : {}}>
+                className={`rounded-2xl border p-6 text-left relative ${
+                  plan.highlight
+                    ? 'border-primary/40'
+                    : 'border-border bg-card'
+                }`}
+                style={plan.highlight ? {
+                  background: theme === 'dark'
+                    ? 'linear-gradient(145deg, hsl(228 47% 14%), hsl(228 42% 17%))'
+                    : 'linear-gradient(145deg, hsl(228 47% 96%), hsl(193 100% 96%))',
+                  boxShadow: '0 0 32px hsl(193 100% 54% / 0.12)',
+                } : {}}>
 
                 {plan.highlight && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -342,6 +357,9 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Botões flutuantes: Ajuda + Voltar ao topo */}
+      <PublicPageButtons />
     </div>
   );
 }

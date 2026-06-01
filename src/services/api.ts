@@ -1,6 +1,10 @@
-// Em produção (Vercel) as chamadas são relativas — proxy em vercel.json repassa ao Render.
-// Em dev local o VITE_API_URL aponta para http://localhost:3001.
-const BASE_URL = import.meta.env.VITE_API_URL ?? '';
+// VITE_API_URL deve ser definido nas variáveis de ambiente do Vercel:
+// VITE_API_URL=https://novux.onrender.com
+// Fallback para produção caso a variável não esteja configurada.
+const BASE_URL = import.meta.env.VITE_API_URL
+  ?? (typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+      ? 'https://novux.onrender.com'
+      : 'http://localhost:3001');
 
 // Access token armazenado apenas em memória — nunca no localStorage
 let _accessToken: string | null = null;

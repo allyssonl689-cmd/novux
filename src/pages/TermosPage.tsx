@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { FileText, ArrowLeft, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
+import { PublicPageButtons } from '@/components/PublicPageButtons';
 
 export default function TermosPage() {
   const { theme, toggleTheme } = useTheme();
@@ -87,6 +88,7 @@ export default function TermosPage() {
           </div>
         </motion.div>
       </div>
+      <PublicPageButtons />
     </div>
   );
 }
