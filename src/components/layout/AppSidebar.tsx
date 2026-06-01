@@ -42,10 +42,9 @@ const navMain = [
 
 const navBottom = [
   { title: 'Relatórios',    url: '/relatorios',   icon: BarChart3 },
-  { title: 'Ajuda',         url: '/ajuda',        icon: HelpCircle },
   { title: 'Perfil',        url: '/perfil',       icon: User },
   { title: 'Configurações', url: '/configuracoes',icon: Settings },
-  { title: 'Ajuda',         url: '/ajuda',         icon: HelpCircle },
+  { title: 'Ajuda',         url: '/ajuda',        icon: HelpCircle },
 ];
 
 type NavItem = {
