@@ -20,11 +20,18 @@ function encryptTx(data: Partial<Transaction>): Partial<Transaction> {
   return out;
 }
 
+function safeDecrypt(value: string): string;
+function safeDecrypt(value: string | null): string | null;
+function safeDecrypt(value: string | null): string | null {
+  if (value == null) return null;
+  try { return decrypt(value); } catch { return value; } // fallback para texto puro (legado)
+}
+
 function decryptTx(row: any): Transaction {
   return {
     ...row,
-    description: decrypt(row.description) ?? row.description,
-    notes:       row.notes ? decrypt(row.notes) : null,
+    description: safeDecrypt(row.description),
+    notes:       safeDecrypt(row.notes),
   };
 }
 
