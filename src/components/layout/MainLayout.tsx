@@ -296,7 +296,7 @@ export function MainLayout() {
   useInactivityLogout(logout, isAuthenticated);
 
   // Mostra onboarding após 1s se for primeiro acesso
-  useState(() => { if (showOnboarding) setTimeout(() => setShowOnb(true), 1000); });
+  useEffect(() => { if (showOnboarding) { const t = setTimeout(() => setShowOnb(true), 1000); return () => clearTimeout(t); } }, [showOnboarding]);
   const alertCount = insights.filter((i, idx) =>
     !dismissed.has(idx) && (i.level === 'critical' || i.level === 'warning')
   ).length;
