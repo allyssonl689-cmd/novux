@@ -13,7 +13,7 @@ export default function TermosPage() {
         {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
       </button>
       <div className="max-w-3xl mx-auto">
-        <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <Link to="/home" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-8 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
 

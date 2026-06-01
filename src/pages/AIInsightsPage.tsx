@@ -14,6 +14,29 @@ const FREE_DAILY_LIMIT = 5;
 
 interface Message { id: string; role: 'user' | 'ai'; text: string; loading?: boolean; ts: number }
 
+const CHAT_SESSION_KEY = 'novux_ai_chat';
+const WELCOME_TEXT = 'Olá! Sou o NovuxAI, seu copiloto financeiro pessoal 🚀\n\nTenho acesso completo ao seu histórico financeiro e posso te ajudar com:\n• Análises detalhadas de gastos\n• Estratégias de investimento\n• Orçamento personalizado\n• Projeções futuras\n\nO que você quer descobrir sobre suas finanças hoje?';
+
+function makeWelcome(): Message {
+  return { id: '0', role: 'ai', ts: Date.now(), text: WELCOME_TEXT };
+}
+function loadChat(): Message[] {
+  try {
+    const raw = sessionStorage.getItem(CHAT_SESSION_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Message[];
+      // Remove loading state de msgs que ficaram travadas
+      return parsed.filter(m => !m.loading).length > 0
+        ? parsed.filter(m => !m.loading)
+        : [makeWelcome()];
+    }
+  } catch { /* ignore */ }
+  return [makeWelcome()];
+}
+function saveChat(msgs: Message[]) {
+  try { sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(msgs.filter(m => !m.loading))); } catch { /* ignore */ }
+}
+
 const QUICK = [
   { text: 'Analise meus gastos deste mês' },
   { text: 'Onde investir meu saldo livre?' },
@@ -82,10 +105,7 @@ export default function AIInsightsPage() {
   useEffect(() => {
     goalService.list().then(setGoals).catch(() => {});
   }, []);
-  const [msgs, setMsgs] = useState<Message[]>([{
-    id: '0', role: 'ai', ts: Date.now(),
-    text: 'Olá! Sou o NovuxAI, seu copiloto financeiro pessoal 🚀\n\nTenho acesso completo ao seu histórico financeiro e posso te ajudar com:\n• Análises detalhadas de gastos\n• Estratégias de investimento\n• Orçamento personalizado\n• Projeções futuras\n\nO que você quer descobrir sobre suas finanças hoje?',
-  }]);
+  const [msgs, setMsgs] = useState<Message[]>(loadChat);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -93,6 +113,7 @@ export default function AIInsightsPage() {
 
   useEffect(() => {
     chatRef.current?.scrollTo({ top: chatRef.current.scrollHeight, behavior: 'smooth' });
+    saveChat(msgs);
   }, [msgs]);
 
   // Load today's remaining count on mount

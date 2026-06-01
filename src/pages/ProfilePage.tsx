@@ -40,7 +40,7 @@ export default function ProfilePage() {
     twoFactorService.status().then(s => setTwoFAEnabled(s.enabled)).catch(() => {});
   }, []);
 
-  async function handleLogout() { await logout(); navigate('/login'); }
+  async function handleLogout() { await logout(); navigate('/home'); }
 
   // ── Telegram ──────────────────────────────────────────
   const [tgStatus, setTgStatus]     = useState<TelegramStatus | null>(null);

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, ChevronDown, ArrowLeft, Search, MessageCircle, Send, Sun, Moon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { PublicPageButtons } from '@/components/PublicPageButtons';
 
 const FAQS = [
@@ -61,6 +62,8 @@ const FAQS = [
 
 export default function AjudaPage() {
   const { theme, toggleTheme } = useTheme();
+  const { isAuthenticated } = useAuth();
+  const backTo = isAuthenticated ? '/' : '/home';
   const [openItem, setOpenItem] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
@@ -78,8 +81,8 @@ export default function AjudaPage() {
       <header className="sticky top-0 z-40 border-b border-border/50"
         style={{ background: 'hsl(var(--background) / 0.92)', backdropFilter: 'blur(12px)' }}>
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/landing" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="h-4 w-4" /> Voltar
+          <Link to={backTo} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" /> {isAuthenticated ? 'Voltar ao app' : 'Voltar'}
           </Link>
           <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
             className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">

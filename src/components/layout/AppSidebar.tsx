@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown, HelpCircle, Shield } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown, HelpCircle } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +45,7 @@ const navBottom = [
   { title: 'Ajuda',         url: '/ajuda',        icon: HelpCircle },
   { title: 'Perfil',        url: '/perfil',       icon: User },
   { title: 'Configurações', url: '/configuracoes',icon: Settings },
+  { title: 'Ajuda',         url: '/ajuda',         icon: HelpCircle },
 ];
 
 type NavItem = {

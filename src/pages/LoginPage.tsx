@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Eye, EyeOff, Loader2, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { GoogleButton } from '@/components/auth/GoogleButton';
 
 /* N lettermark animado — gráfico de barras → logo Novux */
@@ -133,8 +134,16 @@ export default function LoginPage() {
     }
   }
 
+  const { theme, toggleTheme } = useTheme();
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 overflow-hidden">
+
+      {/* Toggle tema — canto superior direito */}
+      <button onClick={toggleTheme} title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        className="fixed top-4 right-4 z-10 h-9 w-9 rounded-xl border border-border bg-card flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all shadow-sm">
+        {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+      </button>
 
       {/* Subtle background glow that fades in */}
       <motion.div
@@ -153,9 +162,11 @@ export default function LoginPage() {
         animate={{ opacity: 1 }}
         transition={{ duration: 0.3 }}
       >
-        {/* Logo + brand */}
+        {/* Logo + brand — clicável para /home */}
         <div className="mb-8 flex flex-col items-center gap-4">
-          <IntroLogo done={phase !== 'chart'} />
+          <Link to="/home" title="Ir para a página inicial">
+            <IntroLogo done={phase !== 'chart'} />
+          </Link>
 
           <motion.div
             className="text-center"
@@ -163,12 +174,14 @@ export default function LoginPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
           >
-            <h1
-              className="text-3xl font-black text-foreground"
-              style={{ fontFamily: 'Syne, sans-serif', letterSpacing: '-0.04em' }}
-            >
-              Novux <span className="font-semibold text-muted-foreground">Finance</span>
-            </h1>
+            <Link to="/home" className="hover:opacity-80 transition-opacity">
+              <h1
+                className="text-3xl font-black text-foreground"
+                style={{ fontFamily: 'Syne, sans-serif', letterSpacing: '-0.04em' }}
+              >
+                Novux <span className="font-semibold text-muted-foreground">Finance</span>
+              </h1>
+            </Link>
             <motion.p
               className="text-sm text-muted-foreground mt-1"
               initial={{ opacity: 0 }}

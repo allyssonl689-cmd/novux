@@ -218,7 +218,7 @@ export default function RegisterPage() {
             </Link>
           </p>
           <p className="text-center text-xs text-muted-foreground">
-            <Link to="/landing" className="hover:text-foreground transition-colors">
+            <Link to="/home" className="hover:text-foreground transition-colors">
               ← Voltar ao início
             </Link>
           </p>
