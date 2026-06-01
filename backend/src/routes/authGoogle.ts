@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import { db } from '../config/database';
 import { signAccessToken, signRefreshToken } from '../config/auth';
 import { env } from '../config/env';
+import { encrypt, decrypt, emailHmac } from '../utils/encryption';
 
 const router = Router();
 
@@ -25,7 +26,7 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
       return;
     }
 
-    const ticket = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+    const ticket  = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
     const payload = ticket.getPayload();
     if (!payload?.email) {
       res.status(400).json({ success: false, message: 'Token Google inválido' });
@@ -33,21 +34,30 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
     }
 
     const { email, name, picture } = payload;
+    const normalizedEmail  = email.toLowerCase();
+    const encryptedEmail   = encrypt(normalizedEmail);
+    const encryptedName    = encrypt(name ?? normalizedEmail.split('@')[0]);
+    const hash             = emailHmac(normalizedEmail);
 
     const { rows } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
-      `INSERT INTO users (name, email, password_hash, avatar_url)
-       VALUES ($1, $2, 'google-oauth', $3)
-       ON CONFLICT (email) DO UPDATE
+      `INSERT INTO users (name, email, email_hash, password_hash, avatar_url)
+       VALUES ($1, $2, $3, 'google-oauth', $4)
+       ON CONFLICT (email_hash) DO UPDATE
          SET name = EXCLUDED.name, avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url), updated_at = NOW()
        RETURNING id, name, email, avatar_url`,
-      [name ?? email.split('@')[0], email.toLowerCase(), picture ?? null]
+      [encryptedName, encryptedEmail, hash, picture ?? null]
     );
 
-    const user = rows[0];
+    const user = {
+      ...rows[0],
+      name:  decrypt(rows[0].name),
+      email: decrypt(rows[0].email),
+    };
+
     const tokenPayload = { userId: user.id, email: user.email };
-    const accessToken = signAccessToken(tokenPayload);
+    const accessToken  = signAccessToken(tokenPayload);
     const refreshToken = signRefreshToken(tokenPayload);
-    const tokenHash = createHash('sha256').update(refreshToken).digest('hex');
+    const tokenHash    = createHash('sha256').update(refreshToken).digest('hex');
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);

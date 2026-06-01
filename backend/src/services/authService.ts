@@ -11,6 +11,7 @@ import { RegisterInput, LoginInput } from '../validators/authValidators';
 import { PublicUser } from '../models/types';
 import { recordLoginAttempt } from '../middleware/bruteForce';
 import { audit } from './auditService';
+import { decrypt } from '../utils/encryption';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -131,7 +132,8 @@ export class AuthService {
     const user = rows[0];
     if (!user || !user.totp_secret) throw new AppError('Usuário não encontrado', 404);
 
-    const result = verifySync({ token: totpToken, secret: user.totp_secret });
+    const totpSecret = decrypt(user.totp_secret)!;
+    const result = verifySync({ token: totpToken, secret: totpSecret });
     if (!result?.valid) throw new AppError('Código 2FA inválido', 400);
 
     const publicUser: PublicUser = {

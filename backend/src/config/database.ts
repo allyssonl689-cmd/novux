@@ -1,14 +1,19 @@
 import { Pool } from 'pg';
 import { env } from './env';
 
+const isProduction = env.NODE_ENV === 'production';
+
 export const db = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  ssl: env.NODE_ENV === 'production'
+  // SSL sempre ativo em produção — rejectUnauthorized configurável para compatibilidade
+  // com Supabase Session Pooler que usa cert auto-assinado (DATABASE_SSL_REJECT_UNAUTHORIZED=false)
+  ssl: isProduction
     ? { rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED }
     : false,
+  application_name: 'novux-finance',
 });
 
 db.on('error', (err) => {
@@ -23,5 +28,5 @@ export async function connectDatabase(): Promise<void> {
   const client = await db.connect();
   client.release();
   _dbReady = true;
-  console.log('✅ Banco de dados conectado com sucesso');
+  console.log(`✅ Banco de dados conectado (SSL: ${isProduction ? 'ativo' : 'desativado em dev'})`);
 }

@@ -46,6 +46,10 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
   BACKEND_URL: z.string().optional(), // ex: https://novux.onrender.com
+
+  // Chave de criptografia AES-256 — 64 caracteres hex (32 bytes)
+  // Gerar com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY deve ter exatamente 64 caracteres hex'),
 });
 
 const parsed = envSchema.safeParse(process.env);

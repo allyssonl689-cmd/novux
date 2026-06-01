@@ -1,5 +1,6 @@
 import { db } from '../config/database';
 import { Transaction, PaginatedResult } from './types';
+import { encrypt, decrypt } from '../utils/encryption';
 
 export interface TransactionFilters {
   type?: 'income' | 'expense';
@@ -10,6 +11,21 @@ export interface TransactionFilters {
   tags?: string;
   page?: number;
   limit?: number;
+}
+
+function encryptTx(data: Partial<Transaction>): Partial<Transaction> {
+  const out = { ...data } as any;
+  if (data.description !== undefined) out.description = encrypt(data.description);
+  if (data.notes       !== undefined && data.notes !== null) out.notes = encrypt(data.notes);
+  return out;
+}
+
+function decryptTx(row: any): Transaction {
+  return {
+    ...row,
+    description: decrypt(row.description) ?? row.description,
+    notes:       row.notes ? decrypt(row.notes) : null,
+  };
 }
 
 async function logHistory(
@@ -28,29 +44,47 @@ async function logHistory(
 export class TransactionModel {
   static async findAll(userId: string, filters: TransactionFilters = {}): Promise<PaginatedResult<Transaction>> {
     const { type, category, startDate, endDate, search, tags, page = 1, limit = 50 } = filters;
+
+    // Busca textual: como description/notes são criptografados, filtramos em memória
+    const hasSearch = !!search;
+
     const conditions: string[] = ['user_id = $1'];
-    const values: unknown[] = [userId];
+    const values: unknown[]    = [userId];
     let paramIndex = 2;
 
-    if (type) { conditions.push(`type = $${paramIndex++}`); values.push(type); }
-    if (category) { conditions.push(`category ILIKE $${paramIndex++}`); values.push(`%${category}%`); }
+    if (type)      { conditions.push(`type = $${paramIndex++}`); values.push(type); }
+    if (category)  { conditions.push(`category ILIKE $${paramIndex++}`); values.push(`%${category}%`); }
     if (startDate) { conditions.push(`date >= $${paramIndex++}`); values.push(startDate); }
-    if (endDate) { conditions.push(`date <= $${paramIndex++}`); values.push(endDate); }
-    if (search) {
-      conditions.push(`(description ILIKE $${paramIndex} OR notes ILIKE $${paramIndex})`);
-      values.push(`%${search}%`);
-      paramIndex++;
-    }
-    if (tags) {
-      conditions.push(`tags && $${paramIndex++}`);
-      values.push(tags.split(','));
-    }
+    if (endDate)   { conditions.push(`date <= $${paramIndex++}`); values.push(endDate); }
+    if (tags)      { conditions.push(`tags && $${paramIndex++}`); values.push(tags.split(',')); }
 
     const where = conditions.join(' AND ');
-    const offset = (page - 1) * limit;
 
+    if (hasSearch) {
+      // Busca textual: busca todas as linhas filtradas (sem paginação SQL) e filtra após decrypt
+      const { rows } = await db.query<any>(
+        `SELECT * FROM transactions WHERE ${where} ORDER BY date DESC, created_at DESC`,
+        values
+      );
+      const searchLower = search!.toLowerCase();
+      const allDecrypted = rows.map(decryptTx);
+      const filtered     = allDecrypted.filter(t =>
+        t.description.toLowerCase().includes(searchLower) ||
+        (t.notes ?? '').toLowerCase().includes(searchLower)
+      );
+      const offset = (page - 1) * limit;
+      return {
+        data:       filtered.slice(offset, offset + limit),
+        total:      filtered.length,
+        page,
+        limit,
+        totalPages: Math.ceil(filtered.length / limit),
+      };
+    }
+
+    const offset = (page - 1) * limit;
     const [{ rows: data }, { rows: countRows }] = await Promise.all([
-      db.query<Transaction>(
+      db.query<any>(
         `SELECT * FROM transactions WHERE ${where} ORDER BY date DESC, created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
         [...values, limit, offset]
       ),
@@ -58,33 +92,43 @@ export class TransactionModel {
     ]);
 
     const total = parseInt(countRows[0].count, 10);
-    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return {
+      data:       data.map(decryptTx),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   static async findById(id: string, userId: string): Promise<Transaction | null> {
-    const { rows } = await db.query<Transaction>(
+    const { rows } = await db.query<any>(
       'SELECT * FROM transactions WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
-    return rows[0] ?? null;
+    return rows[0] ? decryptTx(rows[0]) : null;
   }
 
   static async create(userId: string, data: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Transaction> {
-    const { rows } = await db.query<Transaction>(
+    const encDescription = encrypt(data.description);
+    const encNotes       = data.notes ? encrypt(data.notes) : null;
+
+    const { rows } = await db.query<any>(
       `INSERT INTO transactions
          (user_id, type, value, category, date, description, notes, recurrence, recurrence_months, is_recurring, paid, tags, currency)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        RETURNING *`,
       [
         userId, data.type, data.value, data.category, data.date,
-        data.description, data.notes ?? null,
+        encDescription, encNotes,
         data.recurrence ?? 'none', data.recurrence_months ?? null,
         data.is_recurring ?? false, data.paid ?? false,
         data.tags ?? [], (data as any).currency ?? 'BRL',
       ]
     );
-    await logHistory(rows[0].id, userId, 'create', rows[0]);
-    return rows[0];
+    const tx = decryptTx(rows[0]);
+    await logHistory(tx.id, userId, 'create', tx);
+    return tx;
   }
 
   static async update(id: string, userId: string, data: Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<Transaction | null> {
@@ -92,36 +136,42 @@ export class TransactionModel {
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    const updatable = [
-      'type', 'value', 'category', 'date', 'description',
-      'notes', 'recurrence', 'recurrence_months', 'is_recurring',
-      'paid', 'tags', 'attachment_url', 'currency',
-    ] as const;
+    const plainUpdatable  = ['type', 'value', 'category', 'date', 'recurrence', 'recurrence_months', 'is_recurring', 'paid', 'tags', 'attachment_url', 'currency'] as const;
+    const cryptoUpdatable = ['description', 'notes'] as const;
 
-    for (const key of updatable) {
+    for (const key of plainUpdatable) {
       if ((data as any)[key] !== undefined) {
         fields.push(`${key} = $${paramIndex++}`);
         values.push((data as any)[key]);
+      }
+    }
+    for (const key of cryptoUpdatable) {
+      if ((data as any)[key] !== undefined) {
+        fields.push(`${key} = $${paramIndex++}`);
+        const v = (data as any)[key];
+        values.push(v != null ? encrypt(v) : null);
       }
     }
 
     if (fields.length === 0) return this.findById(id, userId);
 
     values.push(id, userId);
-    const { rows } = await db.query<Transaction>(
+    const { rows } = await db.query<any>(
       `UPDATE transactions SET ${fields.join(', ')} WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} RETURNING *`,
       values
     );
-    if (rows[0]) await logHistory(id, userId, 'update', rows[0]);
-    return rows[0] ?? null;
+    if (!rows[0]) return null;
+    const tx = decryptTx(rows[0]);
+    await logHistory(id, userId, 'update', tx);
+    return tx;
   }
 
   static async setAttachment(id: string, userId: string, url: string): Promise<Transaction | null> {
-    const { rows } = await db.query<Transaction>(
+    const { rows } = await db.query<any>(
       `UPDATE transactions SET attachment_url = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
       [url, id, userId]
     );
-    return rows[0] ?? null;
+    return rows[0] ? decryptTx(rows[0]) : null;
   }
 
   static async delete(id: string, userId: string): Promise<boolean> {
@@ -152,14 +202,14 @@ export class TransactionModel {
        GROUP BY type`,
       [userId, startDate, endDate]
     );
-    const income = rows.find(r => r.type === 'income');
+    const income  = rows.find(r => r.type === 'income');
     const expense = rows.find(r => r.type === 'expense');
-    const totalIncome = parseFloat(income?.total ?? '0');
+    const totalIncome   = parseFloat(income?.total ?? '0');
     const totalExpenses = parseFloat(expense?.total ?? '0');
     return {
       totalIncome, totalExpenses,
-      balance: totalIncome - totalExpenses,
-      incomeCount: parseInt(income?.count ?? '0', 10),
+      balance:      totalIncome - totalExpenses,
+      incomeCount:  parseInt(income?.count ?? '0', 10),
       expenseCount: parseInt(expense?.count ?? '0', 10),
     };
   }

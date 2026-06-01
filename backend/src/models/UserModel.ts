@@ -1,34 +1,54 @@
 import { db } from '../config/database';
 import { User, PublicUser } from './types';
+import { encrypt, decrypt, emailHmac } from '../utils/encryption';
+
+function decryptUser(row: any): PublicUser {
+  return {
+    ...row,
+    name:  decrypt(row.name),
+    email: decrypt(row.email),
+  };
+}
 
 export class UserModel {
   static async findById(id: string): Promise<PublicUser | null> {
-    const { rows } = await db.query<PublicUser>(
+    const { rows } = await db.query<any>(
       `SELECT id, name, email, avatar_url, is_active, plan,
               COALESCE(email_verified, false) AS email_verified,
               created_at, updated_at
        FROM users WHERE id = $1`,
       [id]
     );
-    return rows[0] ?? null;
+    if (!rows[0]) return null;
+    return decryptUser(rows[0]);
   }
 
   static async findByEmail(email: string): Promise<User | null> {
-    const { rows } = await db.query<User>(
-      'SELECT * FROM users WHERE email = $1 AND is_active = true',
-      [email.toLowerCase()]
+    const hash = emailHmac(email);
+    const { rows } = await db.query<any>(
+      'SELECT * FROM users WHERE email_hash = $1 AND is_active = true',
+      [hash]
     );
-    return rows[0] ?? null;
+    if (!rows[0]) return null;
+    return {
+      ...rows[0],
+      name:  decrypt(rows[0].name),
+      email: decrypt(rows[0].email),
+    } as User;
   }
 
   static async create(data: { name: string; email: string; password_hash: string }): Promise<PublicUser> {
-    const { rows } = await db.query<PublicUser>(
-      `INSERT INTO users (name, email, password_hash)
-       VALUES ($1, $2, $3)
+    const encryptedName  = encrypt(data.name);
+    const encryptedEmail = encrypt(data.email.toLowerCase());
+    const hash           = emailHmac(data.email);
+
+    const { rows } = await db.query<any>(
+      `INSERT INTO users (name, email, email_hash, password_hash)
+       VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, avatar_url, is_active, created_at, updated_at`,
-      [data.name, data.email.toLowerCase(), data.password_hash]
+      [encryptedName, encryptedEmail, hash, data.password_hash]
     );
-    return rows[0];
+    return decryptUser(rows[0]);
   }
 
   static async update(id: string, data: Partial<{ name: string; avatar_url: string }>): Promise<PublicUser | null> {
@@ -38,7 +58,7 @@ export class UserModel {
 
     if (data.name !== undefined) {
       fields.push(`name = $${paramIndex++}`);
-      values.push(data.name);
+      values.push(encrypt(data.name));
     }
     if (data.avatar_url !== undefined) {
       fields.push(`avatar_url = $${paramIndex++}`);
@@ -48,19 +68,21 @@ export class UserModel {
     if (fields.length === 0) return this.findById(id);
 
     values.push(id);
-    const { rows } = await db.query<PublicUser>(
+    const { rows } = await db.query<any>(
       `UPDATE users SET ${fields.join(', ')}
        WHERE id = $${paramIndex}
        RETURNING id, name, email, avatar_url, is_active, created_at, updated_at`,
       values
     );
-    return rows[0] ?? null;
+    if (!rows[0]) return null;
+    return decryptUser(rows[0]);
   }
 
   static async emailExists(email: string): Promise<boolean> {
+    const hash = emailHmac(email);
     const { rows } = await db.query(
-      'SELECT id FROM users WHERE email = $1',
-      [email.toLowerCase()]
+      'SELECT id FROM users WHERE email_hash = $1',
+      [hash]
     );
     return rows.length > 0;
   }
@@ -80,20 +102,20 @@ export class UserModel {
     `);
     const r = rows[0] as any;
     return {
-      total:         parseInt(r.total, 10),
-      active30d:     parseInt(r.active30d, 10),
-      newThisMonth:  parseInt(r.new_this_month, 10),
+      total:        parseInt(r.total, 10),
+      active30d:    parseInt(r.active30d, 10),
+      newThisMonth: parseInt(r.new_this_month, 10),
       plans: { free: parseInt(r.free_count, 10), premium: parseInt(r.premium_count, 10) },
     };
   }
 
   static async listAll(limit = 50, offset = 0): Promise<any[]> {
-    const { rows } = await db.query(
+    const { rows } = await db.query<any>(
       `SELECT id, name, email, plan, is_admin, onboarding_completed, created_at, updated_at
        FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]
     );
-    return rows;
+    return rows.map(r => ({ ...r, name: decrypt(r.name), email: decrypt(r.email) }));
   }
 
   static async getReferralStats(userId: string): Promise<{ code: string; count: number }> {
@@ -111,9 +133,6 @@ export class UserModel {
   }
 
   static async verifyEmail(userId: string): Promise<void> {
-    await db.query(
-      'UPDATE users SET email_verified = TRUE WHERE id = $1',
-      [userId]
-    );
+    await db.query('UPDATE users SET email_verified = TRUE WHERE id = $1', [userId]);
   }
 }
