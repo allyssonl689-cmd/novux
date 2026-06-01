@@ -70,9 +70,11 @@ export function buildFinancialIndicators(transactions: Transaction[]): Financial
   let forecast: number | null = null;
   let forecastText: string | null = null;
 
-  if (expense > 0 && dayOfMonth > 0) {
+  // Só projeta a partir do dia 3 (evita previsões absurdas no dia 1-2 do mês)
+  if (expense > 0 && dayOfMonth >= 3) {
     const averageDailyExpense = expense / dayOfMonth;
-    forecast = averageDailyExpense * 30;
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    forecast = averageDailyExpense * daysInMonth;
     forecastText = `Se continuar nesse ritmo, você gastará aproximadamente ${fmt(forecast)} este mês — isso pode reduzir seu saldo final.`;
   }
 

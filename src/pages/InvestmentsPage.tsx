@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, DollarSign, BarChart3, Shield, ArrowUpRight, Zap } from 'lucide-react';
 
@@ -20,7 +20,12 @@ export default function InvestmentsPage() {
   const [years, setYears]     = useState(10);
   const [selected, setSelected] = useState(PRODUCTS[1]);
 
-  const compound = (rate: number) => capital * Math.pow(1 + rate/100, years);
+  // Memoizado: recalcula apenas quando capital ou years mudam
+  const compoundResults = useMemo(() =>
+    Object.fromEntries(PRODUCTS.map(p => [p.name, capital * Math.pow(1 + p.rate / 100, years)])),
+  [capital, years]);
+  const compound = (rate: number) => capital * Math.pow(1 + rate / 100, years);
+  const compoundFor = (name: string) => compoundResults[name] ?? compound(PRODUCTS.find(p => p.name === name)?.rate ?? 0);
 
   return (
     <div className="max-w-[1400px] mx-auto space-y-5">

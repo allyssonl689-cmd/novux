@@ -4,12 +4,15 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, LineChart, Line } from 'recharts';
 import { TrendingUp, TrendingDown, BarChart3, Activity, FileDown, Lock } from 'lucide-react';
-import { generateFinancialPDF } from '@/lib/generatePDF';
 import { useAuth } from '@/contexts/AuthContext';
+import { CHART } from '@/lib/tokens';
+
+// Lazy import — jsPDF (~600KB) carregado somente quando o usuário clica em exportar
+const loadGeneratePDF = () => import('@/lib/generatePDF').then(m => m.generateFinancialPDF);
+const COLORS = CHART.pie;
 
 const fmt  = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
 const fmtK = (v: number) => v>=1000 ? `${(v/1000).toFixed(1)}k` : String(Math.round(v));
-const COLORS = ['#10B981','#8B5CF6','#F59E0B','#0EA5E9','#EF4444','#EC4899'];
 const WRAPPER_STYLE = { background: 'transparent', border: 'none', padding: 0, outline: 'none' };
 const GRID_COLOR = 'hsl(var(--border))';
 
@@ -62,7 +65,8 @@ export default function ReportsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<'visao'|'cats'|'trend'>('visao');
   const [pdfLoading, setPdfLoading] = useState(false);
-  const isPremium = true; // all users have access until billing is implemented
+  // PDF disponível para todos até billing ser implementado; quando ativo, usar user?.plan === 'premium'
+  const isPremium = true;
 
   const periodTxs = useMemo(() => {
     const { start, end } = getRange();
@@ -93,10 +97,11 @@ export default function ReportsPage() {
     })),
   [allMonthlySummary]);
 
-  function handleExportPDF() {
+  async function handleExportPDF() {
     if (!isPremium) return;
     setPdfLoading(true);
     try {
+      const generateFinancialPDF = await loadGeneratePDF();
       const { start, end } = getRange();
       generateFinancialPDF({
         userName: user?.name ?? 'Usuário',

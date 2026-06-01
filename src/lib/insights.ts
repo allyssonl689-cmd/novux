@@ -38,14 +38,15 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
     });
 
     for (const [category, total] of Object.entries(byCategory)) {
-      const percentage = (total / totalExpense) * 100;
+      const percentage = totalExpense > 0 ? (total / totalExpense) * 100 : 0;
+      if (!isFinite(percentage) || isNaN(percentage)) continue;
 
       if (percentage > 30) {
         insights.push({
           id: `concentration-${category}`,
           level: 'warning',
           label: `Seus gastos estão puxados por ${category}`,
-          text: `${category} já representa ${percentage.toFixed(0)}% das suas despesas. Se esse padrão continuar, essa categoria pode pressionar ainda mais seu saldo final.`,
+          text: `${category} já representa ${Math.round(percentage)}% das suas despesas. Se esse padrão continuar, essa categoria pode pressionar ainda mais seu saldo final.`,
         });
       }
     }
@@ -63,21 +64,22 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
 
   if (previousExpense > 0 && totalExpense > 0) {
     const change = ((totalExpense - previousExpense) / previousExpense) * 100;
-
-    if (change > 10) {
-      insights.push({
-        id: 'increase',
-        level: 'warning',
-        label: 'Você está gastando mais que no mês passado',
-        text: `Se continuar assim, seus gastos podem fugir ainda mais do controle. Hoje você já está ${change.toFixed(0)}% acima do mês anterior.`,
-      });
-    } else if (change < -10) {
-      insights.push({
-        id: 'decrease',
-        level: 'positive',
-        label: 'Seu controle financeiro melhorou',
-        text: `Você reduziu seus gastos em ${Math.abs(change).toFixed(0)}% versus o mês anterior. Mantendo esse ritmo, suas chances de fechar o mês com folga aumentam.`,
-      });
+    if (isFinite(change) && !isNaN(change)) {
+      if (change > 10) {
+        insights.push({
+          id: 'increase',
+          level: 'warning',
+          label: 'Você está gastando mais que no mês passado',
+          text: `Se continuar assim, seus gastos podem fugir ainda mais do controle. Hoje você já está ${Math.round(change)}% acima do mês anterior.`,
+        });
+      } else if (change < -10) {
+        insights.push({
+          id: 'decrease',
+          level: 'positive',
+          label: 'Seu controle financeiro melhorou',
+          text: `Você reduziu seus gastos em ${Math.round(Math.abs(change))}% versus o mês anterior. Mantendo esse ritmo, suas chances de fechar o mês com folga aumentam.`,
+        });
+      }
     }
   }
 

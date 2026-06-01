@@ -11,7 +11,7 @@ export const createTransactionSchema = z.object({
   recurrence_months: z.number().int().positive().optional(),
   is_recurring: z.boolean().default(false),
   paid: z.boolean().default(false),
-  tags: z.array(z.string()).default([]),
+  tags: z.array(z.string().max(50)).max(10).default([]),
   currency: z.string().length(3).default('BRL'),
 });
 

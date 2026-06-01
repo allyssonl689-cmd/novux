@@ -122,11 +122,27 @@ export function TransactionForm({ open, onClose, editId }: Props) {
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !editing) return;
+
+    // Validação no frontend antes de enviar ao servidor
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    const MAX_SIZE_MB = 5;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setErrors(p => ({ ...p, attach: 'Tipo inválido. Use JPG, PNG, WEBP ou PDF.' }));
+      if (attachRef.current) attachRef.current.value = '';
+      return;
+    }
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      setErrors(p => ({ ...p, attach: `Arquivo muito grande. Máximo ${MAX_SIZE_MB}MB.` }));
+      if (attachRef.current) attachRef.current.value = '';
+      return;
+    }
+
     setUploadingFile(true);
     try {
       const updated = await transactionService.uploadAttachment(editing.id, file);
       setAttachmentUrl(updated.attachmentUrl || '');
-    } catch { setErrors(p => ({ ...p, attach: 'Erro ao enviar arquivo' })); }
+      setErrors(p => { const n = { ...p }; delete n.attach; return n; });
+    } catch { setErrors(p => ({ ...p, attach: 'Erro ao enviar arquivo. Tente novamente.' })); }
     finally { setUploadingFile(false); if (attachRef.current) attachRef.current.value = ''; }
   }
 
@@ -137,7 +153,7 @@ export function TransactionForm({ open, onClose, editId }: Props) {
       type, value: parseFloat(value), category, date,
       description: desc.trim(), notes: notes.trim() || undefined,
       recurrence: recurrence === 'none' ? undefined : recurrence,
-      recurrenceMonths: recurrence !== 'none' && recurrence === 'monthly' ? recMonths : undefined,
+      recurrenceMonths: recurrence === 'monthly' ? recMonths : undefined,
       paid, tags, currency,
     };
     try {

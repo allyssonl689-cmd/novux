@@ -69,8 +69,9 @@ export class TransactionController {
 
   static async exportCSV(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { startDate, endDate } = req.query as { startDate?: string; endDate?: string };
-      const result = await TransactionModel.findAll(req.userId, { startDate, endDate, limit: 10000 });
+      const { startDate, endDate, limit: limitStr } = req.query as { startDate?: string; endDate?: string; limit?: string };
+      const limit = Math.min(parseInt(limitStr ?? '10000', 10), 50000);
+      const result = await TransactionModel.findAll(req.userId, { startDate, endDate, limit });
 
       // Safely escape a CSV cell: wrap in quotes, escape internal quotes, strip formula-injection chars
       function csvCell(val: unknown): string {

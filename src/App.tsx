@@ -9,6 +9,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { PeriodProvider } from "@/contexts/PeriodContext";
 import { ProtectedRoute, AdminRoute } from "@/components/auth/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import DashboardPage    from "@/pages/DashboardPage";
 import ReportsPage      from "@/pages/ReportsPage";
 import TransactionsPage from "@/pages/TransactionsPage";
@@ -43,7 +44,7 @@ const App = () => (
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <Routes>
                   {/* Rotas públicas */}
-                  <Route path="/landing"    element={<LandingPage />} />
+                  <Route path="/home"    element={<LandingPage />} />
                   <Route path="/ajuda"      element={<AjudaPage />} />
                   <Route path="/privacidade" element={<PrivacidadePage />} />
                   <Route path="/termos"     element={<TermosPage />} />
@@ -61,8 +62,8 @@ const App = () => (
                   {/* Rotas protegidas com sidebar */}
                   <Route element={<ProtectedRoute />}>
                     <Route element={<MainLayout />}>
-                      <Route path="/"              element={<DashboardPage />} />
-                      <Route path="/relatorios"    element={<ReportsPage />} />
+                      <Route path="/"              element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                      <Route path="/relatorios"    element={<ErrorBoundary><ReportsPage /></ErrorBoundary>} />
                       <Route path="/lancamentos"   element={<TransactionsPage />} />
                       <Route path="/metas"         element={<GoalsPage />} />
                       <Route path="/ia-insights"   element={<AIInsightsPage />} />

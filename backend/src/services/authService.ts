@@ -49,9 +49,15 @@ export class AuthService {
     const verifyUrl = `${env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
 
     // Dispara e-mails em background — não bloqueia o registro
+    // Falhas são logadas com contexto suficiente para debug em produção
     Promise.all([
-      sendWelcomeEmail(user.email, user.name).catch(e => console.error('[Email] welcome:', e)),
-      sendEmailVerificationEmail(user.email, user.name, verifyUrl).catch(e => console.error('[Email] verify:', e)),
+      sendWelcomeEmail(user.email, user.name).catch(e => {
+        console.error('[Email] Falha ao enviar boas-vindas para', user.email, '—', (e as Error).message);
+      }),
+      sendEmailVerificationEmail(user.email, user.name, verifyUrl).catch(e => {
+        console.error('[Email] Falha ao enviar verificação para', user.email, '—', (e as Error).message);
+        console.warn('[Email] URL de verificação (use para debug):', verifyUrl);
+      }),
     ]);
 
     return this.issueTokens(user);

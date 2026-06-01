@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { CHART } from '@/lib/tokens';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target, Plus, Trash2, CheckCircle2, Clock, Zap, Sparkles, Loader2, Pencil,
@@ -9,8 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
 
-// Hex colors — brand book Novux (max 7 chars, compatível com VARCHAR(7) do banco)
-const COLORS = ['#19D38A', '#8B5CF6', '#F59E0B', '#16C7FF', '#FF5A5F', '#EC4899'];
+// Cores do design system centralizado — tokens.ts
+const COLORS = CHART.pie;
 const GOAL_ICONS: Record<string, LucideIcon> = {
   'Emergência': ShieldCheck,
   'Viagem': Plane,

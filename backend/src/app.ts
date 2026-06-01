@@ -37,9 +37,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan(env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(globalLimiter);
 
-// Health check — inclui status do banco
+// Health check detalhado — útil para uptime monitoring e diagnóstico
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', db: isDbReady() ? 'connected' : 'connecting', timestamp: new Date().toISOString() });
+  const dbReady = isDbReady();
+  const status  = dbReady ? 'ok' : 'starting';
+  const code    = dbReady ? 200 : 503;
+  res.status(code).json({
+    status,
+    version: '1.2.0',
+    db:      dbReady ? 'connected' : 'connecting',
+    email:   !!(env.BREVO_API_KEY || env.SMTP_HOST) ? 'configured' : 'not_configured',
+    ai:      !!env.GROQ_API_KEY ? 'configured' : 'not_configured',
+    telegram:!!env.TELEGRAM_BOT_TOKEN ? 'configured' : 'not_configured',
+    timestamp: new Date().toISOString(),
+    uptime: Math.floor(process.uptime()),
+  });
 });
 
 // Retorna 503 para rotas de API enquanto o banco não estiver pronto

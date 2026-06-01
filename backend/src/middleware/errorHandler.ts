@@ -33,11 +33,19 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     return;
   }
 
-  console.error('Erro não tratado:', err);
+  // Log completo no servidor, mas NUNCA expõe stack ao cliente em produção
+  console.error('[ErrorHandler] Erro não tratado:', {
+    name: err.name,
+    message: err.message,
+    path: req.path,
+    method: req.method,
+    ...(env.NODE_ENV !== 'production' && { stack: err.stack }),
+  });
 
   res.status(500).json({
     success: false,
     message: 'Erro interno do servidor',
+    // Stack trace somente em desenvolvimento local
     ...(env.NODE_ENV === 'development' && { stack: err.stack }),
   });
 }
