@@ -25,15 +25,23 @@ export class UserModel {
 
   static async findByEmail(email: string): Promise<User | null> {
     const hash = emailHmac(email);
+    const normalized = email.toLowerCase().trim();
+
+    // Tenta primeiro pelo hash (usuários com criptografia ativa)
     const { rows } = await db.query<any>(
-      'SELECT * FROM users WHERE email_hash = $1 AND is_active = true',
-      [hash]
+      `SELECT * FROM users
+       WHERE (email_hash = $1 OR (email_hash IS NULL AND email = $2))
+         AND is_active = true
+       LIMIT 1`,
+      [hash, normalized]
     );
     if (!rows[0]) return null;
+
+    const row = rows[0];
     return {
-      ...rows[0],
-      name:  decrypt(rows[0].name),
-      email: decrypt(rows[0].email),
+      ...row,
+      name:  row.email_hash ? decrypt(row.name)  : row.name,
+      email: row.email_hash ? decrypt(row.email) : row.email,
     } as User;
   }
 
@@ -79,10 +87,11 @@ export class UserModel {
   }
 
   static async emailExists(email: string): Promise<boolean> {
-    const hash = emailHmac(email);
+    const hash       = emailHmac(email);
+    const normalized = email.toLowerCase().trim();
     const { rows } = await db.query(
-      'SELECT id FROM users WHERE email_hash = $1',
-      [hash]
+      `SELECT id FROM users WHERE email_hash = $1 OR (email_hash IS NULL AND email = $2) LIMIT 1`,
+      [hash, normalized]
     );
     return rows.length > 0;
   }

@@ -39,14 +39,29 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
     const encryptedName    = encrypt(name ?? normalizedEmail.split('@')[0]);
     const hash             = emailHmac(normalizedEmail);
 
-    const { rows } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
-      `INSERT INTO users (name, email, email_hash, password_hash, avatar_url)
-       VALUES ($1, $2, $3, 'google-oauth', $4)
-       ON CONFLICT (email_hash) DO UPDATE
-         SET name = EXCLUDED.name, avatar_url = COALESCE(EXCLUDED.avatar_url, users.avatar_url), updated_at = NOW()
-       RETURNING id, name, email, avatar_url`,
-      [encryptedName, encryptedEmail, hash, picture ?? null]
+    // Verifica se já existe (hash ou plaintext legado)
+    const { rows: existing } = await db.query<{ id: string }>(
+      `SELECT id FROM users WHERE email_hash = $1 OR (email_hash IS NULL AND email = $2) LIMIT 1`,
+      [hash, normalizedEmail]
     );
+
+    let rows: Array<{ id: string; name: string; email: string; avatar_url: string | null }>;
+    if (existing[0]) {
+      const { rows: updated } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
+        `UPDATE users SET name = $1, email = $2, email_hash = $3, avatar_url = COALESCE($4, avatar_url), updated_at = NOW()
+         WHERE id = $5 RETURNING id, name, email, avatar_url`,
+        [encryptedName, encryptedEmail, hash, picture ?? null, existing[0].id]
+      );
+      rows = updated;
+    } else {
+      const { rows: inserted } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
+        `INSERT INTO users (name, email, email_hash, password_hash, avatar_url)
+         VALUES ($1, $2, $3, 'google-oauth', $4)
+         RETURNING id, name, email, avatar_url`,
+        [encryptedName, encryptedEmail, hash, picture ?? null]
+      );
+      rows = inserted;
+    }
 
     const user = {
       ...rows[0],
