@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
-import { Bell, Plus, Sun, Moon, Calendar, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X, MailWarning } from 'lucide-react';
+import { Bell, Plus, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X, MailWarning } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { TransactionForm } from '@/components/TransactionForm';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -58,11 +58,16 @@ const MONTH_NAMES = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
+const MONTH_SHORT = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
 function MonthNavigator() {
   const { setCustomRange, setPeriod } = usePeriod();
   const now = new Date();
-  const [year, setYear]   = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth()); // 0-based
+  const [year, setYear]     = useState(now.getFullYear());
+  const [month, setMonth]   = useState(now.getMonth());
+  const [open, setOpen]     = useState(false);
+  const [popYear, setPopYear] = useState(now.getFullYear());
+  const popRef = useRef<HTMLDivElement>(null);
 
   const applyMonth = useCallback((m: number, y: number) => {
     const start = new Date(y, m, 1);
@@ -71,46 +76,120 @@ function MonthNavigator() {
     setPeriod('custom');
   }, [setCustomRange, setPeriod]);
 
-  // Apply current month on mount
   useEffect(() => { applyMonth(month, year); }, []); // eslint-disable-line
+
+  // Fecha popup ao clicar fora
+  useEffect(() => {
+    if (!open) return;
+    function handler(e: MouseEvent) {
+      if (popRef.current && !popRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
 
   function prev() {
     const m = month === 0 ? 11 : month - 1;
     const y = month === 0 ? year - 1 : year;
     setMonth(m); setYear(y); applyMonth(m, y);
   }
-
   function next() {
     const m = month === 11 ? 0 : month + 1;
     const y = month === 11 ? year + 1 : year;
     setMonth(m); setYear(y); applyMonth(m, y);
   }
 
+  function selectMonth(m: number) {
+    setMonth(m); setYear(popYear);
+    applyMonth(m, popYear);
+    setOpen(false);
+  }
+
+  function goToday() {
+    setMonth(now.getMonth()); setYear(now.getFullYear());
+    applyMonth(now.getMonth(), now.getFullYear());
+    setOpen(false);
+  }
+
   const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
 
   return (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={prev}
+    <div className="relative flex items-center gap-1" ref={popRef}>
+      <button onClick={prev}
         className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
         <ChevronLeft className="h-3.5 w-3.5" />
       </button>
 
-      <button
-        onClick={() => { setMonth(now.getMonth()); setYear(now.getFullYear()); applyMonth(now.getMonth(), now.getFullYear()); }}
-        title="Voltar para o mês atual"
-        className="flex items-center gap-1 rounded-xl border border-border bg-secondary/50 px-2.5 sm:px-4 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary transition-all min-w-[90px] sm:min-w-[130px] justify-center"
-        style={isCurrentMonth ? { borderColor: 'hsl(193 100% 50% / 0.4)', color: 'hsl(193 100% 65%)' } : {}}>
+      {/* Botão central — abre popup */}
+      <button onClick={() => { setPopYear(year); setOpen(v => !v); }}
+        className="flex items-center gap-1 rounded-xl border bg-secondary/50 px-2.5 sm:px-4 py-1.5 text-xs font-semibold transition-all min-w-[90px] sm:min-w-[130px] justify-center"
+        style={isCurrentMonth
+          ? { borderColor: 'hsl(193 100% 54% / 0.5)', color: 'hsl(193 100% 65%)' }
+          : { borderColor: 'hsl(var(--border))', color: 'hsl(var(--foreground))' }}>
         <span className="hidden sm:inline">{MONTH_NAMES[month]}</span>
-        <span className="sm:hidden">{MONTH_NAMES[month].slice(0, 3)}</span>
+        <span className="sm:hidden">{MONTH_SHORT[month]}</span>
         {' '}{year}
+        <ChevronDown className="h-3 w-3 ml-0.5 opacity-60" />
       </button>
 
-      <button
-        onClick={next}
+      <button onClick={next}
         className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
         <ChevronRight className="h-3.5 w-3.5" />
       </button>
+
+      {/* Popup de seleção de mês */}
+      {open && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50 w-64 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden animate-scale-in"
+          style={{ boxShadow: '0 8px 32px hsl(0 0% 0% / 0.3)' }}>
+          {/* Navegação de ano */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border"
+            style={{ background: 'hsl(var(--primary))', }}>
+            <button onClick={() => setPopYear(y => y - 1)}
+              className="h-7 w-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all">
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-bold text-white">{popYear}</span>
+            <button onClick={() => setPopYear(y => y + 1)}
+              className="h-7 w-7 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/15 transition-all">
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Grade de meses */}
+          <div className="grid grid-cols-4 gap-1.5 p-3">
+            {MONTH_SHORT.map((m, i) => {
+              const isSelected = i === month && popYear === year;
+              const isCurrent  = i === now.getMonth() && popYear === now.getFullYear();
+              return (
+                <button key={m} onClick={() => selectMonth(i)}
+                  className={`rounded-xl py-2 text-xs font-semibold transition-all ${
+                    isSelected
+                      ? 'text-primary-foreground'
+                      : isCurrent
+                        ? 'border border-primary/40 text-primary hover:bg-primary/10'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                  }`}
+                  style={isSelected ? { background: 'hsl(var(--primary))' } : {}}>
+                  {m}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Rodapé */}
+          <div className="flex items-center justify-between px-3 pb-3 pt-1 gap-2">
+            <button onClick={() => setOpen(false)}
+              className="flex-1 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground border border-border hover:bg-secondary transition-all">
+              Cancelar
+            </button>
+            <button onClick={goToday}
+              className="flex-1 py-1.5 rounded-xl text-xs font-bold transition-all"
+              style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+              Mês Atual
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -281,6 +360,55 @@ function NotificationPanel({ onClose, dismissed, setDismissed }: {
   );
 }
 
+function UserAvatar() {
+  const { user, logout } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const initial = (user?.name ?? user?.email ?? 'U')[0].toUpperCase();
+  const name    = user?.name?.split(' ').slice(0, 2).join(' ') ?? user?.email ?? 'Usuário';
+
+  return (
+    <div className="relative shrink-0" ref={ref}>
+      <button onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-2 sm:px-3 py-1.5 hover:bg-secondary transition-all">
+        {/* Círculo com inicial */}
+        <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0"
+          style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
+          {initial}
+        </div>
+        <span className="hidden sm:block text-xs font-semibold text-foreground max-w-[100px] truncate">{name}</span>
+        <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 z-50 w-44 rounded-xl border border-border bg-card shadow-xl overflow-hidden animate-scale-in">
+          <div className="px-3 py-2.5 border-b border-border">
+            <p className="text-xs font-semibold text-foreground truncate">{name}</p>
+            <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
+          </div>
+          <div className="p-1">
+            <button onClick={() => { setOpen(false); window.location.href = '/perfil'; }}
+              className="w-full text-left px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors">
+              Perfil & Configurações
+            </button>
+            <button onClick={async () => { await logout(); window.location.href = '/home'; }}
+              className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-alert-muted rounded-lg transition-colors">
+              Sair
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MainLayout() {
   const [formOpen, setFormOpen]   = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -330,14 +458,18 @@ export function MainLayout() {
               </div>
             )}
 
-            {/* Spacer para header simples */}
+            {/* Spacer */}
             {isSimpleHeader && <div className="flex-1" />}
 
-            {/* Period selector — oculto em xs e em páginas simples */}
+            {/* Ordem: + Lançamento | Toggle | Notificações | Avatar+Nome */}
+
+            {/* New transaction CTA */}
             {!isSimpleHeader && (
-              <div className="hidden sm:block">
-                <PeriodSelector />
-              </div>
+              <button onClick={() => setFormOpen(true)}
+                className="btn-novux flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl shrink-0">
+                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                <span className="hidden sm:inline">Lançamento</span>
+              </button>
             )}
 
             {/* Theme toggle */}
@@ -346,18 +478,9 @@ export function MainLayout() {
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
 
-            {/* Export (premium) — oculto em xs e em páginas simples */}
-            {!isSimpleHeader && isPremiumPreview && (
-              <button onClick={exportCSV} title="Exportar CSV"
-                className="hidden sm:flex h-8 w-8 rounded-xl border border-border items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
-                <Download className="h-3.5 w-3.5" />
-              </button>
-            )}
-
             {/* Alert bell */}
             <div className="relative shrink-0">
-              <button
-                onClick={() => setNotifOpen(v => !v)}
+              <button onClick={() => setNotifOpen(v => !v)}
                 className="relative h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                 <Bell className="h-3.5 w-3.5" />
                 {alertCount > 0 && (
@@ -367,14 +490,8 @@ export function MainLayout() {
               {notifOpen && <NotificationPanel onClose={() => setNotifOpen(false)} dismissed={dismissed} setDismissed={setDismissed} />}
             </div>
 
-            {/* New transaction CTA — oculto em páginas simples */}
-            {!isSimpleHeader && (
-              <button onClick={() => setFormOpen(true)}
-                className="btn-novux flex items-center gap-1.5 px-3 py-2 text-xs rounded-xl shrink-0">
-                <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                <span className="hidden sm:inline">Lançamento</span>
-              </button>
-            )}
+            {/* Avatar + Nome do usuário */}
+            <UserAvatar />
           </header>
 
           {/* ── Banner e-mail não verificado ── */}

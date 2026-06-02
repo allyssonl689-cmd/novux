@@ -14,13 +14,13 @@ import { transactionService } from '@/services/transactionService';
 
 interface Props { open: boolean; onClose: () => void; editId?: string | null }
 
-const EXPENSE_CATS = [
+export const EXPENSE_CATS = [
   'Alimentação','Restaurantes','Transporte','Moradia','Lazer','Viagens',
   'Saúde','Saúde Mental','Educação','Assinaturas','Streaming','Telefone',
   'Cartão','Vestuário','Pets','Empréstimos','Seguros','Impostos',
   'Doações','Presente','Reembolso','Outros',
 ];
-const INCOME_CATS = ['Salário','Freelance','Investimentos','Aluguel recebido','Presente','Reembolso','Outros'];
+export const INCOME_CATS = ['Salário','Freelance','Investimentos','Aluguel recebido','Presente','Reembolso','Outros'];
 
 export const CAT_ICONS: Record<string, LucideIcon> = {
   'Alimentação':     Utensils,   'Restaurantes':     ChefHat,
