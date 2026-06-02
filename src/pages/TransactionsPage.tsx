@@ -1,16 +1,113 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
 import {
   Search, Plus, Trash2, Pencil, TrendingUp, TrendingDown, ArrowUpDown,
-  CheckCircle2, Circle, FileUp, Package, SlidersHorizontal, X,
+  CheckCircle2, Circle, FileUp, Package, SlidersHorizontal, X, ChevronDown,
 } from 'lucide-react';
 import { TransactionForm, CAT_ICONS, EXPENSE_CATS, INCOME_CATS } from '@/components/TransactionForm';
 import { CSVImportModal } from '@/components/CSVImportModal';
 import { Transaction } from '@/lib/types';
 
 const ALL_CATS = [...new Set([...EXPENSE_CATS, ...INCOME_CATS])];
+
+/* ── Lista suspensa com múltipla seleção ── */
+function MultiSelectFilter({
+  label, options, selected, onChange, placeholder,
+}: {
+  label: string;
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
+    document.addEventListener('mousedown', h);
+    return () => document.removeEventListener('mousedown', h);
+  }, []);
+
+  const filtered = options.filter(o => o.toLowerCase().includes(search.toLowerCase()));
+  const toggle = (opt: string) =>
+    onChange(selected.includes(opt) ? selected.filter(s => s !== opt) : [...selected, opt]);
+
+  return (
+    <div ref={ref}>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{label}</p>
+        {selected.length > 0 && (
+          <button onClick={() => onChange([])} className="text-[10px] text-primary hover:opacity-80 transition-opacity">
+            Limpar ({selected.length})
+          </button>
+        )}
+      </div>
+
+      {/* Trigger */}
+      <button onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-border bg-secondary/40 text-xs text-left transition-all hover:border-primary/30">
+        <span className="text-muted-foreground truncate">
+          {selected.length === 0
+            ? placeholder
+            : selected.length === 1
+              ? selected[0]
+              : `${selected.length} selecionados`}
+        </span>
+        <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {/* Lista */}
+      {open && (
+        <div className="mt-1 rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+          {/* Busca interna */}
+          <div className="p-2 border-b border-border/60">
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder={`Buscar em ${label.toLowerCase()}...`}
+              className="w-full text-xs px-3 py-1.5 rounded-lg border border-border bg-secondary outline-none focus:border-primary/40 transition-colors text-foreground placeholder:text-muted-foreground" />
+          </div>
+          {/* Opções */}
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.length === 0 && (
+              <p className="text-[11px] text-muted-foreground text-center py-4">Nenhum resultado</p>
+            )}
+            {filtered.map(opt => {
+              const sel = selected.includes(opt);
+              return (
+                <button key={opt} onClick={() => toggle(opt)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs text-left transition-colors hover:bg-secondary/60 ${sel ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {/* Checkbox visual */}
+                  <span className="h-4 w-4 rounded flex items-center justify-center shrink-0 border transition-all"
+                    style={sel
+                      ? { background: 'hsl(var(--primary))', borderColor: 'hsl(var(--primary))' }
+                      : { borderColor: 'hsl(var(--border))' }}>
+                    {sel && <CheckCircle2 className="h-3 w-3 text-primary-foreground" />}
+                  </span>
+                  {opt}
+                </button>
+              );
+            })}
+          </div>
+          {/* Selecionar todos */}
+          {filtered.length > 1 && (
+            <div className="border-t border-border/60 p-2">
+              <button onClick={() => {
+                const allSelected = filtered.every(o => selected.includes(o));
+                if (allSelected) onChange(selected.filter(s => !filtered.includes(s)));
+                else onChange([...new Set([...selected, ...filtered])]);
+              }} className="w-full text-[10px] text-primary hover:opacity-80 transition-opacity text-center py-1">
+                {filtered.every(o => selected.includes(o)) ? 'Desmarcar todos' : 'Selecionar todos'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -199,50 +296,24 @@ export default function TransactionsPage() {
                   </div>
                 </div>
 
-                {/* Categorias */}
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Categorias</p>
-                    {pendingCats.length > 0 && (
-                      <button onClick={() => setPendingCats([])} className="text-[10px] text-primary hover:opacity-80">Limpar</button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {ALL_CATS.map(cat => {
-                      const sel = pendingCats.includes(cat);
-                      return (
-                        <button key={cat} onClick={() => setPendingCats(p => sel ? p.filter(c => c !== cat) : [...p, cat])}
-                          className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${sel ? 'text-primary-foreground' : 'border border-border text-muted-foreground hover:text-foreground'}`}
-                          style={sel ? { background: 'hsl(var(--primary))' } : {}}>
-                          {cat}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                {/* Categorias — lista suspensa com múltipla seleção */}
+                <MultiSelectFilter
+                  label="Categorias"
+                  options={ALL_CATS}
+                  selected={pendingCats}
+                  onChange={setPendingCats}
+                  placeholder="Selecionar categorias..."
+                />
 
-                {/* Tags */}
+                {/* Tags — lista suspensa com múltipla seleção */}
                 {availableTags.length > 0 && (
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Tags</p>
-                      {pendingTags.length > 0 && (
-                        <button onClick={() => setPendingTags([])} className="text-[10px] text-primary hover:opacity-80">Limpar</button>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {availableTags.map(tag => {
-                        const sel = pendingTags.includes(tag);
-                        return (
-                          <button key={tag} onClick={() => setPendingTags(p => sel ? p.filter(t => t !== tag) : [...p, tag])}
-                            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${sel ? 'text-primary-foreground' : 'border border-border text-muted-foreground hover:text-foreground'}`}
-                            style={sel ? { background: 'hsl(var(--primary))' } : {}}>
-                            #{tag}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <MultiSelectFilter
+                    label="Tags"
+                    options={availableTags.map(t => `#${t}`)}
+                    selected={pendingTags.map(t => `#${t}`)}
+                    onChange={vals => setPendingTags(vals.map(v => v.replace(/^#/, '')))}
+                    placeholder="Selecionar tags..."
+                  />
                 )}
               </div>
 
