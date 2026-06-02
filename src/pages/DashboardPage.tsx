@@ -117,15 +117,21 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   const { transactions, insights, isLoading } = useFinance();
-  const { getRange } = usePeriod();
+  const { getRange, period, customRange } = usePeriod();
   const [chartMode, setChartMode] = useState<'bar' | 'area'>('bar');
+
+  // Converte Date para string local YYYY-MM-DD (sem offset UTC — evita off-by-one em fusos)
+  function toLocalDate(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
 
   const periodTxs = useMemo(() => {
     const { start, end } = getRange();
-    const s = start.toISOString().split('T')[0];
-    const e = end.toISOString().split('T')[0];
+    const s = toLocalDate(start);
+    const e = toLocalDate(end);
     return transactions.filter(t => t.date >= s && t.date <= e);
-  }, [transactions, getRange]);
+    // deps explícitas em period/customRange em vez de getRange (função nova a cada render)
+  }, [transactions, period, customRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fluxo de Caixa mostra todos os meses (histórico completo independente do filtro)
   const monthlySummary = useMemo(() => buildMonthlySummary(transactions), [transactions]);
@@ -143,8 +149,8 @@ export default function DashboardPage() {
     const dur = end.getTime() - start.getTime();
     const prevEnd = new Date(start.getTime() - 1);
     const prevStart = new Date(prevEnd.getTime() - dur);
-    const ps = prevStart.toISOString().split('T')[0];
-    const pe = prevEnd.toISOString().split('T')[0];
+    const ps = toLocalDate(prevStart);
+    const pe = toLocalDate(prevEnd);
     const prev = transactions.filter(t => t.date >= ps && t.date <= pe);
 
     const income  = cur.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
@@ -174,17 +180,15 @@ export default function DashboardPage() {
   const recent = useMemo(() => [...periodTxs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [periodTxs]);
   const savingsRate = stats.income > 0 ? ((stats.income - stats.expense) / stats.income * 100).toFixed(1) : '0';
 
-  // Título dinâmico baseado no período selecionado (não mais hardcoded no mês atual)
+  // Título dinâmico baseado no período selecionado
   const periodLabel = useMemo(() => {
     const { start, end } = getRange();
     const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
-    if (sameMonth) {
-      return start.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    }
+    if (sameMonth) return start.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     const sameYear = start.getFullYear() === end.getFullYear();
     if (sameYear) return String(start.getFullYear());
     return `${start.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })} — ${end.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}`;
-  }, [getRange]);
+  }, [period, customRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isLoading) return <DashboardSkeleton />;
 

@@ -41,13 +41,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(!cached);
 
   useEffect(() => {
-    // Timeout de segurança para cold start do Render (pode levar 30-60s)
-    const timeout = setTimeout(() => {
-      // Backend não respondeu a tempo — se há sessão em cache, mantém o usuário logado;
-      // o access token será obtido na primeira chamada API via refresh automático.
-      // Se não há cache, redireciona ao login.
-      setIsLoading(false);
-    }, 30_000);
+    // Timeout de segurança: 8s é suficiente para cold start normal do Render
+    // Se ultrapassar, libera a UI sem travar o usuário
+    const timeout = setTimeout(() => { setIsLoading(false); }, 8_000);
 
     authService.tryRestoreSession()
       .then(restored => {

@@ -37,12 +37,16 @@ export class AuthExpiredError extends Error {
 export async function refreshAccessToken(): Promise<string> {
   let res: Response;
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000); // 8s timeout
     res = await fetch(`${BASE_URL}/api/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
+      signal: controller.signal,
     });
+    clearTimeout(timer);
   } catch {
-    // Erro de rede (backend hibernando/offline) — NÃO é sessão inválida
+    // Erro de rede ou timeout — NÃO é sessão inválida, backend pode estar hibernando
     throw new Error('Network error during refresh');
   }
 
