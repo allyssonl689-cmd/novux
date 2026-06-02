@@ -23,8 +23,21 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800;900&family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
-  <!-- Cor de fundo antes do React carregar — evita flash branco -->
-  <body style="background-color:#050816;color:#f8fafc;">
+  <style>
+    /* Fundo escuro por padrão enquanto React carrega (evita flash branco) */
+    /* ThemeContext substitui isso assim que monta */
+    body { background-color: #050816; }
+    /* Se o usuário tinha o tema claro salvo, evita flash escuro */
+    body.light { background-color: #f5f7fa; }
+  </style>
+  <script>
+    /* Aplica o tema salvo ANTES do React montar — elimina flashes */
+    try {
+      var t = localStorage.getItem('novux_theme');
+      if (t === 'light') document.body.classList.add('light');
+    } catch(e) {}
+  </script>
+  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

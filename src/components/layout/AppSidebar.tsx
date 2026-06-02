@@ -1,4 +1,4 @@
-import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown, HelpCircle } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, Target, BrainCircuit, TrendingUp, User, Sparkles, BarChart3, Settings, Crown, HelpCircle, ShieldCheck } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -166,7 +166,7 @@ export function AppSidebar() {
               {/* Item Admin — visível apenas para administradores */}
               {user?.isAdmin && (
                 <NavItem
-                  item={{ title: 'Admin', url: '/admin', icon: Shield }}
+                  item={{ title: 'Admin', url: '/admin', icon: ShieldCheck }}
                   collapsed={collapsed}
                   isActive={isActive('/admin')}
                 />

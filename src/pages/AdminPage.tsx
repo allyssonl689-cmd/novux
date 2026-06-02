@@ -79,7 +79,7 @@ export default function AdminPage() {
 
           {/* Ações */}
           <div className="flex items-center gap-2">
-            <Link to="/" className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
+            <Link to="/lancamentos" className="hidden sm:flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
               <LayoutDashboard className="h-3.5 w-3.5" />
               App
             </Link>

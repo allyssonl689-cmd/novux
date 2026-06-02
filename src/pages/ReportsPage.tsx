@@ -59,9 +59,13 @@ function buildMonthlySummary(txList: { type: string; value: number; date: string
   });
 }
 
+function toLocalDate(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 export default function ReportsPage() {
   const { transactions, insights } = useFinance();
-  const { getRange } = usePeriod();
+  const { getRange, period, customRange } = usePeriod();
   const { user } = useAuth();
   const [tab, setTab] = useState<'visao'|'cats'|'trend'>('visao');
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -70,10 +74,10 @@ export default function ReportsPage() {
 
   const periodTxs = useMemo(() => {
     const { start, end } = getRange();
-    const s = start.toISOString().split('T')[0];
-    const e = end.toISOString().split('T')[0];
+    const s = toLocalDate(start);
+    const e = toLocalDate(end);
     return transactions.filter(t => t.date >= s && t.date <= e);
-  }, [transactions, getRange]);
+  }, [transactions, period, customRange]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // History charts use ALL transactions (not period-filtered) to show full timeline
   const allMonthlySummary = useMemo(() => buildMonthlySummary(transactions), [transactions]);
