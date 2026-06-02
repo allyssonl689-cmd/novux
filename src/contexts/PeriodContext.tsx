@@ -19,7 +19,7 @@ export const PERIOD_LABELS: Record<PeriodPreset, string> = {
   '3m':     'Últimos 3 meses',
   '6m':     'Últimos 6 meses',
   '12m':    'Últimos 12 meses',
-  'ytd':    'Este ano',
+  'ytd':    'Este ano (2026)',
   'custom': 'Personalizado',
 };
 
@@ -38,7 +38,11 @@ export function PeriodProvider({ children }: { children: React.ReactNode }) {
       case '3m':  start.setMonth(start.getMonth() - 3);         break;
       case '6m':  start.setMonth(start.getMonth() - 6);         break;
       case '12m': start.setFullYear(start.getFullYear() - 1);   break;
-      case 'ytd': start.setMonth(0); start.setDate(1);          break;
+      // 'ytd' = ano completo (Jan 1 a Dez 31) — mais intuitivo que apenas "até hoje"
+      case 'ytd':
+        start.setMonth(0); start.setDate(1);
+        end.setMonth(11); end.setDate(31);
+        break;
       case 'custom': return customRange || { start, end };
     }
     return { start, end };
