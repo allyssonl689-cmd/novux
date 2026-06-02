@@ -127,8 +127,14 @@ export default function DashboardPage() {
     return transactions.filter(t => t.date >= s && t.date <= e);
   }, [transactions, getRange]);
 
-  // Fluxo de Caixa always shows all months regardless of period filter
+  // Fluxo de Caixa mostra todos os meses (histórico completo independente do filtro)
   const monthlySummary = useMemo(() => buildMonthlySummary(transactions), [transactions]);
+
+  // Totais gerais acumulados (todo o histórico, ignora filtro propositalmente)
+  const allTimeStats = useMemo(() => ({
+    income:  transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0),
+    expense: transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0),
+  }), [transactions]);
 
   const stats = useMemo(() => {
     const cur = periodTxs;
@@ -168,7 +174,17 @@ export default function DashboardPage() {
   const recent = useMemo(() => [...periodTxs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [periodTxs]);
   const savingsRate = stats.income > 0 ? ((stats.income - stats.expense) / stats.income * 100).toFixed(1) : '0';
 
-  const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  // Título dinâmico baseado no período selecionado (não mais hardcoded no mês atual)
+  const periodLabel = useMemo(() => {
+    const { start, end } = getRange();
+    const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+    if (sameMonth) {
+      return start.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }
+    const sameYear = start.getFullYear() === end.getFullYear();
+    if (sameYear) return String(start.getFullYear());
+    return `${start.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })} — ${end.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' })}`;
+  }, [getRange]);
 
   if (isLoading) return <DashboardSkeleton />;
 
@@ -181,7 +197,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-widest mb-1">Painel Financeiro</p>
             <h1 className="text-2xl font-bold text-foreground leading-none" >
-              {monthName.charAt(0).toUpperCase() + monthName.slice(1)}
+              {periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1)}
             </h1>
           </div>
           <div className="hidden sm:flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2">
@@ -217,6 +233,19 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Total Geral acumulado — independe do filtro de período */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }}
+        className="rounded-2xl border border-border bg-card px-5 py-3 flex flex-wrap items-center gap-4">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Total Acumulado (todo o histórico)</span>
+        <div className="flex flex-wrap gap-4 ml-auto">
+          <span className="text-sm font-bold" style={{ color: CHART.income }}>↑ {fmt(allTimeStats.income)}</span>
+          <span className="text-sm font-bold" style={{ color: CHART.expense }}>↓ {fmt(allTimeStats.expense)}</span>
+          <span className={`text-sm font-bold ${allTimeStats.income >= allTimeStats.expense ? 'text-success' : 'text-destructive'}`}>
+            = {fmtSigned(allTimeStats.income - allTimeStats.expense)}
+          </span>
+        </div>
+      </motion.div>
+
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Flow chart */}
@@ -225,7 +254,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-sm font-bold text-foreground" >Fluxo de Caixa</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Receitas, despesas e economia</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Histórico completo — todos os meses</p>
             </div>
             <div className="flex gap-1 p-1 rounded-xl bg-secondary/60">
               {(['bar','area'] as const).map(m => (

@@ -10,6 +10,7 @@ import { PeriodProvider } from "@/contexts/PeriodContext";
 import { ProtectedRoute, AdminRoute } from "@/components/auth/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import DashboardPage    from "@/pages/DashboardPage";
 import ReportsPage      from "@/pages/ReportsPage";
 import TransactionsPage from "@/pages/TransactionsPage";
@@ -42,6 +43,7 @@ const App = () => (
               <Toaster />
               <Sonner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <ScrollToTop />
                 <Routes>
                   {/* Rotas públicas */}
                   <Route path="/home"    element={<LandingPage />} />

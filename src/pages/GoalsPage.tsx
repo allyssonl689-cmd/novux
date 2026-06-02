@@ -169,8 +169,8 @@ export default function GoalsPage() {
             const monthly = mo > 0 ? Math.ceil((goal.targetValue - goal.currentValue) / mo) : 0;
 
             return (
-              <motion.div key={goal.id} layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }} transition={{ delay: i * 0.04 }}
+              <motion.div key={goal.id} layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }} transition={{ duration: 0.15, delay: Math.min(i * 0.03, 0.15) }}
                 className="rounded-2xl border border-border bg-card p-5 card-hover group relative overflow-hidden">
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                   style={{ background: `radial-gradient(ellipse at 80% 10%, ${color}0a 0%, transparent 60%)` }} />

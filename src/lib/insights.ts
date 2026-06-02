@@ -24,8 +24,8 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
     insights.push({
       id: 'deficit',
       level: 'critical',
-      label: 'Você está gastando mais do que ganha',
-      text: `Seu mês já está ${deficit.toFixed(2).replace('.', ',')} acima da sua renda. Se nada mudar, seu saldo pode continuar encolhendo até o fechamento.`,
+      label: 'Despesas acima da receita',
+      text: `Suas despesas superam a receita em R$ ${deficit.toFixed(2).replace('.', ',')} no período. Revise os gastos variáveis e priorize os custos essenciais para equilibrar seu orçamento.`,
     });
   }
 
@@ -45,8 +45,8 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
         insights.push({
           id: `concentration-${category}`,
           level: 'warning',
-          label: `Seus gastos estão puxados por ${category}`,
-          text: `${category} já representa ${Math.round(percentage)}% das suas despesas. Se esse padrão continuar, essa categoria pode pressionar ainda mais seu saldo final.`,
+          label: `Alta concentração em ${category}`,
+          text: `${category} representa ${Math.round(percentage)}% das suas despesas no período. Avalie se há oportunidade de redução nessa categoria para melhorar sua margem de poupança.`,
         });
       }
     }
@@ -69,15 +69,15 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
         insights.push({
           id: 'increase',
           level: 'warning',
-          label: 'Você está gastando mais que no mês passado',
-          text: `Se continuar assim, seus gastos podem fugir ainda mais do controle. Hoje você já está ${Math.round(change)}% acima do mês anterior.`,
+          label: `Gastos ${Math.round(change)}% acima do período anterior`,
+          text: `Suas despesas aumentaram ${Math.round(change)}% em relação ao período anterior. Identifique quais categorias cresceram e avalie ajustes no orçamento.`,
         });
       } else if (change < -10) {
         insights.push({
           id: 'decrease',
           level: 'positive',
-          label: 'Seu controle financeiro melhorou',
-          text: `Você reduziu seus gastos em ${Math.round(Math.abs(change))}% versus o mês anterior. Mantendo esse ritmo, suas chances de fechar o mês com folga aumentam.`,
+          label: `Redução de ${Math.round(Math.abs(change))}% nas despesas`,
+          text: `Suas despesas caíram ${Math.round(Math.abs(change))}% em relação ao período anterior. Excelente disciplina financeira — considere direcionar essa economia para investimentos.`,
         });
       }
     }
@@ -94,11 +94,12 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
 
   if (totalIncome > totalExpense && totalExpense > 0) {
     const surplus = totalIncome - totalExpense;
+    const savingsRate = Math.round((surplus / totalIncome) * 100);
     insights.push({
       id: 'surplus',
       level: 'positive',
-      label: 'Você terminou o mês com saldo positivo — ótimo sinal',
-      text: `Hoje sobram R$ ${surplus.toFixed(2).replace('.', ',')}. Se mantiver esse ritmo, você fecha o mês com mais espaço para investir ou guardar.`,
+      label: 'Saldo positivo — continue assim!',
+      text: `Você está guardando R$ ${surplus.toFixed(2).replace('.', ',')} (${savingsRate}% da receita). Considere alocar esse excedente em investimentos de renda fixa ou aumentar sua reserva de emergência.`,
     });
   }
 

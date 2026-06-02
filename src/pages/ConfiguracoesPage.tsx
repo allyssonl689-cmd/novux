@@ -205,12 +205,7 @@ export default function ConfiguracoesPage() {
             label="Alerta de orçamento excedido"
             sub="Notifica quando uma categoria ultrapassa o limite definido"
           />
-          <Toggle
-            checked={settings.notifyWeeklyReport}
-            onChange={v => update({ notifyWeeklyReport: v })}
-            label="Relatório semanal"
-            sub="Resumo de gastos toda segunda-feira"
-          />
+          {/* Relatório semanal — removido temporariamente (requer serviço de agendamento no backend) */}
           <Toggle
             checked={settings.notifyGoalProgress}
             onChange={v => update({ notifyGoalProgress: v })}

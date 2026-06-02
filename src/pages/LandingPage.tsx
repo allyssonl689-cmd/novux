@@ -120,7 +120,6 @@ export default function LandingPage() {
               className="h-8 w-8 rounded-xl border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
               {theme === 'dark' ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </button>
-            <Link to="/ajuda" className="hidden sm:block text-sm text-muted-foreground hover:text-foreground transition-colors">Ajuda</Link>
             {/* Iniciar Sessão — botão destacado */}
             <Link to="/login"
               className="hidden sm:flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl border border-border bg-secondary/60 text-foreground hover:bg-secondary transition-all">
@@ -143,7 +142,7 @@ export default function LandingPage() {
 
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} className="relative max-w-3xl mx-auto">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1.5 text-xs text-primary font-semibold mb-6">
-            <Sparkles className="h-3 w-3" /> Powered by Groq LLaMA 3.3 70B
+            <Sparkles className="h-3 w-3" /> Powered by Allysson Lima | Novux Finance
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight mb-6" style={{ letterSpacing: '-0.03em' }}>
