@@ -262,8 +262,9 @@ export default function AIInsightsPage() {
     }
   }
 
-  const score = income > 0 ? Math.max(0, Math.round((1 - expense / income) * 1000)) : 720;
-  const scoreColor = score >= 700 ? CHART.income : score >= 500 ? CHART.warning : CHART.expense;
+  const riskRatio = income > 0 ? expense / income : expense > 0 ? 2 : 0;
+  const score = riskRatio <= 0 ? 950 : Math.max(30, Math.min(950, Math.round(500 / riskRatio)));
+  const scoreColor = score >= 650 ? CHART.income : score >= 400 ? CHART.warning : CHART.expense;
 
   return (
     <div className="max-w-[1400px] mx-auto">

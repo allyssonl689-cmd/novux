@@ -180,7 +180,7 @@ export default function ReportsPage() {
         {[
           { l:'Receitas',    v: fmt(stats.income),   c:'#10B981', Icon: TrendingUp   },
           { l:'Despesas',    v: fmt(stats.expense),  c:'#EF4444', Icon: TrendingDown },
-          { l:'Saldo',       v: fmt(stats.balance),  c: stats.balance>=0?'#0EA5E9':'#EF4444', Icon: Activity },
+          { l:'Saldo', v: (stats.balance < 0 ? '-' : '') + fmt(Math.abs(stats.balance)), c: stats.balance>=0?'#0EA5E9':'#EF4444', Icon: Activity },
           { l:'Transações',  v: String(stats.count), c:'#8B5CF6', Icon: BarChart3    },
         ].map((s,i) => (
           <motion.div key={s.l} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i*0.06 }}

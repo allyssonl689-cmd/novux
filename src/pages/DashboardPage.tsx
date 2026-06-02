@@ -85,12 +85,12 @@ function buildMonthlySummary(transactions: { type: string; value: number; date: 
     else months[key].expense += t.value;
   });
   return Object.entries(months)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-6)
+    .sort(([a], [b]) => a.localeCompare(b))   // ordem cronológica — sem slice
     .map(([key, { income, expense }]) => {
       const [year, month] = key.split('-');
       const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-      const shortMonth = date.toLocaleDateString('pt-BR', { month: 'short' });
+      // Inclui o ano abreviado quando há múltiplos anos no histórico
+      const shortMonth = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
       return { shortMonth, income, expense, savings: income - expense };
     });
 }
@@ -173,9 +173,16 @@ export default function DashboardPage() {
   }, [periodTxs, transactions, getRange]);
 
   const indicators = useMemo(() => buildFinancialIndicators(periodTxs), [periodTxs]);
-  const score = indicators ? Math.max(0, Math.round((1 - indicators.riskRatio) * 1000)) : 720;
-  const scoreLabel = score>=800?'Excelente':score>=700?'Muito Bom':score>=500?'Regular':'Atenção';
-  const scoreColor = score>=700 ? 'hsl(var(--success))' : score>=500 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
+  // Score hiperbólico: 500/riskRatio — nunca zera, reflete gradualmente a saúde financeira
+  // riskRatio 0.5 (poupou 50%) → ~950  | riskRatio 1.0 (break-even) → ~500
+  // riskRatio 1.5 (déficit 50%) → ~333 | riskRatio 2.0 (déficit 100%) → ~250
+  const score = indicators
+    ? (indicators.riskRatio <= 0
+        ? 950
+        : Math.max(30, Math.min(950, Math.round(500 / indicators.riskRatio))))
+    : 720;
+  const scoreLabel = score>=800?'Excelente':score>=650?'Muito Bom':score>=450?'Regular':score>=250?'Atenção':'Crítico';
+  const scoreColor = score>=650 ? 'hsl(var(--success))' : score>=400 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
 
   const recent = useMemo(() => [...periodTxs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [periodTxs]);
   const savingsRate = stats.income > 0 ? ((stats.income - stats.expense) / stats.income * 100).toFixed(1) : '0';
