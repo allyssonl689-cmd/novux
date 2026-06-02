@@ -85,6 +85,13 @@ export default function ReportsPage() {
   // Period-filtered summary (used only where period filter matters)
   const monthlySummary = useMemo(() => buildMonthlySummary(periodTxs), [periodTxs]);
 
+  // Total acumulado — todo o histórico, independe do filtro de período
+  const allTimeStats = useMemo(() => {
+    const income  = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
+    const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    return { income, expense, balance: income - expense };
+  }, [transactions]);
+
   const stats = useMemo(() => {
     const income  = periodTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
     const expense = periodTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
@@ -186,6 +193,30 @@ export default function ReportsPage() {
           </motion.div>
         ))}
       </div>
+
+      {/* Total Acumulado — todo o histórico, independe do filtro */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }}
+        className="rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="px-5 py-3 border-b border-border/50">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+            Total Acumulado — Todo o Histórico
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/50">
+          {[
+            { l: 'Receitas totais',   v: fmt(allTimeStats.income),   c: '#10B981', icon: '↑' },
+            { l: 'Despesas totais',   v: fmt(allTimeStats.expense),  c: '#EF4444', icon: '↓' },
+            { l: 'Patrimônio líquido',v: fmt(Math.abs(allTimeStats.balance)), c: allTimeStats.balance >= 0 ? '#0EA5E9' : '#EF4444', icon: allTimeStats.balance >= 0 ? '=' : '−' },
+          ].map(s => (
+            <div key={s.l} className="px-5 py-4 flex items-center justify-between sm:flex-col sm:items-start sm:gap-1">
+              <p className="text-[11px] text-muted-foreground">{s.l}</p>
+              <p className="text-lg font-bold mono" style={{ color: s.c, fontFamily: 'Outfit,sans-serif' }}>
+                <span className="text-sm mr-1 opacity-70">{s.icon}</span>{s.v}
+              </p>
+            </div>
+          ))}
+        </div>
+      </motion.div>
 
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-secondary/60 w-fit">
