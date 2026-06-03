@@ -40,7 +40,8 @@ function toAuthUser(u: ApiUser): AuthUser {
     name: u.name,
     avatarUrl: u.avatar_url,
     plan: (u.plan === 'premium' ? 'premium' : 'free'),
-    emailVerified: u.email_verified ?? false,
+    // NULL = usuário registrado antes da feature de verificação → tratar como verificado
+    emailVerified: u.email_verified ?? true,
     isAdmin: u.is_admin ?? false,
   };
 }

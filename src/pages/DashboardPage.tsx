@@ -165,10 +165,20 @@ export default function DashboardPage() {
       .map(([name,value],i) => ({ name, value, color: PIE_COLORS[i%PIE_COLORS.length], pct: totalExpenses>0 ? Math.round((value/totalExpenses)*100) : 0 }))
       .sort((a,b)=>b.value-a.value);
 
+    const curBalance  = income - expense;
+    const prevBalance = pIncome - pExpense;
+    const hasPrevData = pIncome > 0 || pExpense > 0;
+
+    // Variação real do saldo (usa |prevBalance| como base para evitar divisão negativa estranha)
+    const balanceDelta = !hasPrevData || Math.abs(prevBalance) < 0.01
+      ? 0
+      : Math.max(-999, Math.min(999, Math.round(((curBalance - prevBalance) / Math.abs(prevBalance)) * 100)));
+
     return {
-      income, expense, balance: income-expense, categories,
-      incDelta: pIncome>0 ? Math.round(((income-pIncome)/pIncome)*100) : 0,
-      expDelta: pExpense>0 ? Math.round(((expense-pExpense)/pExpense)*100) : 0,
+      income, expense, balance: curBalance, categories,
+      incDelta:     pIncome>0  ? Math.round(((income-pIncome)/pIncome)*100)   : 0,
+      expDelta:     pExpense>0 ? Math.round(((expense-pExpense)/pExpense)*100) : 0,
+      balanceDelta,
     };
   }, [periodTxs, transactions, getRange]);
 
@@ -223,7 +233,7 @@ export default function DashboardPage() {
 
       {/* KPIs — Saldo Total, Receitas, Despesas, Patrimônio Líquido */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KPI idx={0} label="Saldo do Mês"       value={fmtSigned(stats.balance)}              delta={stats.incDelta - stats.expDelta} sub="vs mês anterior" icon={Wallet}      color={CHART.investment} />
+        <KPI idx={0} label="Saldo do Mês"       value={fmtSigned(stats.balance)}              delta={stats.balanceDelta}             sub="vs mês anterior" icon={Wallet}      color={CHART.investment} />
         <KPI idx={1} label="Receitas"            value={fmt(stats.income)}                     delta={stats.incDelta}                  sub="vs mês anterior" icon={TrendingUp}  color={CHART.income}     />
         <KPI idx={2} label="Despesas"            value={fmt(stats.expense)}                    delta={stats.expDelta}                  sub="vs mês anterior" icon={TrendingDown} color={CHART.expense}   />
         <KPI idx={3} label="Patrimônio Líquido"  value={fmtSigned(stats.income - stats.expense)} sub="acumulado no período"            icon={PiggyBank}      color={CHART.goal}                         />

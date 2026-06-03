@@ -41,7 +41,7 @@ export function generateInsights(transactions: Transaction[]): Insight[] {
       const percentage = totalExpense > 0 ? (total / totalExpense) * 100 : 0;
       if (!isFinite(percentage) || isNaN(percentage)) continue;
 
-      if (percentage > 30) {
+      if (percentage > 25) {
         insights.push({
           id: `concentration-${category}`,
           level: 'warning',

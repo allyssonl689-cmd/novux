@@ -377,13 +377,20 @@ function UserAvatar() {
   return (
     <div className="relative shrink-0" ref={ref}>
       <button onClick={() => setOpen(v => !v)}
-        className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-2 sm:px-3 py-1.5 hover:bg-secondary transition-all">
-        {/* Círculo com inicial */}
-        <div className="h-6 w-6 rounded-full flex items-center justify-center text-[11px] font-black shrink-0"
-          style={{ background: 'hsl(var(--primary))', color: 'hsl(var(--primary-foreground))' }}>
-          {initial}
+        className="flex items-center gap-2 rounded-xl border border-border bg-secondary/40 px-1.5 sm:px-2.5 py-1 hover:bg-secondary transition-all hover:border-primary/20">
+        {/* Avatar premium: gradiente + ring + inicial */}
+        <div className="relative shrink-0">
+          <div className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-black"
+            style={{
+              background: 'linear-gradient(135deg, hsl(193 100% 54%) 0%, hsl(258 87% 66%) 100%)',
+              color: '#fff',
+              boxShadow: '0 0 0 2px hsl(var(--background)), 0 0 0 3.5px hsl(193 100% 54% / 0.5)',
+              letterSpacing: '-0.02em',
+            }}>
+            {initial}
+          </div>
         </div>
-        <span className="hidden sm:block text-xs font-semibold text-foreground max-w-[100px] truncate">{name}</span>
+        <span className="hidden sm:block text-xs font-semibold text-foreground max-w-[110px] truncate">{name}</span>
         <ChevronDown className="h-3 w-3 text-muted-foreground hidden sm:block" />
       </button>
 

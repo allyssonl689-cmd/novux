@@ -109,7 +109,8 @@ function MultiSelectFilter({
   );
 }
 
-const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmt     = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
 
 
 export default function TransactionsPage() {
@@ -339,7 +340,7 @@ export default function TransactionsPage() {
         {[
           { l: 'Receitas do Mês',  v: fmt(monthTotals.income),                     c: '#19D38A', Icon: TrendingUp   },
           { l: 'Despesas do Mês',  v: fmt(monthTotals.expense),                    c: '#FF5A5F', Icon: TrendingDown },
-          { l: 'Saldo do Mês',     v: fmt(monthTotals.income-monthTotals.expense), c: monthTotals.income>=monthTotals.expense?'#16C7FF':'#FF5A5F', Icon: ArrowUpDown },
+          { l: 'Saldo do Mês',     v: fmtSigned(monthTotals.income-monthTotals.expense), c: monthTotals.income>=monthTotals.expense?'#16C7FF':'#FF5A5F', Icon: ArrowUpDown },
         ].map((s,i) => (
           <motion.div key={s.l} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i*0.06 }}
             className="rounded-xl border border-border bg-card p-3.5 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1.5">

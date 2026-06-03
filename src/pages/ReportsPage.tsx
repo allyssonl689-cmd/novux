@@ -11,8 +11,9 @@ import { CHART } from '@/lib/tokens';
 const loadGeneratePDF = () => import('@/lib/generatePDF').then(m => m.generateFinancialPDF);
 const COLORS = CHART.pie;
 
-const fmt  = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
-const fmtK = (v: number) => v>=1000 ? `${(v/1000).toFixed(1)}k` : String(Math.round(v));
+const fmt  = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
+const fmtK = (v: number) => v>=1000 ? `${(v/1000).toFixed(1)}k` : v.toFixed(0);
 const WRAPPER_STYLE = { background: 'transparent', border: 'none', padding: 0, outline: 'none' };
 const GRID_COLOR = 'hsl(var(--border))';
 
@@ -325,11 +326,20 @@ export default function ReportsPage() {
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Taxa de Poupança Mensal</h3>
             <p className="text-[10px] text-muted-foreground mb-4">Histórico completo de todos os meses</p>
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={allMonthlySummary.map(m => ({ ...m, rate: m.income>0 ? Math.round(((m.income-m.expense)/m.income)*100) : 0 }))}>
+              <BarChart data={allMonthlySummary.map(m => ({
+                ...m,
+                rate: m.income > 0 ? parseFloat(((m.income-m.expense)/m.income*100).toFixed(1)) : 0,
+              }))}>
                 <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
                 <XAxis dataKey="shortMonth" tick={{ fontSize:10, fill:'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize:10, fill:'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} tickFormatter={v=>`${v}%`} />
-                <Tooltip content={<Tip />} wrapperStyle={WRAPPER_STYLE} cursor={{ fill: 'hsl(var(--secondary))' }} />
+                <Tooltip
+                  formatter={(v: number) => [`${Number(v).toFixed(1)}%`, 'Taxa de Poupança']}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: 4 }}
+                  contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 11 }}
+                  wrapperStyle={WRAPPER_STYLE}
+                  cursor={{ fill: 'hsl(var(--secondary))' }}
+                />
                 <Bar dataKey="rate" name="Taxa de Poupança" fill="#0EA5E9" radius={[6,6,0,0]} barSize={24} />
               </BarChart>
             </ResponsiveContainer>

@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, DollarSign, BarChart3, Shield, ArrowUpRight, Zap } from 'lucide-react';
 
-const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
+const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const PRODUCTS = [
   { name:'Tesouro Selic',  type:'Renda Fixa',    rate:13.75, risk:'Baixo',    liq:'D+1',          min:100,   color:'#10B981', badge:'Seguro'    },
