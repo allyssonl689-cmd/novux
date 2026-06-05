@@ -33,7 +33,7 @@ export class CategoryController {
   static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = categorySchema.partial().parse(req.body);
-      const category = await CategoryModel.update(req.params.id, req.userId, input);
+      const category = await CategoryModel.update(String(req.params.id), req.userId, input);
       if (!category) throw new AppError('Categoria não encontrada ou é padrão do sistema', 404);
       res.json({ success: true, data: category });
     } catch (err) {
@@ -43,7 +43,7 @@ export class CategoryController {
 
   static async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const deleted = await CategoryModel.delete(req.params.id, req.userId);
+      const deleted = await CategoryModel.delete(String(req.params.id), req.userId);
       if (!deleted) throw new AppError('Categoria não encontrada ou é padrão do sistema', 404);
       res.json({ success: true, message: 'Categoria removida com sucesso' });
     } catch (err) {

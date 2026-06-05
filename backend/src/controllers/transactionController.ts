@@ -19,7 +19,7 @@ export class TransactionController {
 
   static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const transaction = await TransactionModel.findById(req.params.id, req.userId);
+      const transaction = await TransactionModel.findById(String(req.params.id), req.userId);
       if (!transaction) throw new AppError('Transação não encontrada', 404);
       res.json({ success: true, data: transaction });
     } catch (err) { next(err); }
@@ -36,7 +36,7 @@ export class TransactionController {
   static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = updateTransactionSchema.parse(req.body);
-      const transaction = await TransactionModel.update(req.params.id, req.userId, input as any);
+      const transaction = await TransactionModel.update(String(req.params.id), req.userId, input as any);
       if (!transaction) throw new AppError('Transação não encontrada', 404);
       res.json({ success: true, data: transaction });
     } catch (err) { next(err); }
@@ -44,7 +44,7 @@ export class TransactionController {
 
   static async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const deleted = await TransactionModel.delete(req.params.id, req.userId);
+      const deleted = await TransactionModel.delete(String(req.params.id), req.userId);
       if (!deleted) throw new AppError('Transação não encontrada', 404);
       res.json({ success: true, message: 'Transação removida com sucesso' });
     } catch (err) { next(err); }
@@ -54,7 +54,7 @@ export class TransactionController {
     try {
       if (!req.file) throw new AppError('Nenhum arquivo enviado', 400);
       const url = `/uploads/${req.file.filename}`;
-      const transaction = await TransactionModel.setAttachment(req.params.id, req.userId, url);
+      const transaction = await TransactionModel.setAttachment(String(req.params.id), req.userId, url);
       if (!transaction) throw new AppError('Transação não encontrada', 404);
       res.json({ success: true, data: transaction });
     } catch (err) { next(err); }
@@ -62,7 +62,7 @@ export class TransactionController {
 
   static async getHistory(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const history = await TransactionModel.getHistory(req.params.id, req.userId);
+      const history = await TransactionModel.getHistory(String(req.params.id), req.userId);
       res.json({ success: true, data: history });
     } catch (err) { next(err); }
   }

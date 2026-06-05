@@ -15,7 +15,7 @@ export class GoalController {
 
   static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const goal = await GoalModel.findById(req.params.id, req.userId);
+      const goal = await GoalModel.findById(String(req.params.id), req.userId);
       if (!goal) throw new AppError('Meta não encontrada', 404);
       res.json({ success: true, data: goal });
     } catch (err) {
@@ -36,7 +36,7 @@ export class GoalController {
   static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = updateGoalSchema.parse(req.body);
-      const goal = await GoalModel.update(req.params.id, req.userId, input);
+      const goal = await GoalModel.update(String(req.params.id), req.userId, input);
       if (!goal) throw new AppError('Meta não encontrada', 404);
       res.json({ success: true, data: goal });
     } catch (err) {
@@ -46,7 +46,7 @@ export class GoalController {
 
   static async remove(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const deleted = await GoalModel.delete(req.params.id, req.userId);
+      const deleted = await GoalModel.delete(String(req.params.id), req.userId);
       if (!deleted) throw new AppError('Meta não encontrada', 404);
       res.json({ success: true, message: 'Meta removida com sucesso' });
     } catch (err) {
