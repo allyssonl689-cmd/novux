@@ -19,7 +19,11 @@
       "Bash(grep *)",
       "Bash(find \"C:\\\\\\\\Users\\\\\\\\allysson.lima\\\\\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\\\\\Área de Trabalho\\\\\\\\all\\\\\\\\novux-export\\\\\\\\backend\" -type f -name \"*.ts\" -o -name \"*.js\" -o -name \"*.py\")",
       "Bash(ls *)",
-      "Bash(find \"C:\\\\\\\\Users\\\\\\\\allysson.lima\\\\\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\\\\\Área de Trabalho\\\\\\\\all\\\\\\\\novux-export\\\\\\\\backend\\\\\\\\src\" -type f -name \"*.ts\")"
+      "Bash(find \"C:\\\\\\\\Users\\\\\\\\allysson.lima\\\\\\\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\\\\\\\Área de Trabalho\\\\\\\\all\\\\\\\\novux-export\\\\\\\\backend\\\\\\\\src\" -type f -name \"*.ts\")",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'feat: Total Acumulado na página de Relatórios *)",
+      "Bash(git push *)"
     ],
     "additionalDirectories": [
       "c:\\Users\\allysson.lima\\OneDrive - Empreendimentos Farmacêuticos Globo Ltda\\Área de Trabalho\\all\\novux-export\\backend\\src"
