@@ -169,10 +169,15 @@ export default function TransactionsPage() {
     return transactions.filter(t => t.date >= s && t.date <= e);
   }, [transactions, getRange]);
 
-  const monthTotals = useMemo(() => ({
-    income:  periodTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0),
-    expense: periodTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0),
-  }), [periodTxs]);
+  const monthTotals = useMemo(() => {
+    const income  = periodTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
+    const expense = periodTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    const received  = periodTxs.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
+    const toReceive = periodTxs.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    const paid      = periodTxs.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
+    const pending   = periodTxs.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    return { income, expense, received, toReceive, paid, pending };
+  }, [periodTxs]);
 
   const filtered = useMemo(() => {
     let txs = [...periodTxs].sort((a,b) =>
@@ -335,22 +340,51 @@ export default function TransactionsPage() {
         )}
       </AnimatePresence>
 
-      {/* Month totals — 1 col mobile, 3 cols sm+ */}
+      {/* Totais do período — 3 cols com breakdown de pagamento */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {[
-          { l: 'Receitas do Mês',  v: fmt(monthTotals.income),                     c: '#19D38A', Icon: TrendingUp   },
-          { l: 'Despesas do Mês',  v: fmt(monthTotals.expense),                    c: '#FF5A5F', Icon: TrendingDown },
-          { l: 'Saldo do Mês',     v: fmtSigned(monthTotals.income-monthTotals.expense), c: monthTotals.income>=monthTotals.expense?'#16C7FF':'#FF5A5F', Icon: ArrowUpDown },
-        ].map((s,i) => (
-          <motion.div key={s.l} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i*0.06 }}
-            className="rounded-xl border border-border bg-card p-3.5 flex sm:flex-col items-center sm:items-start gap-3 sm:gap-1.5">
-            <div className="flex items-center gap-2">
-              <s.Icon className="h-3.5 w-3.5 shrink-0" style={{ color: s.c }} />
-              <span className="text-[11px] text-muted-foreground">{s.l}</span>
-            </div>
-            <p className="text-base sm:text-lg font-bold mono ml-auto sm:ml-0" style={{ color: s.c, fontFamily:'Outfit,sans-serif' }}>{s.v}</p>
-          </motion.div>
-        ))}
+        {/* Receitas */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0 }}
+          className="rounded-xl border border-border bg-card p-3.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <TrendingUp className="h-3.5 w-3.5 shrink-0" style={{ color: '#19D38A' }} />
+            <span className="text-[11px] text-muted-foreground">Receitas do Mês</span>
+          </div>
+          <p className="text-lg font-bold mb-2" style={{ color: '#19D38A', fontFamily:'Outfit,sans-serif' }}>{fmt(monthTotals.income)}</p>
+          <div className="flex gap-2 text-[10px]">
+            <span className="text-success">✅ {fmt(monthTotals.received)} recebido</span>
+            <span className="text-warning">⏳ {fmt(monthTotals.toReceive)} a receber</span>
+          </div>
+        </motion.div>
+
+        {/* Despesas */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 }}
+          className="rounded-xl border border-border bg-card p-3.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <TrendingDown className="h-3.5 w-3.5 shrink-0" style={{ color: '#FF5A5F' }} />
+            <span className="text-[11px] text-muted-foreground">Despesas do Mês</span>
+          </div>
+          <p className="text-lg font-bold mb-2" style={{ color: '#FF5A5F', fontFamily:'Outfit,sans-serif' }}>{fmt(monthTotals.expense)}</p>
+          <div className="flex gap-2 text-[10px]">
+            <span className="text-muted-foreground">✅ {fmt(monthTotals.paid)} pago</span>
+            <span className="text-destructive">🔴 {fmt(monthTotals.pending)} em aberto</span>
+          </div>
+        </motion.div>
+
+        {/* Saldo */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+          className="rounded-xl border border-border bg-card p-3.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <ArrowUpDown className="h-3.5 w-3.5 shrink-0" style={{ color: monthTotals.income>=monthTotals.expense?'#16C7FF':'#FF5A5F' }} />
+            <span className="text-[11px] text-muted-foreground">Saldo do Mês</span>
+          </div>
+          <p className="text-lg font-bold mb-2" style={{ color: monthTotals.income>=monthTotals.expense?'#16C7FF':'#FF5A5F', fontFamily:'Outfit,sans-serif' }}>
+            {fmtSigned(monthTotals.income-monthTotals.expense)}
+          </p>
+          <div className="flex gap-2 text-[10px]">
+            <span className="text-muted-foreground">Real: {fmtSigned(monthTotals.received-monthTotals.paid)}</span>
+            <span className="text-muted-foreground/60">Proj: {fmtSigned(monthTotals.income-monthTotals.expense)}</span>
+          </div>
+        </motion.div>
       </div>
 
       {/* Sort + filtros ativos */}

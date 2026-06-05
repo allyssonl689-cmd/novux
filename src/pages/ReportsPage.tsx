@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, LineChart, Line } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Activity, FileDown, Lock } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Activity, FileDown, Lock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CHART } from '@/lib/tokens';
 
@@ -92,6 +92,36 @@ export default function ReportsPage() {
     const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
     return { income, expense, balance: income - expense };
   }, [transactions]);
+
+  // Status de pagamento — baseado no período selecionado
+  const payStats = useMemo(() => {
+    const received   = periodTxs.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
+    const toReceive  = periodTxs.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    const paid       = periodTxs.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
+    const pending    = periodTxs.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    const totalInc   = received + toReceive;
+    const totalExp   = paid + pending;
+    return { received, toReceive, paid, pending, totalInc, totalExp,
+      receiptRate:  totalInc > 0 ? Math.round(received  / totalInc * 100) : 0,
+      paymentRate:  totalExp > 0 ? Math.round(paid      / totalExp * 100) : 0,
+      realBalance:  received - paid,
+    };
+  }, [periodTxs]);
+
+  // Histórico mensal de status de pagamento — independe do filtro (todo o histórico)
+  const monthlyPaySummary = useMemo(() =>
+    buildMonthlySummary(transactions).map(m => {
+      const monthKey = transactions.filter(t => {
+        const d = new Date(t.date+'T12:00:00');
+        return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) === m.shortMonth;
+      });
+      const received  = monthKey.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
+      const toReceive = monthKey.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+      const paid      = monthKey.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
+      const pending   = monthKey.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+      return { ...m, received, toReceive, paid, pending };
+    }),
+  [transactions]);
 
   const stats = useMemo(() => {
     const income  = periodTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
@@ -217,6 +247,67 @@ export default function ReportsPage() {
             </div>
           ))}
         </div>
+      </motion.div>
+
+      {/* Status de Pagamentos do Período */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+        <div className="flex items-center gap-2 mb-3">
+          <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Status de Pagamentos do Período</p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+          {[
+            { label: 'Recebido',   val: fmt(payStats.received),  pct: payStats.receiptRate,  color: '#19D38A', icon: '✅', sub: 'das receitas' },
+            { label: 'A receber',  val: fmt(payStats.toReceive), pct: 100-payStats.receiptRate, color: '#F59E0B', icon: '⏳', sub: 'das receitas' },
+            { label: 'Pago',       val: fmt(payStats.paid),      pct: payStats.paymentRate,  color: '#16C7FF', icon: '✅', sub: 'das despesas' },
+            { label: 'Em aberto',  val: fmt(payStats.pending),   pct: 100-payStats.paymentRate, color: '#FF5A5F', icon: '🔴', sub: 'das despesas' },
+          ].map((s, i) => (
+            <div key={s.label} className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] text-muted-foreground">{s.label}</span>
+                <span className="text-sm">{s.icon}</span>
+              </div>
+              <p className="text-base font-bold" style={{ color: s.color, fontFamily: 'Outfit,sans-serif' }}>{s.val}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{s.pct}% {s.sub}</p>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Saldo Real de Caixa</p>
+            <p className="text-lg font-bold" style={{ fontFamily:'Outfit,sans-serif', color: payStats.realBalance>=0?'#16C7FF':'#FF5A5F' }}>{fmtSigned(payStats.realBalance)}</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">recebido − pago efetivamente</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Taxa de Recebimento</p>
+            <p className="text-lg font-bold text-success" style={{ fontFamily:'Outfit,sans-serif' }}>{payStats.receiptRate}%</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">das receitas já recebidas</p>
+          </div>
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3">
+            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-1">Taxa de Pagamento</p>
+            <p className="text-lg font-bold text-primary" style={{ fontFamily:'Outfit,sans-serif' }}>{payStats.paymentRate}%</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">das despesas já pagas</p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Gráfico empilhado — Recebido/A receber vs Pago/Em aberto — independe do filtro */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
+        className="rounded-2xl border border-border bg-card p-5">
+        <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Recebido × Pago por Mês</h3>
+        <p className="text-[10px] text-muted-foreground mb-4">Histórico completo — todos os meses</p>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={monthlyPaySummary} barGap={4} barCategoryGap="25%">
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID_COLOR} vertical={false} />
+            <XAxis dataKey="shortMonth" tick={{ fontSize:10, fill:'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize:10, fill:'hsl(220 12% 42%)' }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+            <Tooltip content={<Tip />} wrapperStyle={WRAPPER_STYLE} cursor={{ fill: 'hsl(var(--secondary))' }} />
+            <Bar dataKey="received"  name="Recebido"   stackId="inc" fill="#19D38A" radius={[4,4,0,0]} barSize={10} />
+            <Bar dataKey="toReceive" name="A receber"  stackId="inc" fill="#F59E0B" radius={[4,4,0,0]} barSize={10} />
+            <Bar dataKey="paid"      name="Pago"       stackId="exp" fill="#16C7FF" radius={[4,4,0,0]} barSize={10} />
+            <Bar dataKey="pending"   name="Em aberto"  stackId="exp" fill="#FF5A5F" radius={[4,4,0,0]} barSize={10} />
+          </BarChart>
+        </ResponsiveContainer>
       </motion.div>
 
       {/* Tabs */}

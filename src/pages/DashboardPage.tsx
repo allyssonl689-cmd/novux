@@ -142,6 +142,17 @@ export default function DashboardPage() {
     expense: transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0),
   }), [transactions]);
 
+  // Status de pagamento — baseado no período selecionado
+  const payStats = useMemo(() => {
+    const received   = periodTxs.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
+    const toReceive  = periodTxs.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    const paid       = periodTxs.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
+    const pending    = periodTxs.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    const realBalance = received - paid;
+    const commitment = received > 0 ? Math.round((pending / received) * 100) : 0;
+    return { received, toReceive, paid, pending, realBalance, commitment };
+  }, [periodTxs]);
+
   const stats = useMemo(() => {
     const cur = periodTxs;
     // compare against equivalent previous period
@@ -253,6 +264,72 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
+
+      {/* Status de Pagamentos — pago / em aberto / a receber / recebido */}
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
+        <div className="flex items-center gap-2 mb-3">
+          <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Status de Pagamentos do Período</p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: 'Recebido',    val: fmt(payStats.received),  sub: `de ${fmt(stats.income)} em receitas`,    color: CHART.income,     icon: '✅' },
+            { label: 'A receber',   val: fmt(payStats.toReceive), sub: `${stats.income>0?Math.round(payStats.toReceive/stats.income*100):0}% das receitas`,  color: CHART.warning,    icon: '⏳' },
+            { label: 'Pago',        val: fmt(payStats.paid),      sub: `de ${fmt(stats.expense)} em despesas`,   color: CHART.investment, icon: '✅' },
+            { label: 'Em aberto',   val: fmt(payStats.pending),   sub: `${stats.expense>0?Math.round(payStats.pending/stats.expense*100):0}% das despesas`,  color: CHART.expense,    icon: '🔴' },
+          ].map((s,i) => (
+            <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i*0.05 }}
+              className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] text-muted-foreground">{s.label}</span>
+                <span className="text-sm">{s.icon}</span>
+              </div>
+              <p className="text-lg font-bold" style={{ color: s.color, fontFamily: 'Outfit,sans-serif' }}>{s.val}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{s.sub}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Saldo Real vs Projetado + Comprometimento */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Saldo Real de Caixa</p>
+              <p className="text-xl font-bold mt-0.5" style={{ fontFamily: 'Outfit,sans-serif', color: payStats.realBalance >= 0 ? CHART.income : CHART.expense }}>
+                {fmtSigned(payStats.realBalance)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">recebido − pago efetivamente</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Saldo Projetado</p>
+              <p className="text-lg font-bold mt-0.5" style={{ fontFamily: 'Outfit,sans-serif', color: stats.balance >= 0 ? 'hsl(var(--muted-foreground))' : CHART.expense }}>
+                {fmtSigned(stats.balance)}
+              </p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">total receitas − total despesas</p>
+            </div>
+          </div>
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Comprometimento do Caixa</p>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                payStats.commitment >= 80 ? 'bg-destructive/15 text-destructive' :
+                payStats.commitment >= 50 ? 'bg-warning/15 text-warning' : 'bg-success-muted text-success'
+              }`}>{payStats.commitment}%</span>
+            </div>
+            <div className="progress-track h-2 mb-2">
+              <div className="progress-fill" style={{
+                width: `${Math.min(payStats.commitment, 100)}%`,
+                background: payStats.commitment>=80 ? CHART.expense : payStats.commitment>=50 ? CHART.warning : CHART.income,
+              }} />
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {payStats.commitment >= 80 ? '⚠️ Alto comprometimento — revise os pendentes' :
+               payStats.commitment >= 50 ? 'Atenção: mais da metade do caixa em abertos' :
+               '✓ Comprometimento saudável do caixa disponível'}
+            </p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Total Geral acumulado — independe do filtro de período */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.12 }}

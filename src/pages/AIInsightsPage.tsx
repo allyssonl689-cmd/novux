@@ -207,6 +207,17 @@ export default function AIInsightsPage() {
     saldo_mes_atual: `${income - expense >= 0 ? '+' : '-'}${fmt(Math.abs(income - expense))}`,
     taxa_poupanca: income > 0 ? `${((income - expense) / income * 100).toFixed(1)}%` : '0%',
 
+    // Status de pagamento — diferencia pago/recebido de pendente
+    receita_recebida:   fmt(thisMonth.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0)),
+    receita_a_receber:  fmt(thisMonth.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0)),
+    despesa_paga:       fmt(thisMonth.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0)),
+    despesa_em_aberto:  fmt(thisMonth.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0)),
+    saldo_real_caixa:   (() => {
+      const rec = thisMonth.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
+      const pag = thisMonth.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
+      return `${rec-pag >= 0 ? '+' : '-'}${fmt(Math.abs(rec-pag))}`;
+    })(),
+
     // Pendentes
     despesas_pendentes_mes: pendingExpenses.length > 0
       ? `${pendingExpenses.length} lançamentos totalizando ${fmt(pendingTotal)}: ${pendingExpenses.slice(0, 5).map(t => `${t.description} (${fmt(t.value)})`).join(', ')}`
