@@ -382,8 +382,10 @@ export default function TransactionsPage() {
             {fmtSigned(monthTotals.income-monthTotals.expense)}
           </p>
           <div className="flex gap-2 text-[10px]">
-            <span className="text-muted-foreground">Real: {fmtSigned(monthTotals.received-monthTotals.paid)}</span>
-            <span className="text-muted-foreground/60">Proj: {fmtSigned(monthTotals.income-monthTotals.expense)}</span>
+            <span className="text-foreground/70">Real: {fmtSigned(monthTotals.received-monthTotals.paid)}</span>
+            <span className={(monthTotals.income-monthTotals.expense) < 0 ? 'text-destructive' : 'text-foreground/70'}>
+              Proj: {fmtSigned(monthTotals.income-monthTotals.expense)}
+            </span>
           </div>
         </motion.div>
       </div>
