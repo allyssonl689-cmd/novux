@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, LineChart, Line } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, Activity, FileDown, Lock, CheckCircle2 } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Activity, FileDown, Lock, CheckCircle2, Clock, AlertCircle, BadgeCheck, CircleDollarSign } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CHART } from '@/lib/tokens';
 
@@ -257,15 +257,17 @@ export default function ReportsPage() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
           {[
-            { label: 'Recebido',   val: fmt(payStats.received),  pct: payStats.receiptRate,  color: '#19D38A', icon: '✅', sub: 'das receitas' },
-            { label: 'A receber',  val: fmt(payStats.toReceive), pct: 100-payStats.receiptRate, color: '#F59E0B', icon: '⏳', sub: 'das receitas' },
-            { label: 'Pago',       val: fmt(payStats.paid),      pct: payStats.paymentRate,  color: '#16C7FF', icon: '✅', sub: 'das despesas' },
-            { label: 'Em aberto',  val: fmt(payStats.pending),   pct: 100-payStats.paymentRate, color: '#FF5A5F', icon: '🔴', sub: 'das despesas' },
+            { label: 'Recebido',   val: fmt(payStats.received),  pct: payStats.receiptRate,      color: '#19D38A', Icon: BadgeCheck,       sub: 'das receitas' },
+            { label: 'A receber',  val: fmt(payStats.toReceive), pct: 100-payStats.receiptRate,  color: '#F59E0B', Icon: Clock,            sub: 'das receitas' },
+            { label: 'Pago',       val: fmt(payStats.paid),      pct: payStats.paymentRate,      color: '#16C7FF', Icon: CircleDollarSign, sub: 'das despesas' },
+            { label: 'Em aberto',  val: fmt(payStats.pending),   pct: 100-payStats.paymentRate,  color: '#FF5A5F', Icon: AlertCircle,      sub: 'das despesas' },
           ].map((s, i) => (
             <div key={s.label} className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] text-muted-foreground">{s.label}</span>
-                <span className="text-sm">{s.icon}</span>
+                <div className="h-7 w-7 rounded-xl flex items-center justify-center" style={{ background: `${s.color}18` }}>
+                  <s.Icon className="h-3.5 w-3.5" style={{ color: s.color }} />
+                </div>
               </div>
               <p className="text-base font-bold" style={{ color: s.color, fontFamily: 'Outfit,sans-serif' }}>{s.val}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{s.pct}% {s.sub}</p>

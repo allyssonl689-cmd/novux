@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
-import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info, Clock, AlertCircle, BadgeCheck, CircleDollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
 import { buildFinancialIndicators } from '@/lib/financial-indicators';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -273,16 +273,18 @@ export default function DashboardPage() {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: 'Recebido',    val: fmt(payStats.received),  sub: `de ${fmt(stats.income)} em receitas`,    color: CHART.income,     icon: '✅' },
-            { label: 'A receber',   val: fmt(payStats.toReceive), sub: `${stats.income>0?Math.round(payStats.toReceive/stats.income*100):0}% das receitas`,  color: CHART.warning,    icon: '⏳' },
-            { label: 'Pago',        val: fmt(payStats.paid),      sub: `de ${fmt(stats.expense)} em despesas`,   color: CHART.investment, icon: '✅' },
-            { label: 'Em aberto',   val: fmt(payStats.pending),   sub: `${stats.expense>0?Math.round(payStats.pending/stats.expense*100):0}% das despesas`,  color: CHART.expense,    icon: '🔴' },
+            { label: 'Recebido',    val: fmt(payStats.received),  sub: `de ${fmt(stats.income)} em receitas`,    color: CHART.income,     Icon: BadgeCheck    },
+            { label: 'A receber',   val: fmt(payStats.toReceive), sub: `${stats.income>0?Math.round(payStats.toReceive/stats.income*100):0}% das receitas`,  color: CHART.warning,    Icon: Clock         },
+            { label: 'Pago',        val: fmt(payStats.paid),      sub: `de ${fmt(stats.expense)} em despesas`,   color: CHART.investment, Icon: CircleDollarSign },
+            { label: 'Em aberto',   val: fmt(payStats.pending),   sub: `${stats.expense>0?Math.round(payStats.pending/stats.expense*100):0}% das despesas`,  color: CHART.expense,    Icon: AlertCircle   },
           ].map((s,i) => (
             <motion.div key={s.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + i*0.05 }}
               className="rounded-xl border border-border bg-card p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[11px] text-muted-foreground">{s.label}</span>
-                <span className="text-sm">{s.icon}</span>
+                <div className="h-7 w-7 rounded-xl flex items-center justify-center" style={{ background: `${s.color}18` }}>
+                  <s.Icon className="h-3.5 w-3.5" style={{ color: s.color }} />
+                </div>
               </div>
               <p className="text-lg font-bold" style={{ color: s.color, fontFamily: 'Outfit,sans-serif' }}>{s.val}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{s.sub}</p>

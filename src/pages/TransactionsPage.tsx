@@ -5,6 +5,7 @@ import { usePeriod } from '@/contexts/PeriodContext';
 import {
   Search, Plus, Trash2, Pencil, TrendingUp, TrendingDown, ArrowUpDown,
   CheckCircle2, Circle, FileUp, Package, SlidersHorizontal, X, ChevronDown,
+  BadgeCheck, Clock, AlertCircle, CircleDollarSign,
 } from 'lucide-react';
 import { TransactionForm, CAT_ICONS, EXPENSE_CATS, INCOME_CATS } from '@/components/TransactionForm';
 import { CSVImportModal } from '@/components/CSVImportModal';
@@ -350,9 +351,9 @@ export default function TransactionsPage() {
             <span className="text-[11px] text-muted-foreground">Receitas do Mês</span>
           </div>
           <p className="text-lg font-bold mb-2" style={{ color: '#19D38A', fontFamily:'Outfit,sans-serif' }}>{fmt(monthTotals.income)}</p>
-          <div className="flex gap-2 text-[10px]">
-            <span className="text-success">✅ {fmt(monthTotals.received)} recebido</span>
-            <span className="text-warning">⏳ {fmt(monthTotals.toReceive)} a receber</span>
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            <span className="flex items-center gap-1 text-success"><BadgeCheck className="h-3 w-3" />{fmt(monthTotals.received)} recebido</span>
+            <span className="flex items-center gap-1 text-warning"><Clock className="h-3 w-3" />{fmt(monthTotals.toReceive)} a receber</span>
           </div>
         </motion.div>
 
@@ -364,9 +365,9 @@ export default function TransactionsPage() {
             <span className="text-[11px] text-muted-foreground">Despesas do Mês</span>
           </div>
           <p className="text-lg font-bold mb-2" style={{ color: '#FF5A5F', fontFamily:'Outfit,sans-serif' }}>{fmt(monthTotals.expense)}</p>
-          <div className="flex gap-2 text-[10px]">
-            <span className="text-muted-foreground">✅ {fmt(monthTotals.paid)} pago</span>
-            <span className="text-destructive">🔴 {fmt(monthTotals.pending)} em aberto</span>
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            <span className="flex items-center gap-1 text-primary"><CircleDollarSign className="h-3 w-3" />{fmt(monthTotals.paid)} pago</span>
+            <span className="flex items-center gap-1 text-destructive"><AlertCircle className="h-3 w-3" />{fmt(monthTotals.pending)} em aberto</span>
           </div>
         </motion.div>
 
