@@ -8,6 +8,7 @@ interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  tokenReady: boolean; // true após refreshAccessToken completar — FinanceContext aguarda isso
   login: (email: string, password: string) => Promise<Login2FARequired | AuthUser>;
   loginWith2FA: (tempToken: string, totpToken: string) => Promise<AuthUser>;
   loginWithGoogle: (credential: string) => Promise<void>;
@@ -36,9 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Hidrata imediatamente do sessionStorage — evita flash para /login no reload
   const cached = loadSession();
   const [user, setUser] = useState<AuthUser | null>(cached);
-  // Se há sessão em cache, começa sem loading (app abre diretamente)
-  // e valida o token em background. Se não há cache, bloqueia até confirmar.
   const [isLoading, setIsLoading] = useState(!cached);
+  // tokenReady: false até refreshAccessToken completar (evita fetch sem token)
+  // Começa true somente se já há token em memória (ex: login fresh na mesma sessão)
+  const [tokenReady, setTokenReady] = useState(false);
 
   useEffect(() => {
     // Timeout de segurança: 8s é suficiente para cold start normal do Render
@@ -68,6 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => {
         clearTimeout(timeout);
         setIsLoading(false);
+        setTokenReady(true); // access token renovado (ou tentativa concluída)
       });
 
     return () => clearTimeout(timeout);
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if ('requires2FA' in result) return result;
     setUser(result);
     saveSession(result);
+    setTokenReady(true);
     return result;
   }, []);
 
@@ -110,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider value={{
       user,
       isLoading,
+      tokenReady,
       isAuthenticated: !!user,
       login,
       loginWith2FA,

@@ -7,16 +7,20 @@ import { categoryService } from '@/services/categoryService';
 import { useAuth } from './AuthContext';
 
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, tokenReady } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isPremiumPreview, setIsPremiumPreview] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setTransactions([]);
-      setCategories([]);
+    // Aguarda tokenReady para garantir que o access token está em memória
+    // Evita 401 por race condition entre hydration da sessão e fetch de dados
+    if (!isAuthenticated || !tokenReady) {
+      if (!isAuthenticated) {
+        setTransactions([]);
+        setCategories([]);
+      }
       return;
     }
 
@@ -31,7 +35,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       })
       .catch(console.error)
       .finally(() => setIsLoading(false));
-  }, [isAuthenticated]);
+  }, [isAuthenticated, tokenReady]);
 
   const insights = useMemo(() => generateInsights(transactions), [transactions]);
 
