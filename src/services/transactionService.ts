@@ -1,4 +1,4 @@
-import { apiFetch } from './api';
+import { apiFetch, tokenStore } from './api';
 import { Transaction, TransactionType, RecurrenceType } from '@/lib/types';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
@@ -118,7 +118,7 @@ export const transactionService = {
   },
 
   async uploadAttachment(id: string, file: File): Promise<Transaction> {
-    const token = localStorage.getItem('novux_access_token');
+    const token = tokenStore.get();
     const form = new FormData();
     form.append('file', file);
     const res = await fetch(`${API_BASE}/api/transactions/${id}/attachment`, {
@@ -145,7 +145,7 @@ export const transactionService = {
     if (startDate) params.set('startDate', startDate);
     if (endDate) params.set('endDate', endDate);
     const qs = params.toString() ? `?${params}` : '';
-    const token = localStorage.getItem('novux_access_token');
+    const token = tokenStore.get();
     const res = await fetch(`${API_BASE}/api/transactions/export/csv${qs}`, {
       headers: { Authorization: `Bearer ${token}` },
     });

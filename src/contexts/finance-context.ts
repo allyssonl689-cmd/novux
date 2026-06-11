@@ -7,6 +7,8 @@ export interface FinanceContextType {
   insights: Insight[];
   isPremiumPreview: boolean;
   isLoading: boolean;
+  loadError: string | null;
+  reloadData: () => void | Promise<void>;
   setPremiumPreview: (value: boolean) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void | Promise<void>;
   updateTransaction: (transaction: Transaction) => void | Promise<void>;

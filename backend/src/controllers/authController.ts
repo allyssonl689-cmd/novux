@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
-import { registerSchema, loginSchema, changePasswordSchema } from '../validators/authValidators';
+import { registerSchema, loginSchema, changePasswordSchema, resetPasswordSchema } from '../validators/authValidators';
 import { env } from '../config/env';
 
 const REFRESH_COOKIE = 'novux_refresh';
@@ -133,8 +133,7 @@ export class AuthController {
 
   static async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token, newPassword } = req.body as { token: string; newPassword: string };
-      if (!token || !newPassword) { res.status(400).json({ success: false, message: 'Dados incompletos' }); return; }
+      const { token, newPassword } = resetPasswordSchema.parse(req.body);
       const ip = req.ip ?? req.socket?.remoteAddress;
       await AuthService.resetPassword(token, newPassword, ip);
       res.json({ success: true, message: 'Senha redefinida com sucesso. Faça login com a nova senha.' });

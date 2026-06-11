@@ -3,9 +3,13 @@ import { apiFetch } from './api';
 export interface ReportSummary {
   totalIncome: number;
   totalExpenses: number;
-  balance: number;
+  balance: number; // regime de caixa: realizedIncome - realizedExpenses
   incomeCount: number;
   expenseCount: number;
+  realizedIncome?: number;
+  realizedExpenses?: number;
+  pendingIncome?: number;
+  pendingExpenses?: number;
 }
 
 export interface MonthlyReport {

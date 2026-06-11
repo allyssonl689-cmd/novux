@@ -9,7 +9,9 @@ import {
 } from 'lucide-react';
 import { TransactionForm, CAT_ICONS, EXPENSE_CATS, INCOME_CATS } from '@/components/TransactionForm';
 import { CSVImportModal } from '@/components/CSVImportModal';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Transaction } from '@/lib/types';
+import { toast } from 'sonner';
 
 const ALL_CATS = [...new Set([...EXPENSE_CATS, ...INCOME_CATS])];
 
@@ -204,12 +206,30 @@ export default function TransactionsPage() {
     return g;
   }, [filtered]);
 
+  const [pendingDelete, setPendingDelete] = useState<Transaction | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function confirmDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await deleteTransaction(pendingDelete.id);
+      toast.success('Transação excluída');
+      setPendingDelete(null);
+    } catch {
+      toast.error('Erro ao excluir transação. Tente novamente.');
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   async function handleTogglePaid(tx: Transaction) {
     setTogglingId(tx.id);
     try {
       await toggleTransactionPaid(tx.id, !tx.paid);
     } catch (err) {
       console.error(err);
+      toast.error('Erro ao atualizar status. Tente novamente.');
     } finally {
       setTogglingId(null);
     }
@@ -483,7 +503,8 @@ export default function TransactionsPage() {
                         className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
-                      <button onClick={() => deleteTransaction(tx.id)}
+                      <button onClick={() => setPendingDelete(tx)}
+                        aria-label="Excluir transação"
                         className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-alert-muted transition-all">
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -505,6 +526,14 @@ export default function TransactionsPage() {
 
       <TransactionForm open={formOpen} onClose={() => { setFormOpen(false); setEditId(null); }} editId={editId} />
       <CSVImportModal open={csvOpen} onClose={() => setCsvOpen(false)} />
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => { if (!o) setPendingDelete(null); }}
+        title="Excluir transação?"
+        description={pendingDelete ? `"${pendingDelete.description || pendingDelete.category}" será excluída permanentemente. Esta ação não pode ser desfeita.` : undefined}
+        loading={deleting}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }

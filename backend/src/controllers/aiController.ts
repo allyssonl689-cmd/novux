@@ -1,10 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
 import { AppError } from '../middleware/errorHandler';
+import { db } from '../config/database';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile';
 
 const FREE_DAILY_LIMIT = 5;
+const GROQ_TIMEOUT_MS  = 12_000;     // aborta a chamada à Groq se demorar demais
+const MAX_CONTEXT_CHARS = 12_000;    // teto do contexto serializado enviado à IA
+
+/**
+ * Determina o plano do usuário a partir do banco — NUNCA confia em flag do cliente.
+ * Retorna true se o plano for diferente de 'free'.
+ */
+async function isUserPremium(userId: string): Promise<boolean> {
+  const { rows } = await db.query<{ plan: string }>('SELECT plan FROM users WHERE id = $1', [userId]);
+  return (rows[0]?.plan ?? 'free') !== 'free';
+}
 
 // In-memory daily counter: userId → { date: 'YYYY-MM-DD', count: number }
 const usageMap = new Map<string, { date: string; count: number }>();
@@ -27,16 +39,18 @@ function getUserUsage(userId: string): { date: string; count: number } {
 export class AIController {
   static async chat(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { message, context, isPremium } = req.body as {
+      const { message, context } = req.body as {
         message: string;
         context: Record<string, string>;
-        isPremium?: boolean;
       };
 
       if (!message?.trim()) throw new AppError('Mensagem obrigatória', 400);
 
       const groqKey = process.env.GROQ_API_KEY;
       if (!groqKey) throw new AppError('Serviço de IA não configurado', 503);
+
+      // isPremium é derivado do banco (users.plan), nunca do corpo da requisição
+      const isPremium = await isUserPremium(req.userId);
 
       // Rate limit for non-premium users
       if (!isPremium) {
@@ -53,6 +67,12 @@ export class AIController {
         }
         usage.count++;
       }
+
+      // Limita o tamanho do contexto serializado para conter custo/tokens da Groq
+      const rawContext = JSON.stringify(context ?? {}, null, 2);
+      const contextStr = rawContext.length > MAX_CONTEXT_CHARS
+        ? rawContext.slice(0, MAX_CONTEXT_CHARS) + '\n... (contexto truncado)'
+        : rawContext;
 
       const systemPrompt = `Voce e NovuxAI, consultor financeiro pessoal inteligente e empatico do app Novux Finance.
 Fale sempre em portugues brasileiro, de forma direta e com dados concretos.
@@ -75,24 +95,35 @@ DADOS COMPLETOS DO USUARIO:
 
 Use TODOS esses dados para responder com precisao. Se o usuario perguntar sobre metas, use o campo 'metas'. Se perguntar sobre investimentos, use 'total_investido_historico' e o historico. Se perguntar sobre transacoes especificas, use 'ultimas_transacoes'.
 
-${JSON.stringify(context, null, 2)}`;
+${contextStr}`;
 
-      const groqRes = await fetch(GROQ_API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${groqKey}`,
-        },
-        body: JSON.stringify({
-          model: GROQ_MODEL,
-          max_tokens: 1200,
-          temperature: 0.7,
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
-        }),
-      });
+      // Aborta a chamada à Groq se ela exceder o timeout (evita segurar o worker)
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), GROQ_TIMEOUT_MS);
+      let groqRes: globalThis.Response;
+      try {
+        groqRes = await fetch(GROQ_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`,
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            max_tokens: 1200,
+            temperature: 0.7,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: message },
+            ],
+          }),
+          signal: controller.signal,
+        });
+      } catch {
+        throw new AppError('A IA demorou para responder. Tente novamente.', 504);
+      } finally {
+        clearTimeout(timer);
+      }
 
       if (!groqRes.ok) {
         // Log only status code — never log full response which may contain API key info

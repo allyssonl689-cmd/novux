@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { goalService, Goal, CreateGoalInput } from '@/services/goalService';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { toast } from 'sonner';
 
 const fmt = (v: number) => `R$ ${v.toLocaleString('pt-BR', { minimumFractionDigits: 0 })}`;
 
@@ -39,6 +41,8 @@ export default function GoalsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: '', target: '', current: '', deadline: '', category: 'Outro' });
+  const [pendingDelete, setPendingDelete] = useState<Goal | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     goalService.list()
@@ -90,19 +94,31 @@ export default function GoalsPage() {
         const created = await goalService.create(input);
         setGoals(p => [created, ...p]);
       }
+      toast.success(editingId ? 'Meta atualizada' : 'Meta criada');
       setForm({ name: '', target: '', current: '', deadline: '', category: 'Outro' });
       setEditingId(null);
       setShowForm(false);
     } catch (err) {
       console.error(err);
+      toast.error('Erro ao salvar meta. Tente novamente.');
     } finally {
       setSaving(false);
     }
   }
 
-  async function deleteGoal(id: string) {
-    await goalService.delete(id);
-    setGoals(p => p.filter(g => g.id !== id));
+  async function confirmDeleteGoal() {
+    if (!pendingDelete) return;
+    setDeleting(true);
+    try {
+      await goalService.delete(pendingDelete.id);
+      setGoals(p => p.filter(g => g.id !== pendingDelete.id));
+      toast.success('Meta excluída');
+      setPendingDelete(null);
+    } catch {
+      toast.error('Erro ao excluir meta. Tente novamente.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   const totalSaved  = goals.reduce((s, g) => s + g.currentValue, 0);
@@ -195,7 +211,8 @@ export default function GoalsPage() {
                       className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
-                    <button onClick={() => deleteGoal(goal.id)}
+                    <button onClick={() => setPendingDelete(goal)}
+                      aria-label="Excluir meta"
                       className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-alert-muted transition-all">
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
@@ -312,6 +329,15 @@ export default function GoalsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={(o) => { if (!o) setPendingDelete(null); }}
+        title="Excluir meta?"
+        description={pendingDelete ? `"${pendingDelete.title}" será excluída permanentemente. Esta ação não pode ser desfeita.` : undefined}
+        loading={deleting}
+        onConfirm={confirmDeleteGoal}
+      />
     </div>
   );
 }

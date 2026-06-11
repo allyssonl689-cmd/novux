@@ -12,8 +12,8 @@ export function EmptyDashboard({ onAddTransaction }: Props) {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4">
-          <h1 className="text-xl font-bold text-foreground">Sapiens Finance</h1>
-          <p className="text-xs text-muted-foreground">Sua saúde financeira em 12 segundos.</p>
+          <h1 className="text-xl font-bold text-foreground">Novux Finance</h1>
+          <p className="text-xs text-muted-foreground">Seu copiloto financeiro inteligente.</p>
         </div>
       </header>
 

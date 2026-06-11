@@ -2,7 +2,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
-import { Bell, Plus, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X, MailWarning } from 'lucide-react';
+import { Bell, Plus, Sun, Moon, ChevronDown, ChevronLeft, ChevronRight, Download, AlertTriangle, Info, CheckCircle2, X, MailWarning, Calendar } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { TransactionForm } from '@/components/TransactionForm';
 import { useFinance } from '@/contexts/FinanceContext';
@@ -421,7 +421,7 @@ export function MainLayout() {
   const [notifOpen, setNotifOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
   const [showOnb, setShowOnb]     = useState(false);
-  const { insights, transactions, isPremiumPreview } = useFinance();
+  const { insights, transactions, isPremiumPreview, loadError, reloadData } = useFinance();
   const { theme, toggleTheme } = useTheme();
   const { showOnboarding } = useOnboarding();
   const { logout, isAuthenticated } = useAuth();
@@ -506,6 +506,17 @@ export function MainLayout() {
 
           {/* ── Page ── */}
           <main className="flex-1 overflow-y-auto p-4 lg:p-6">
+            {loadError && (
+              <div className="mb-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-warning/30 bg-warning-muted px-4 py-3">
+                <AlertTriangle className="h-5 w-5 text-warning shrink-0" />
+                <p className="text-sm text-foreground flex-1">{loadError}</p>
+                <button
+                  onClick={() => reloadData()}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-border bg-card hover:border-primary/40 hover:text-foreground transition-all shrink-0">
+                  Tentar novamente
+                </button>
+              </div>
+            )}
             <Outlet />
           </main>
         </div>

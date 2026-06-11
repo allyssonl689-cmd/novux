@@ -28,6 +28,16 @@ export const changePasswordSchema = z.object({
     .regex(/[0-9]/, 'Nova senha deve conter pelo menos um número'),
 });
 
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, 'Token é obrigatório'),
+  newPassword: z
+    .string()
+    .min(8, 'Nova senha deve ter pelo menos 8 caracteres')
+    .regex(/[A-Z]/, 'Nova senha deve conter pelo menos uma letra maiúscula')
+    .regex(/[0-9]/, 'Nova senha deve conter pelo menos um número'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;

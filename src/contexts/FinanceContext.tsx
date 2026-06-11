@@ -12,6 +12,26 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isPremiumPreview, setIsPremiumPreview] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const [txResult, cats] = await Promise.all([
+        transactionService.list({ limit: 500 }),
+        categoryService.list(),
+      ]);
+      setTransactions(txResult.data);
+      setCategories(cats);
+    } catch (err) {
+      console.error(err);
+      // Não deixa o usuário ver "R$ 0,00" sem explicação — comum no cold start (~30s) do Render
+      setLoadError('Não foi possível carregar seus dados. O servidor pode estar iniciando — isso pode levar alguns segundos no primeiro acesso.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     // Aguarda tokenReady para garantir que o access token está em memória
@@ -20,22 +40,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
       if (!isAuthenticated) {
         setTransactions([]);
         setCategories([]);
+        setLoadError(null);
       }
       return;
     }
-
-    setIsLoading(true);
-    Promise.all([
-      transactionService.list({ limit: 500 }),
-      categoryService.list(),
-    ])
-      .then(([txResult, cats]) => {
-        setTransactions(txResult.data);
-        setCategories(cats);
-      })
-      .catch(console.error)
-      .finally(() => setIsLoading(false));
-  }, [isAuthenticated, tokenReady]);
+    loadData();
+  }, [isAuthenticated, tokenReady, loadData]);
 
   const insights = useMemo(() => generateInsights(transactions), [transactions]);
 
@@ -76,6 +86,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     insights,
     isPremiumPreview,
     isLoading,
+    loadError,
+    reloadData: loadData,
     setPremiumPreview: setIsPremiumPreview,
     addTransaction,
     updateTransaction,
@@ -83,7 +95,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     addCategory,
     addTransactions,
     toggleTransactionPaid,
-  }), [transactions, categories, insights, isPremiumPreview, isLoading, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
+  }), [transactions, categories, insights, isPremiumPreview, isLoading, loadError, loadData, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }

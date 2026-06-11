@@ -55,8 +55,8 @@ export class AuthService {
         console.error('[Email] Falha ao enviar boas-vindas para', user.email, '—', (e as Error).message);
       }),
       sendEmailVerificationEmail(user.email, user.name, verifyUrl).catch(e => {
-        console.error('[Email] Falha ao enviar verificação para', user.email, '—', (e as Error).message);
-        console.warn('[Email] URL de verificação (use para debug):', verifyUrl);
+        // Nunca logar a URL/token de verificação (concede controle da conta) — só o id
+        console.error('[Email] Falha ao enviar verificação para o usuário', user.id, '—', (e as Error).message);
       }),
     ]);
 
@@ -238,9 +238,8 @@ export class AuthService {
         ),
       ]);
     } catch (emailErr) {
-      // Loga o erro e a URL de reset para diagnóstico sem expor ao usuário
-      console.error('[forgotPassword] Falha ao enviar e-mail:', (emailErr as Error).message);
-      console.warn(`[forgotPassword] URL de reset para ${user.email}: ${resetUrl}`);
+      // Nunca logar a URL/token de reset (concede controle da conta) — só o id do usuário
+      console.error('[forgotPassword] Falha ao enviar e-mail de reset para o usuário', user.id, '—', (emailErr as Error).message);
     }
 
     await audit(user.id, 'password_reset_requested', 'account', ip);

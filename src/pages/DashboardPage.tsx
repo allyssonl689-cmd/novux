@@ -176,9 +176,15 @@ export default function DashboardPage() {
       .map(([name,value],i) => ({ name, value, color: PIE_COLORS[i%PIE_COLORS.length], pct: totalExpenses>0 ? Math.round((value/totalExpenses)*100) : 0 }))
       .sort((a,b)=>b.value-a.value);
 
-    const curBalance  = income - expense;
-    const prevBalance = pIncome - pExpense;
-    const hasPrevData = pIncome > 0 || pExpense > 0;
+    // Saldo em regime de CAIXA: considera apenas lançamentos realizados (paid).
+    // Receitas/Despesas (KPIs) seguem brutas — mostram a movimentação do período.
+    const realIncome   = cur.filter(t=>t.type==='income'  && t.paid===true).reduce((s,t)=>s+t.value,0);
+    const realExpense  = cur.filter(t=>t.type==='expense' && t.paid===true).reduce((s,t)=>s+t.value,0);
+    const pRealIncome  = prev.filter(t=>t.type==='income'  && t.paid===true).reduce((s,t)=>s+t.value,0);
+    const pRealExpense = prev.filter(t=>t.type==='expense' && t.paid===true).reduce((s,t)=>s+t.value,0);
+    const curBalance  = realIncome - realExpense;
+    const prevBalance = pRealIncome - pRealExpense;
+    const hasPrevData = pRealIncome > 0 || pRealExpense > 0;
 
     // Variação real do saldo (usa |prevBalance| como base para evitar divisão negativa estranha)
     const balanceDelta = !hasPrevData || Math.abs(prevBalance) < 0.01
@@ -206,7 +212,8 @@ export default function DashboardPage() {
   const scoreColor = score>=650 ? 'hsl(var(--success))' : score>=400 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
 
   const recent = useMemo(() => [...periodTxs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [periodTxs]);
-  const savingsRate = stats.income > 0 ? ((stats.income - stats.expense) / stats.income * 100).toFixed(1) : '0';
+  // Taxa de poupança em regime de caixa: saldo realizado sobre o que foi recebido
+  const savingsRate = payStats.received > 0 ? (payStats.realBalance / payStats.received * 100).toFixed(1) : '0';
 
   // Título dinâmico baseado no período selecionado
   const periodLabel = useMemo(() => {

@@ -203,19 +203,33 @@ export class TransactionModel {
   }
 
   static async getSummary(userId: string, startDate: string, endDate: string) {
-    const { rows } = await db.query<{ type: string; total: string; count: string }>(
-      `SELECT type, SUM(value) as total, COUNT(*) as count
+    // Regime de CAIXA: o saldo considera apenas lançamentos realizados (paid = true).
+    // Mantemos os totais brutos (realizado + previsto) para exibir a movimentação do
+    // período e expomos o desdobramento realizado/pendente para transparência.
+    const { rows } = await db.query<{ type: string; total: string; realized: string; count: string }>(
+      `SELECT type,
+              SUM(value)                                         AS total,
+              COALESCE(SUM(value) FILTER (WHERE paid = true), 0) AS realized,
+              COUNT(*)                                           AS count
        FROM transactions WHERE user_id = $1 AND date BETWEEN $2 AND $3
        GROUP BY type`,
       [userId, startDate, endDate]
     );
     const income  = rows.find(r => r.type === 'income');
     const expense = rows.find(r => r.type === 'expense');
-    const totalIncome   = parseFloat(income?.total ?? '0');
-    const totalExpenses = parseFloat(expense?.total ?? '0');
+
+    const totalIncome      = parseFloat(income?.total ?? '0');
+    const totalExpenses    = parseFloat(expense?.total ?? '0');
+    const realizedIncome   = parseFloat(income?.realized ?? '0');
+    const realizedExpenses = parseFloat(expense?.realized ?? '0');
+
     return {
       totalIncome, totalExpenses,
-      balance:      totalIncome - totalExpenses,
+      realizedIncome, realizedExpenses,
+      pendingIncome:   totalIncome - realizedIncome,
+      pendingExpenses: totalExpenses - realizedExpenses,
+      // Saldo em regime de caixa: só o que efetivamente entrou menos o que saiu
+      balance:      realizedIncome - realizedExpenses,
       incomeCount:  parseInt(income?.count ?? '0', 10),
       expenseCount: parseInt(expense?.count ?? '0', 10),
     };

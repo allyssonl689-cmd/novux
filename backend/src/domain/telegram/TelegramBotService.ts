@@ -151,11 +151,14 @@ export async function handleSaldo(chatId: number, userId: string): Promise<void>
 
   await sendMessage(
     chatId,
-    `💰 *Saldo — ${monthName}*\n\n` +
-    `🟢 Receitas:  *${fmtBRL(summary.totalIncome)}*\n` +
-    `🔴 Despesas: *${fmtBRL(summary.totalExpenses)}*\n` +
+    `💰 *Saldo (caixa) — ${monthName}*\n\n` +
+    `🟢 Recebido: *${fmtBRL(summary.realizedIncome)}*\n` +
+    `🔴 Pago:        *${fmtBRL(summary.realizedExpenses)}*\n` +
     `─────────────────\n` +
-    `${summary.balance >= 0 ? '✅' : '⚠️'} Saldo:      *${fmtBRL(summary.balance)}*`
+    `${summary.balance >= 0 ? '✅' : '⚠️'} Saldo:      *${fmtBRL(summary.balance)}*` +
+    ((summary.pendingIncome > 0 || summary.pendingExpenses > 0)
+      ? `\n\n⏳ _A receber: ${fmtBRL(summary.pendingIncome)} · Em aberto: ${fmtBRL(summary.pendingExpenses)}_`
+      : '')
   );
 }
 
@@ -211,8 +214,9 @@ export async function handleResumo(chatId: number, userId: string): Promise<void
     .slice(0, 4)
     .map(c => `  • ${c.category}: *${fmtBRL(Number(c.total))}*`)
     .join('\n');
-  const savingsRate  = summary.totalIncome > 0
-    ? ((summary.balance / summary.totalIncome) * 100).toFixed(1)
+  // Taxa de poupança em regime de caixa: saldo realizado sobre o que foi recebido
+  const savingsRate  = summary.realizedIncome > 0
+    ? ((summary.balance / summary.realizedIncome) * 100).toFixed(1)
     : '0';
   const activeGoals  = (goals ?? []).filter((g: any) => !g.is_completed);
   const goalsLine    = activeGoals.length > 0
@@ -229,7 +233,7 @@ export async function handleResumo(chatId: number, userId: string): Promise<void
     `🟢 Receitas:  *${fmtBRL(summary.totalIncome)}*\n` +
     `🔴 Despesas: *${fmtBRL(summary.totalExpenses)}*\n` +
     `💾 Poupança: *${savingsRate}%*\n` +
-    `${summary.balance >= 0 ? '✅' : '⚠️'} Saldo:      *${fmtBRL(summary.balance)}*\n\n` +
+    `${summary.balance >= 0 ? '✅' : '⚠️'} Saldo (caixa): *${fmtBRL(summary.balance)}*\n\n` +
     (topCats ? `📂 *Top despesas:*\n${topCats}` : '') +
     goalsLine
   );

@@ -11,6 +11,7 @@ import {
   Shield, Receipt, Heart, ChefHat, Tv, Phone, Building2,
 } from 'lucide-react';
 import { transactionService } from '@/services/transactionService';
+import { toast } from 'sonner';
 
 interface Props { open: boolean; onClose: () => void; editId?: string | null }
 
@@ -169,6 +170,7 @@ export function TransactionForm({ open, onClose, editId }: Props) {
       } else {
         await addTransaction(baseData);
       }
+      toast.success(editing ? 'Transação atualizada' : 'Transação adicionada');
       onClose();
     } catch (err: unknown) {
       setErrors({ submit: err instanceof Error ? err.message : 'Erro ao salvar' });

@@ -17,8 +17,10 @@ export const db = new Pool({
 });
 
 db.on('error', (err) => {
-  console.error('Erro inesperado no pool do banco de dados:', err);
-  process.exit(1);
+  // Não derruba o processo: erros em clientes ociosos (ex.: queda transitória do
+  // Supabase Session Pooler) são recuperáveis — o pool recria as conexões sozinho.
+  // Matar o processo aqui causava reinícios desnecessários e indisponibilidade.
+  console.error('Erro inesperado no pool do banco de dados (recuperável):', err);
 });
 
 let _dbReady = false;
