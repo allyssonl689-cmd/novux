@@ -1,4 +1,4 @@
-import path from 'path';
+import fs from 'fs';
 import { Request, Response, NextFunction } from 'express';
 import { TransactionModel } from '../models/TransactionModel';
 import {
@@ -7,6 +7,7 @@ import {
   transactionFiltersSchema,
 } from '../validators/transactionValidators';
 import { AppError } from '../middleware/errorHandler';
+import { resolveUploadPath, removeUploadFile } from '../utils/uploads';
 
 export class TransactionController {
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -53,10 +54,46 @@ export class TransactionController {
   static async uploadAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.file) throw new AppError('Nenhum arquivo enviado', 400);
+
+      const existing = await TransactionModel.findById(String(req.params.id), req.userId);
+      if (!existing) {
+        // Transação inexistente: remove o arquivo recém-enviado para não deixar órfão
+        removeUploadFile(req.file.filename);
+        throw new AppError('Transação não encontrada', 404);
+      }
+
+      const oldUrl = (existing as any).attachment_url as string | undefined;
       const url = `/uploads/${req.file.filename}`;
       const transaction = await TransactionModel.setAttachment(String(req.params.id), req.userId, url);
-      if (!transaction) throw new AppError('Transação não encontrada', 404);
+      if (!transaction) {
+        removeUploadFile(req.file.filename);
+        throw new AppError('Transação não encontrada', 404);
+      }
+
+      // Remove o anexo anterior (se houver e for diferente do novo)
+      if (oldUrl && oldUrl !== url) removeUploadFile(oldUrl);
+
       res.json({ success: true, data: transaction });
+    } catch (err) { next(err); }
+  }
+
+  /**
+   * Serve o comprovante de forma autenticada: valida que a transação pertence ao
+   * usuário antes de transmitir o arquivo. Substitui o antigo express.static público.
+   */
+  static async getAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const transaction = await TransactionModel.findById(String(req.params.id), req.userId);
+      const attachmentUrl = transaction ? (transaction as any).attachment_url as string | undefined : undefined;
+      if (!transaction || !attachmentUrl) throw new AppError('Comprovante não encontrado', 404);
+
+      const filePath = resolveUploadPath(attachmentUrl);
+      if (!fs.existsSync(filePath)) throw new AppError('Arquivo não encontrado', 404);
+
+      // nosniff + inline: tipos já restritos a imagem/pdf no upload (fileFilter)
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'private, max-age=300');
+      res.sendFile(filePath, (err) => { if (err) next(err); });
     } catch (err) { next(err); }
   }
 

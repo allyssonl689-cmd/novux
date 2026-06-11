@@ -117,16 +117,20 @@ export class AuthService {
 
   static async loginWith2FA(tempToken: string, totpToken: string): Promise<AuthTokens> {
     const tokenHash = hashToken(tempToken);
+    const MAX_2FA_ATTEMPTS = 5;
 
-    const { rows: pendingRows } = await db.query<{ user_id: string }>(
-      'SELECT user_id FROM pending_2fa WHERE token_hash = $1 AND expires_at > NOW()',
+    const { rows: pendingRows } = await db.query<{ user_id: string; attempts: number }>(
+      'SELECT user_id, attempts FROM pending_2fa WHERE token_hash = $1 AND expires_at > NOW()',
       [tokenHash]
     );
     const entry = pendingRows[0];
     if (!entry) throw new AppError('Sessão expirada. Faça login novamente.', 401);
 
-    // Remove antes de validar para prevenir replay
-    await db.query('DELETE FROM pending_2fa WHERE token_hash = $1', [tokenHash]);
+    // Lockout: estoura o limite de tentativas de código por sessão (anti brute force)
+    if (entry.attempts >= MAX_2FA_ATTEMPTS) {
+      await db.query('DELETE FROM pending_2fa WHERE token_hash = $1', [tokenHash]);
+      throw new AppError('Muitas tentativas inválidas. Faça login novamente.', 429);
+    }
 
     const { rows } = await db.query<{
       id: string; name: string; email: string; avatar_url: string | null;
@@ -140,7 +144,21 @@ export class AuthService {
 
     const totpSecret = decrypt(user.totp_secret)!;
     const result = verifySync({ token: totpToken, secret: totpSecret });
-    if (!result?.valid) throw new AppError('Código 2FA inválido', 400);
+    if (!result?.valid) {
+      // Incrementa a contagem; ao atingir o teto, invalida a sessão de 2FA
+      const upd = await db.query<{ attempts: number }>(
+        'UPDATE pending_2fa SET attempts = attempts + 1 WHERE token_hash = $1 RETURNING attempts',
+        [tokenHash]
+      );
+      if ((upd.rows[0]?.attempts ?? MAX_2FA_ATTEMPTS) >= MAX_2FA_ATTEMPTS) {
+        await db.query('DELETE FROM pending_2fa WHERE token_hash = $1', [tokenHash]);
+        throw new AppError('Muitas tentativas inválidas. Faça login novamente.', 429);
+      }
+      throw new AppError('Código 2FA inválido', 400);
+    }
+
+    // Sucesso: consome o token (previne replay) antes de emitir as credenciais
+    await db.query('DELETE FROM pending_2fa WHERE token_hash = $1', [tokenHash]);
 
     const publicUser: PublicUser = {
       id: user.id,

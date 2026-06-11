@@ -131,6 +131,27 @@ export const transactionService = {
     return toFrontend(json.data);
   },
 
+  // Abre o comprovante via rota autenticada (não há mais URL pública).
+  // Busca o arquivo com o token em memória e o exibe a partir de um blob.
+  async openAttachment(id: string): Promise<void> {
+    const token = tokenStore.get();
+    const res = await fetch(`${API_BASE}/api/transactions/${id}/attachment`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error('Erro ao abrir comprovante');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  },
+
   async getHistory(id: string): Promise<HistoryEntry[]> {
     const res = await apiFetch<{ success: boolean; data: HistoryEntry[] }>(`/api/transactions/${id}/history`);
     return res.data;

@@ -130,6 +130,15 @@ export function TransactionForm({ open, onClose, editId }: Props) {
 
   function removeTag(t: string) { setTags(p => p.filter(x => x !== t)); }
 
+  async function handleViewAttachment() {
+    if (!editing) return;
+    try {
+      await transactionService.openAttachment(editing.id);
+    } catch {
+      setErrors(p => ({ ...p, attach: 'Não foi possível abrir o comprovante.' }));
+    }
+  }
+
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !editing) return;
@@ -373,10 +382,10 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                   </div>
                   {attachmentUrl ? (
                     <div className="flex items-center gap-2">
-                      <a href={`${import.meta.env.VITE_API_URL ?? 'http://localhost:3001'}${attachmentUrl}`} target="_blank" rel="noreferrer"
-                        className="text-[11px] text-primary underline truncate flex-1">
+                      <button type="button" onClick={handleViewAttachment}
+                        className="text-[11px] text-primary underline truncate flex-1 text-left">
                         Ver comprovante anexado
-                      </a>
+                      </button>
                       <button onClick={() => attachRef.current?.click()}
                         className="text-[10px] text-muted-foreground hover:text-foreground border border-border rounded-lg px-2 py-1 transition-all">
                         Trocar

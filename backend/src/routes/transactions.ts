@@ -12,6 +12,7 @@ router.get('/',                   TransactionController.list);
 router.get('/export/csv',         TransactionController.exportCSV);
 router.get('/:id',                TransactionController.getById);
 router.get('/:id/history',        TransactionController.getHistory);
+router.get('/:id/attachment',     TransactionController.getAttachment);
 router.post('/',                   TransactionController.create);
 router.post('/:id/attachment',    upload.single('file'), TransactionController.uploadAttachment);
 router.put('/:id',                TransactionController.update);

@@ -13,7 +13,6 @@ import { connectDatabase, isDbReady } from './config/database';
 import { globalLimiter } from './middleware/rateLimiter';
 import { errorHandler } from './middleware/errorHandler';
 
-import path from 'path';
 import authRoutes        from './routes/auth';
 import authGoogleRoutes  from './routes/authGoogle';
 import transactionRoutes from './routes/transactions';
@@ -63,8 +62,8 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// Servir arquivos de upload estaticamente
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// Anexos NÃO são mais servidos publicamente (express.static removido).
+// O acesso passa por GET /api/transactions/:id/attachment, que valida o dono.
 
 // Rotas da API
 app.use('/api/auth',         authRoutes);

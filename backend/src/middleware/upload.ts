@@ -1,11 +1,10 @@
 import multer from 'multer';
 import path from 'path';
-import fs from 'fs';
 import { randomBytes } from 'crypto';
 import { Request } from 'express';
+import { UPLOADS_DIR, ensureUploadsDir } from '../utils/uploads';
 
-const UPLOADS_DIR = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+ensureUploadsDir();
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),

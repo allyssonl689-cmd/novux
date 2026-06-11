@@ -46,6 +46,16 @@ Aplicado em 11/06/2026 — type-check de front e back **limpo** (`tsc --noEmit` 
 | #20 | `TransactionForm` com a11y essencial: `role="dialog"`, `aria-modal`, `aria-labelledby`, fecha no Escape, foco entra no modal ao abrir, `aria-label` no botão fechar. (Focus trap completo fica para migração futura ao Radix Dialog.) | ✅ Parcial |
 | baixos | `<a href>` interno → `<Link>` no Dashboard; `window.location.href` → `useNavigate` no menu do avatar (navegação SPA, sem full reload); `aria-label` nos botões de excluir. | ✅ Corrigido |
 
+### Bloco 5 — Backend hardening (uploads + 2FA)
+| Item | Achado | Status |
+|---|---|---|
+| #3 | **Uploads autenticados:** removido `express.static('/uploads')` (público). Anexos agora servidos por `GET /api/transactions/:id/attachment`, que valida o dono (`user_id`), resolve só o basename (anti path traversal) e envia com `X-Content-Type-Options: nosniff`. Frontend passa a abrir o comprovante via fetch autenticado (blob). | ✅ Corrigido |
+| #22 | **Limpeza de uploads órfãos:** falha pós-upload (transação inexistente) remove o arquivo; troca de anexo remove o antigo; exclusão da transação remove o arquivo. Util `utils/uploads.ts`. | ✅ Corrigido |
+| #17 | **Lockout 2FA:** `/login/2fa` conta tentativas de TOTP por sessão (coluna `pending_2fa.attempts`); após 5 falhas a sessão de 2FA é invalidada (HTTP 429). Persistido em banco (multi-instância). | ✅ Corrigido |
+
+> ⚠️ **Ação necessária (sua parte):** rodar a migration **`014_pending_2fa_attempts.sql`** no banco antes/junto do deploy do backend — sem a coluna `attempts`, o endpoint `/login/2fa` falha.
+> ℹ️ **Persistência de anexos:** o acesso agora é seguro, mas os arquivos seguem em disco **efêmero** no Render (somem a cada deploy). Migrar para storage externo (S3/Supabase Storage) continua sendo sua parte.
+
 Demais itens permanecem **pendentes** (ver listas abaixo). O achado crítico do **refresh token** foi verificado e **confirmado**, mas sua correção exige mudança de schema/produção — fora dos blocos rápidos.
 
 ---
@@ -100,7 +110,7 @@ Qualquer usuário envia `{"isPremium": true}` no body e ganha chamadas Groq ilim
 `uploadAttachment` e `exportCSV` leem `localStorage.getItem('novux_access_token')` — chave **nunca gravada** (o app usa token em memória). Resultado: `Bearer null` → anexar comprovante e exportar CSV estão **quebrados** (401).
 **Correção:** usar `tokenStore.get()` de `api.ts` nas duas funções.
 
-### 3. Comprovantes financeiros servidos publicamente sem autenticação
+### 3. ✅ [CORRIGIDO] Comprovantes financeiros servidos publicamente sem autenticação
 **2 agentes (Segurança, Backend).** `backend/src/app.ts` (`express.static('uploads')`)
 Recibos em `/uploads/<hex>.ext` acessíveis por URL sem checar dono nem expiração. No Render o disco é **efêmero** — anexos somem a cada deploy.
 **Correção:** servir por rota autenticada que valida `user_id` dono; migrar para storage externo.
@@ -141,12 +151,12 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 | 14 | ✅ **[CORRIGIDO — regime de caixa]** Saldo/resumo não distingue `paid` vs pendente — mistura realizado com previsto | Backend | `TransactionModel.getSummary` |
 | 15 | ✅ **[CORRIGIDO]** Contexto da IA sem limite de tamanho nem timeout no fetch Groq | Backend | `aiController.ts:63-78` |
 | 16 | ✅ **[CORRIGIDO]** Reset de senha sem validação de força (Zod ausente) | Segurança | `authController.ts:134-144` |
-| 17 | Brute force no 2FA sem lockout por tentativa de TOTP | Segurança | `routes/auth.ts:11` |
+| 17 | ✅ **[CORRIGIDO]** Brute force no 2FA sem lockout por tentativa de TOTP | Segurança | `routes/auth.ts:11` |
 | 18 | TanStack Query instalado e provido, mas NUNCA usado — estado reinventado à mão | Arquitetura | `App.tsx`, `FinanceContext` |
 | 19 | Zero testes e zero CI (Vitest/Playwright configurados, suíte vazia) | Arquitetura | — |
 | 20 | ✅ **[CORRIGIDO — parcial]** TransactionForm: modal hand-rolled sem a11y (sem focus trap, Escape, aria). Adicionado role/aria/Escape/foco; focus trap completo pendente. | UX | `TransactionForm.tsx` |
 | 21 | ✅ **[CORRIGIDO]** Toasts configurados mas ausentes no CRUD — sem feedback de sucesso | UX | `App.tsx` + páginas |
-| 22 | Upload: arquivos órfãos (falha/troca/delete não limpam o antigo) | Backend | `transactionController:53-61` |
+| 22 | ✅ **[CORRIGIDO]** Upload: arquivos órfãos (falha/troca/delete não limpam o antigo) | Backend | `transactionController:53-61` |
 | 23 | ✅ **[CORRIGIDO]** URLs de reset/verificação logadas em texto puro em falha de e-mail | Segurança | `authService.ts:59,243` |
 | 24 | Validação monetária frágil / sem máscara BRL (`type=number` rejeita vírgula) | UX | `TransactionForm.tsx:230` |
 | 25 | ✅ **[CORRIGIDO]** Sem lazy loading de rotas — bundle único (Recharts, Framer, jsPDF, landing) | UX | `App.tsx` |

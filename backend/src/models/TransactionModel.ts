@@ -1,6 +1,7 @@
 import { db } from '../config/database';
 import { Transaction, PaginatedResult } from './types';
 import { encrypt, decrypt } from '../utils/encryption';
+import { removeUploadFile } from '../utils/uploads';
 
 export interface TransactionFilters {
   type?: 'income' | 'expense';
@@ -188,7 +189,10 @@ export class TransactionModel {
       'DELETE FROM transactions WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
-    return (rowCount ?? 0) > 0;
+    const deleted = (rowCount ?? 0) > 0;
+    // Remove o arquivo de comprovante associado, evitando lixo em disco
+    if (deleted && (existing as any)?.attachment_url) removeUploadFile((existing as any).attachment_url);
+    return deleted;
   }
 
   static async getHistory(id: string, userId: string) {
