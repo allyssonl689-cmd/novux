@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from './AppSidebar';
 import { OnboardingModal, useOnboarding } from '@/components/OnboardingModal';
@@ -362,6 +362,7 @@ function NotificationPanel({ onClose, dismissed, setDismissed }: {
 
 function UserAvatar() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -401,11 +402,11 @@ function UserAvatar() {
             <p className="text-[10px] text-muted-foreground truncate">{user?.email}</p>
           </div>
           <div className="p-1">
-            <button onClick={() => { setOpen(false); window.location.href = '/perfil'; }}
+            <button onClick={() => { setOpen(false); navigate('/perfil'); }}
               className="w-full text-left px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors">
               Perfil & Configurações
             </button>
-            <button onClick={async () => { await logout(); window.location.href = '/home'; }}
+            <button onClick={async () => { setOpen(false); await logout(); navigate('/home'); }}
               className="w-full text-left px-3 py-2 text-xs text-destructive hover:bg-alert-muted rounded-lg transition-colors">
               Sair
             </button>

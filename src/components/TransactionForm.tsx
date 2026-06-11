@@ -64,6 +64,7 @@ export function TransactionForm({ open, onClose, editId }: Props) {
   const { transactions, addTransaction, updateTransaction, addTransactions } = useFinance();
   const editing = editId ? transactions.find(t => t.id === editId) : undefined;
   const attachRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const [type, setType] = useState<TransactionType>(editing?.type || 'expense');
   const [value, setValue]           = useState(editing?.value?.toString() || '');
@@ -100,6 +101,15 @@ export function TransactionForm({ open, onClose, editId }: Props) {
     }
     setErrors({}); setTagInput('');
   }, [editId, open]);
+
+  // Acessibilidade do modal: fecha no Escape e leva o foco para dentro ao abrir
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
 
   const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS;
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? 'R$';
@@ -187,7 +197,8 @@ export function TransactionForm({ open, onClose, editId }: Props) {
           onClick={e => e.target === e.currentTarget && onClose()}>
           <motion.div initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 40 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            className="w-full max-w-lg rounded-2xl border border-border bg-card overflow-hidden"
+            ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="tx-form-title" tabIndex={-1}
+            className="w-full max-w-lg rounded-2xl border border-border bg-card overflow-hidden outline-none"
             style={{ boxShadow: '0 24px 80px hsl(0 0% 0% / 0.45)' }}>
 
             {/* Header */}
@@ -198,11 +209,11 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                     ? <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
                     : <TrendingDown className="h-4 w-4" style={{ color: accentColor }} />}
                 </div>
-                <h2 className="text-sm font-bold text-foreground" style={{ fontFamily: 'Syne, sans-serif' }}>
+                <h2 id="tx-form-title" className="text-sm font-bold text-foreground" style={{ fontFamily: 'Syne, sans-serif' }}>
                   {editing ? 'Editar Lançamento' : 'Novo Lançamento'}
                 </h2>
               </div>
-              <button onClick={onClose} className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
+              <button onClick={onClose} aria-label="Fechar" className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                 <X className="h-4 w-4" />
               </button>
             </div>

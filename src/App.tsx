@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -11,27 +12,39 @@ import { ProtectedRoute, AdminRoute } from "@/components/auth/ProtectedRoute";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import DashboardPage    from "@/pages/DashboardPage";
-import ReportsPage      from "@/pages/ReportsPage";
-import TransactionsPage from "@/pages/TransactionsPage";
-import GoalsPage        from "@/pages/GoalsPage";
-import AIInsightsPage   from "@/pages/AIInsightsPage";
-import InvestmentsPage  from "@/pages/InvestmentsPage";
-import ProfilePage      from "@/pages/ProfilePage";
-import ConfiguracoesPage from "@/pages/ConfiguracoesPage";
-import AdminPage        from "@/pages/AdminPage";
-import LandingPage      from "@/pages/LandingPage";
-import AjudaPage        from "@/pages/AjudaPage";
-import PrivacidadePage  from "@/pages/PrivacidadePage";
-import TermosPage       from "@/pages/TermosPage";
-import LoginPage           from "@/pages/LoginPage";
-import RegisterPage        from "@/pages/RegisterPage";
-import ForgotPasswordPage  from "@/pages/ForgotPasswordPage";
-import ResetPasswordPage   from "@/pages/ResetPasswordPage";
-import VerifyEmailPage     from "@/pages/VerifyEmailPage";
-import NotFound            from "./pages/NotFound";
+
+// Páginas carregadas sob demanda (code-splitting) — reduz o bundle inicial.
+// Recharts, jsPDF, Framer e a landing pública deixam de pesar no primeiro acesso.
+const DashboardPage     = lazy(() => import("@/pages/DashboardPage"));
+const ReportsPage       = lazy(() => import("@/pages/ReportsPage"));
+const TransactionsPage  = lazy(() => import("@/pages/TransactionsPage"));
+const GoalsPage         = lazy(() => import("@/pages/GoalsPage"));
+const AIInsightsPage    = lazy(() => import("@/pages/AIInsightsPage"));
+const InvestmentsPage   = lazy(() => import("@/pages/InvestmentsPage"));
+const ProfilePage       = lazy(() => import("@/pages/ProfilePage"));
+const ConfiguracoesPage = lazy(() => import("@/pages/ConfiguracoesPage"));
+const AdminPage         = lazy(() => import("@/pages/AdminPage"));
+const LandingPage       = lazy(() => import("@/pages/LandingPage"));
+const AjudaPage         = lazy(() => import("@/pages/AjudaPage"));
+const PrivacidadePage   = lazy(() => import("@/pages/PrivacidadePage"));
+const TermosPage        = lazy(() => import("@/pages/TermosPage"));
+const LoginPage           = lazy(() => import("@/pages/LoginPage"));
+const RegisterPage        = lazy(() => import("@/pages/RegisterPage"));
+const ForgotPasswordPage  = lazy(() => import("@/pages/ForgotPasswordPage"));
+const ResetPasswordPage   = lazy(() => import("@/pages/ResetPasswordPage"));
+const VerifyEmailPage     = lazy(() => import("@/pages/VerifyEmailPage"));
+const NotFound            = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+/** Fallback do Suspense enquanto o chunk da rota carrega. */
+function PageFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -44,6 +57,7 @@ const App = () => (
               <Sonner />
               <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                 <ScrollToTop />
+                <Suspense fallback={<PageFallback />}>
                 <Routes>
                   {/* Rotas públicas */}
                   <Route path="/home"    element={<LandingPage />} />
@@ -77,6 +91,7 @@ const App = () => (
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>
+                </Suspense>
               </BrowserRouter>
             </FinanceProvider>
           </PeriodProvider>

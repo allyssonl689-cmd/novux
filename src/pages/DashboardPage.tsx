@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
@@ -483,9 +484,9 @@ export default function DashboardPage() {
           className="lg:col-span-2 rounded-2xl border border-border bg-card overflow-hidden">
           <div className="px-5 py-4 border-b border-border flex items-center justify-between">
             <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Últimas Transações</h3>
-            <a href="/lancamentos" className="flex items-center gap-1 text-[11px] text-primary font-medium hover:opacity-80 transition-opacity">
+            <Link to="/lancamentos" className="flex items-center gap-1 text-[11px] text-primary font-medium hover:opacity-80 transition-opacity">
               Ver todas <ChevronRight className="h-3 w-3" />
-            </a>
+            </Link>
           </div>
           <div>
             {recent.map((tx, i) => (
@@ -548,10 +549,10 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <a href="/ia-insights" className="btn-novux flex items-center justify-center gap-2 w-full mt-5 py-2.5 text-xs font-bold rounded-xl">
+          <Link to="/ia-insights" className="btn-novux flex items-center justify-center gap-2 w-full mt-5 py-2.5 text-xs font-bold rounded-xl">
             <Sparkles className="h-3.5 w-3.5" />
             Analisar com IA
-          </a>
+          </Link>
         </motion.div>
       </div>
     </div>

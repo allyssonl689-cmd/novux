@@ -39,6 +39,13 @@ Aplicado em 11/06/2026 — type-check de front e back **limpo** (`tsc --noEmit` 
 |---|---|---|
 | #14 | `getSummary` agora separa realizado/pendente; `balance` = caixa (realizado). Telegram `/saldo` e `/resumo` mostram recebido/pago + saldo (caixa) e pendências. Dashboard "Saldo do Mês" e taxa de poupança passam a usar o saldo realizado. | ✅ Corrigido |
 
+### Bloco 4 — Frontend: performance + acessibilidade
+| Item | Achado | Status |
+|---|---|---|
+| #25 | Lazy loading de rotas (`React.lazy` + `Suspense`). Build confirma code-splitting: cada página em chunk próprio; Recharts (~380 kB), jsPDF (~407 kB) e html2canvas (~200 kB) saem do bundle inicial. | ✅ Corrigido |
+| #20 | `TransactionForm` com a11y essencial: `role="dialog"`, `aria-modal`, `aria-labelledby`, fecha no Escape, foco entra no modal ao abrir, `aria-label` no botão fechar. (Focus trap completo fica para migração futura ao Radix Dialog.) | ✅ Parcial |
+| baixos | `<a href>` interno → `<Link>` no Dashboard; `window.location.href` → `useNavigate` no menu do avatar (navegação SPA, sem full reload); `aria-label` nos botões de excluir. | ✅ Corrigido |
+
 Demais itens permanecem **pendentes** (ver listas abaixo). O achado crítico do **refresh token** foi verificado e **confirmado**, mas sua correção exige mudança de schema/produção — fora dos blocos rápidos.
 
 ---
@@ -137,12 +144,12 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 | 17 | Brute force no 2FA sem lockout por tentativa de TOTP | Segurança | `routes/auth.ts:11` |
 | 18 | TanStack Query instalado e provido, mas NUNCA usado — estado reinventado à mão | Arquitetura | `App.tsx`, `FinanceContext` |
 | 19 | Zero testes e zero CI (Vitest/Playwright configurados, suíte vazia) | Arquitetura | — |
-| 20 | TransactionForm: modal hand-rolled sem a11y (sem focus trap, Escape, aria) | UX | `TransactionForm.tsx` |
+| 20 | ✅ **[CORRIGIDO — parcial]** TransactionForm: modal hand-rolled sem a11y (sem focus trap, Escape, aria). Adicionado role/aria/Escape/foco; focus trap completo pendente. | UX | `TransactionForm.tsx` |
 | 21 | ✅ **[CORRIGIDO]** Toasts configurados mas ausentes no CRUD — sem feedback de sucesso | UX | `App.tsx` + páginas |
 | 22 | Upload: arquivos órfãos (falha/troca/delete não limpam o antigo) | Backend | `transactionController:53-61` |
 | 23 | ✅ **[CORRIGIDO]** URLs de reset/verificação logadas em texto puro em falha de e-mail | Segurança | `authService.ts:59,243` |
 | 24 | Validação monetária frágil / sem máscara BRL (`type=number` rejeita vírgula) | UX | `TransactionForm.tsx:230` |
-| 25 | Sem lazy loading de rotas — bundle único (Recharts, Framer, jsPDF, landing) | UX | `App.tsx` |
+| 25 | ✅ **[CORRIGIDO]** Sem lazy loading de rotas — bundle único (Recharts, Framer, jsPDF, landing) | UX | `App.tsx` |
 
 ---
 
@@ -151,7 +158,7 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 - ✅ **[CORRIGIDO]** Branding antigo **"Sapiens Finance"** ainda no código (`EmptyDashboard.tsx:15`).
 - ✅ **[CORRIGIDO]** **`Calendar` não importado** em `MainLayout.tsx` (só não quebra porque `PeriodSelector` é dead code).
 - **a11y geral fraca**: `aria-label`/`role` quase ausentes; botões só-ícone sem label.
-- **`<a href>` para navegação interna** → full reload em vez de SPA (`DashboardPage:479,544`).
+- ✅ **[CORRIGIDO]** **`<a href>` para navegação interna** → full reload em vez de SPA (`DashboardPage:479,544`); também `window.location.href` no menu do avatar → `useNavigate`.
 - **Mobile**: status de pagamento `hidden` e editar/excluir só no `group-hover` (inacessível em touch).
 - **`verifyAccessToken` faz query ao banco a cada request** (+ decrypt) → carga no pool.
 - **Datas relativas no parser usam timezone do servidor (UTC)** → erro de dia para usuários BRT.
