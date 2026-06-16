@@ -181,27 +181,40 @@ export class AuthService {
     return this.issueTokens(publicUser);
   }
 
-  static async refresh(refreshToken: string): Promise<{ accessToken: string }> {
+  static async refresh(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     const payload = verifyRefreshToken(refreshToken);
     const tokenHash = hashToken(refreshToken);
 
-    const { rows } = await db.query(
-      `SELECT id FROM refresh_tokens
-       WHERE (token_hash = $1 OR token = $2) AND expires_at > NOW()`,
-      [tokenHash, refreshToken]
+    // Rotação: cada refresh token vale UMA vez. Removemos o atual de forma atômica;
+    // se ele não existia (já rotacionado/expirado), pode ser reuso de um token
+    // roubado → revogamos TODAS as sessões do usuário por segurança.
+    const del = await db.query(
+      `DELETE FROM refresh_tokens WHERE token_hash = $1 AND expires_at > NOW() RETURNING user_id`,
+      [tokenHash]
     );
-    if (rows.length === 0) throw new AppError('Refresh token inválido ou expirado', 401);
+    if ((del.rowCount ?? 0) === 0) {
+      await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [payload.userId]);
+      throw new AppError('Sessão inválida. Faça login novamente.', 401);
+    }
 
-    const accessToken = signAccessToken({ userId: payload.userId, email: payload.email });
-    return { accessToken };
+    // Emite um novo par (access + refresh) e grava só o hash do novo refresh.
+    const newPayload   = { userId: payload.userId, email: payload.email };
+    const accessToken  = signAccessToken(newPayload);
+    const newRefresh   = signRefreshToken(newPayload);
+    const newHash      = hashToken(newRefresh);
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+    await db.query(
+      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)`,
+      [payload.userId, newHash, expiresAt]
+    );
+
+    return { accessToken, refreshToken: newRefresh };
   }
 
   static async logout(refreshToken: string, userId?: string, ip?: string): Promise<void> {
     const tokenHash = hashToken(refreshToken);
-    await db.query(
-      'DELETE FROM refresh_tokens WHERE token_hash = $1 OR token = $2',
-      [tokenHash, refreshToken]
-    );
+    await db.query('DELETE FROM refresh_tokens WHERE token_hash = $1', [tokenHash]);
     if (userId) await audit(userId, 'logout', 'account', ip);
   }
 
@@ -343,15 +356,17 @@ export class AuthService {
     const payload = { userId: user.id, email: user.email };
     const accessToken  = signAccessToken(payload);
     const refreshToken = signRefreshToken(payload);
-    const tokenHash    = hashToken(refreshToken);
 
+    // Persiste APENAS o hash SHA-256 do refresh token — nunca o valor em texto puro.
+    // Um dump do banco não expõe mais credenciais de sessão reutilizáveis.
+    const tokenHash = hashToken(refreshToken);
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     await db.query(
-      `INSERT INTO refresh_tokens (user_id, token, token_hash, expires_at)
-       VALUES ($1, $2, $3, $4)`,
-      [user.id, refreshToken, tokenHash, expiresAt]
+      `INSERT INTO refresh_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expiresAt]
     );
 
     return { accessToken, refreshToken, user };

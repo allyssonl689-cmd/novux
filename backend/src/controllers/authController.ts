@@ -85,7 +85,10 @@ export class AuthController {
         return;
       }
       const result = await AuthService.refresh(refreshToken);
-      res.json({ success: true, data: result });
+      // Rotação: o novo refresh token vai só no cookie httpOnly; o corpo expõe
+      // apenas o access token (contrato inalterado para o frontend).
+      setRefreshCookie(res, result.refreshToken);
+      res.json({ success: true, data: { accessToken: result.accessToken } });
     } catch (err) {
       next(err);
     }
