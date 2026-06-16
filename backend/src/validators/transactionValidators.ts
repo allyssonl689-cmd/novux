@@ -13,6 +13,11 @@ export const createTransactionSchema = z.object({
   paid: z.boolean().default(false),
   tags: z.array(z.string().max(50)).max(10).default([]),
   currency: z.string().length(3).default('BRL'),
+  // Forma de pagamento/recebimento + data efetiva + observações do pagamento.
+  // Nullable para permitir limpar ao desmarcar como pago.
+  payment_method: z.string().max(30).optional().nullable(),
+  paid_at: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD').optional().nullable(),
+  payment_notes: z.string().max(500).optional().nullable(),
 });
 
 export const updateTransactionSchema = createTransactionSchema.partial();

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useFinance } from '@/contexts/FinanceContext';
-import { Transaction, TransactionType, RecurrenceType, CURRENCIES } from '@/lib/types';
+import { Transaction, TransactionType, RecurrenceType, CURRENCIES, paymentMethodsFor } from '@/lib/types';
 import {
   X, TrendingUp, TrendingDown, Check, Upload, RefreshCw,
   Utensils, Car, Home, Smile, HeartPulse, BookOpen, Briefcase,
@@ -93,6 +93,9 @@ export function TransactionForm({ open, onClose, editId }: Props) {
   const [recurrence, setRecurrence] = useState<RecurrenceType>(editing?.recurrence || 'none');
   const [recMonths, setRecMonths]   = useState(editing?.recurrenceMonths || 3);
   const [paid, setPaid]             = useState(editing?.paid ?? false);
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(editing?.paymentMethod ?? null);
+  const [paidAt, setPaidAt]         = useState(editing?.paidAt || '');
+  const [paymentNotes, setPaymentNotes]   = useState(editing?.paymentNotes || '');
   const [tags, setTags]             = useState<string[]>(editing?.tags || []);
   const [tagInput, setTagInput]     = useState('');
   const [errors, setErrors]         = useState<Record<string,string>>({});
@@ -109,12 +112,14 @@ export function TransactionForm({ open, onClose, editId }: Props) {
       setDesc(editing.description); setNotes(editing.notes || '');
       setRecurrence(editing.recurrence || 'none'); setRecMonths(editing.recurrenceMonths || 3);
       setPaid(editing.paid ?? false); setTags(editing.tags || []);
+      setPaymentMethod(editing.paymentMethod ?? null); setPaidAt(editing.paidAt || ''); setPaymentNotes(editing.paymentNotes || '');
       setAttachmentUrl(editing.attachmentUrl || '');
     } else {
       setType('expense'); setValue(''); setCurrency('BRL'); setCategory('');
       setDate(new Date().toISOString().split('T')[0]);
       setDesc(''); setNotes(''); setRecurrence('none'); setRecMonths(3);
       setPaid(false); setTags([]); setAttachmentUrl('');
+      setPaymentMethod(null); setPaidAt(''); setPaymentNotes('');
     }
     setErrors({}); setTagInput('');
   }, [editId, open]);
@@ -178,12 +183,17 @@ export function TransactionForm({ open, onClose, editId }: Props) {
   async function handleSubmit() {
     if (!validate()) return;
     setSaving(true);
+    const todayStr = new Date().toISOString().split('T')[0];
     const baseData = {
       type, value: parseCurrencyInput(value), category, date,
       description: desc.trim(), notes: notes.trim() || undefined,
       recurrence: recurrence === 'none' ? undefined : recurrence,
       recurrenceMonths: recurrence === 'monthly' ? recMonths : undefined,
       paid, tags, currency,
+      // Detalhes do pagamento só quando pago; ao desmarcar, limpa (null)
+      paymentMethod: paid ? paymentMethod : null,
+      paidAt:        paid ? (paidAt || todayStr) : null,
+      paymentNotes:  paid ? (paymentNotes.trim() || null) : null,
     };
     try {
       if (editing) {
@@ -381,6 +391,42 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                 </div>
                 <span className="text-[10px] font-medium opacity-60">{paid ? 'Clique para desfazer' : 'Em aberto'}</span>
               </button>
+
+              {/* Detalhes do pagamento — só quando marcado como pago/recebido */}
+              {paid && (
+                <div className="rounded-xl border border-border bg-secondary/30 p-3.5 space-y-3">
+                  <p className="text-[11px] font-medium text-muted-foreground">
+                    {type === 'income' ? 'Forma de recebimento' : 'Forma de pagamento'}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {paymentMethodsFor(type).map(m => (
+                      <button key={m.code} type="button" onClick={() => setPaymentMethod(m.code)}
+                        className={`rounded-lg border px-3 py-2 text-[11px] font-medium text-left transition-all ${
+                          paymentMethod === m.code
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'border-border text-muted-foreground hover:text-foreground hover:border-primary/40'
+                        }`}>
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground block mb-1.5">
+                        {type === 'income' ? 'Data do recebimento' : 'Data do pagamento'}
+                      </label>
+                      <input type="date" value={paidAt} onChange={e => setPaidAt(e.target.value)}
+                        className="w-full rounded-xl border border-border bg-secondary px-3 py-2 text-xs text-foreground outline-none focus:border-primary/50 transition-colors" />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-medium text-muted-foreground block mb-1.5">Observações do pagamento <span className="opacity-50">(opcional)</span></label>
+                      <input type="text" value={paymentNotes} onChange={e => setPaymentNotes(e.target.value)} maxLength={500}
+                        placeholder="Ex: cartão final 1234, parcela 2/3..."
+                        className="w-full rounded-xl border border-border bg-secondary px-3 py-2 text-xs text-foreground outline-none focus:border-primary/50 transition-colors" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Attachment — only when editing existing transaction */}
               {editing && (

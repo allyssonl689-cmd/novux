@@ -19,6 +19,9 @@ interface ApiTransaction {
   tags: string[];
   currency: string;
   attachment_url?: string;
+  payment_method?: string | null;
+  paid_at?: string | null;
+  payment_notes?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,6 +49,9 @@ function toFrontend(t: ApiTransaction): Transaction {
     tags: t.tags ?? [],
     currency: t.currency ?? 'BRL',
     attachmentUrl: t.attachment_url,
+    paymentMethod: t.payment_method ?? null,
+    paidAt: typeof t.paid_at === 'string' ? t.paid_at.slice(0, 10) : (t.paid_at ?? null),
+    paymentNotes: t.payment_notes ?? null,
   };
 }
 
@@ -63,6 +69,9 @@ function toBackend(t: Partial<Omit<Transaction, 'id'>>): Partial<ApiTransaction>
   if (t.paid        !== undefined) out.paid = t.paid ?? false;
   if (t.tags        !== undefined) out.tags = t.tags ?? [];
   if (t.currency    !== undefined) out.currency = t.currency ?? 'BRL';
+  if (t.paymentMethod !== undefined) out.payment_method = t.paymentMethod;
+  if (t.paidAt        !== undefined) out.paid_at = t.paidAt;
+  if (t.paymentNotes  !== undefined) out.payment_notes = t.paymentNotes;
   return out;
 }
 

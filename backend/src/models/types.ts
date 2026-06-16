@@ -28,6 +28,9 @@ export interface Transaction {
   recurrence_months: number | null;
   is_recurring: boolean;
   paid: boolean;
+  payment_method: string | null;   // forma de pagamento/recebimento (ex.: pix, credito)
+  paid_at: string | null;          // data efetiva do pagamento/recebimento (YYYY-MM-DD)
+  payment_notes: string | null;    // detalhes do pagamento (criptografado)
   tags: string[];
   created_at: Date;
   updated_at: Date;

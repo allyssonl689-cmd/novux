@@ -10,7 +10,8 @@ import {
 import { TransactionForm, CAT_ICONS, EXPENSE_CATS, INCOME_CATS } from '@/components/TransactionForm';
 import { CSVImportModal } from '@/components/CSVImportModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Transaction } from '@/lib/types';
+import { PaymentDetailsModal, PaymentDetails } from '@/components/PaymentDetailsModal';
+import { Transaction, paymentMethodLabel } from '@/lib/types';
 import { toast } from 'sonner';
 import { useReportSummary, usePaginatedTransactions, useTransactionTags, toLocalDate } from '@/hooks/useReports';
 
@@ -118,7 +119,7 @@ const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
 
 
 export default function TransactionsPage() {
-  const { deleteTransaction, toggleTransactionPaid } = useFinance();
+  const { deleteTransaction, updateTransaction } = useFinance();
   const { getRange } = usePeriod();
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch]       = useState('');     // valor com debounce → enviado ao servidor
@@ -128,7 +129,8 @@ export default function TransactionsPage() {
   const [formOpen, setFormOpen]   = useState(false);
   const [editId, setEditId]       = useState<string | null>(null);
   const [csvOpen, setCsvOpen]     = useState(false);
-  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [paymentTx, setPaymentTx]       = useState<Transaction | null>(null);
+  const [paymentSaving, setPaymentSaving] = useState(false);
 
   // ── Filtro lateral ────────────────────────────────────────
   const [filterOpen, setFilterOpen] = useState(false);
@@ -233,15 +235,47 @@ export default function TransactionsPage() {
     }
   }
 
-  async function handleTogglePaid(tx: Transaction) {
-    setTogglingId(tx.id);
+  // Confirma o pagamento/recebimento (marca como pago + forma/data/observações)
+  async function confirmPayment(details: PaymentDetails) {
+    if (!paymentTx) return;
+    setPaymentSaving(true);
     try {
-      await toggleTransactionPaid(tx.id, !tx.paid);
+      await updateTransaction({
+        ...paymentTx,
+        paid: true,
+        paymentMethod: details.paymentMethod,
+        paidAt: details.paidAt,
+        paymentNotes: details.paymentNotes,
+      });
+      toast.success(paymentTx.type === 'income' ? 'Recebimento registrado' : 'Pagamento registrado');
+      setPaymentTx(null);
     } catch (err) {
       console.error(err);
-      toast.error('Erro ao atualizar status. Tente novamente.');
+      toast.error('Erro ao salvar. Tente novamente.');
     } finally {
-      setTogglingId(null);
+      setPaymentSaving(false);
+    }
+  }
+
+  // Desfaz o pagamento (volta para em aberto e limpa forma/data/observações)
+  async function unmarkPayment() {
+    if (!paymentTx) return;
+    setPaymentSaving(true);
+    try {
+      await updateTransaction({
+        ...paymentTx,
+        paid: false,
+        paymentMethod: null,
+        paidAt: null,
+        paymentNotes: null,
+      });
+      toast.success('Marcado como em aberto');
+      setPaymentTx(null);
+    } catch (err) {
+      console.error(err);
+      toast.error('Erro ao atualizar. Tente novamente.');
+    } finally {
+      setPaymentSaving(false);
     }
   }
 
@@ -457,7 +491,6 @@ export default function TransactionsPage() {
               {txs.map((tx, i) => {
                 const Icon = CAT_ICONS[tx.category] ?? Package;
                 const isPaid = tx.paid ?? false;
-                const isToggling = togglingId === tx.id;
                 return (
                   <motion.div key={tx.id} layout
                     className={`flex items-center gap-3 px-4 py-3.5 hover:bg-secondary/20 transition-colors group ${i<txs.length-1?'border-b border-border/50':''}`}>
@@ -487,19 +520,18 @@ export default function TransactionsPage() {
                       </div>
                     </div>
 
-                    {/* Status badge */}
+                    {/* Status badge — abre o modal de pagamento/recebimento */}
                     <button
-                      onClick={() => handleTogglePaid(tx)}
-                      disabled={isToggling}
-                      title={isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
-                      aria-label={isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
+                      onClick={() => setPaymentTx(tx)}
+                      title={isPaid ? 'Editar pagamento' : (tx.type === 'income' ? 'Registrar recebimento' : 'Registrar pagamento')}
+                      aria-label={isPaid ? 'Editar pagamento' : 'Registrar pagamento'}
                       className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg border transition-all shrink-0 ${
                         isPaid
                           ? 'bg-success-muted border-success/30 text-success hover:opacity-70'
                           : 'bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
-                      } ${isToggling ? 'opacity-50 cursor-wait' : ''}`}>
+                      }`}>
                       {isPaid
-                        ? <><CheckCircle2 className="h-3 w-3" />{paidLabel(tx)}</>
+                        ? <><CheckCircle2 className="h-3 w-3" />{paidLabel(tx)}{tx.paymentMethod ? ` · ${paymentMethodLabel(tx.paymentMethod)}` : ''}</>
                         : <><Circle className="h-3 w-3" />{paidLabel(tx)}</>}
                     </button>
 
@@ -557,6 +589,16 @@ export default function TransactionsPage() {
         description={pendingDelete ? `"${pendingDelete.description || pendingDelete.category}" será excluída permanentemente. Esta ação não pode ser desfeita.` : undefined}
         loading={deleting}
         onConfirm={confirmDelete}
+      />
+      <PaymentDetailsModal
+        open={!!paymentTx}
+        type={paymentTx?.type ?? 'expense'}
+        isPaid={paymentTx?.paid ?? false}
+        initial={paymentTx ? { paymentMethod: paymentTx.paymentMethod, paidAt: paymentTx.paidAt, paymentNotes: paymentTx.paymentNotes } : undefined}
+        loading={paymentSaving}
+        onConfirm={confirmPayment}
+        onUnmark={unmarkPayment}
+        onClose={() => { if (!paymentSaving) setPaymentTx(null); }}
       />
     </div>
   );

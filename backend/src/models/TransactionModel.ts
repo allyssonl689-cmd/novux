@@ -41,8 +41,9 @@ function safeDecrypt(value: string | null): string | null {
 function decryptTx(row: any): Transaction {
   return {
     ...row,
-    description: safeDecrypt(row.description),
-    notes:       safeDecrypt(row.notes),
+    description:   safeDecrypt(row.description),
+    notes:         safeDecrypt(row.notes),
+    payment_notes: safeDecrypt(row.payment_notes ?? null),
   };
 }
 
@@ -75,13 +76,14 @@ const SEARCH_SCAN_LIMIT = 1000;
  * atômico (ver `create` / `createMany`).
  */
 async function insertTx(executor: Queryable, userId: string, data: NewTransaction): Promise<Transaction> {
-  const encDescription = encrypt(data.description);
-  const encNotes       = data.notes ? encrypt(data.notes) : null;
+  const encDescription  = encrypt(data.description);
+  const encNotes        = data.notes ? encrypt(data.notes) : null;
+  const encPaymentNotes = data.payment_notes ? encrypt(data.payment_notes) : null;
 
   const { rows } = await executor.query<any>(
     `INSERT INTO transactions
-       (user_id, type, value, category, date, description, notes, recurrence, recurrence_months, is_recurring, paid, tags, currency)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       (user_id, type, value, category, date, description, notes, recurrence, recurrence_months, is_recurring, paid, tags, currency, payment_method, paid_at, payment_notes)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
      RETURNING *`,
     [
       userId, data.type, data.value, data.category, data.date,
@@ -89,6 +91,7 @@ async function insertTx(executor: Queryable, userId: string, data: NewTransactio
       data.recurrence ?? 'none', data.recurrence_months ?? null,
       data.is_recurring ?? false, data.paid ?? false,
       data.tags ?? [], (data as any).currency ?? 'BRL',
+      data.payment_method ?? null, data.paid_at ?? null, encPaymentNotes,
     ]
   );
   const tx = decryptTx(rows[0]);
@@ -196,8 +199,8 @@ export class TransactionModel {
     const values: unknown[] = [];
     let paramIndex = 1;
 
-    const plainUpdatable  = ['type', 'value', 'category', 'date', 'recurrence', 'recurrence_months', 'is_recurring', 'paid', 'tags', 'attachment_url', 'currency'] as const;
-    const cryptoUpdatable = ['description', 'notes'] as const;
+    const plainUpdatable  = ['type', 'value', 'category', 'date', 'recurrence', 'recurrence_months', 'is_recurring', 'paid', 'tags', 'attachment_url', 'currency', 'payment_method', 'paid_at'] as const;
+    const cryptoUpdatable = ['description', 'notes', 'payment_notes'] as const;
 
     for (const key of plainUpdatable) {
       if ((data as any)[key] !== undefined) {

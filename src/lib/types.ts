@@ -16,6 +16,45 @@ export interface Transaction {
   paid?: boolean;
   currency?: string;
   attachmentUrl?: string;
+  paymentMethod?: string | null;   // forma de pagamento/recebimento (código)
+  paidAt?: string | null;          // data efetiva do pagamento/recebimento (YYYY-MM-DD)
+  paymentNotes?: string | null;    // detalhes do pagamento
+}
+
+export interface PaymentMethodOption { code: string; label: string }
+
+/** Formas de PAGAMENTO (despesas). */
+export const EXPENSE_PAYMENT_METHODS: PaymentMethodOption[] = [
+  { code: 'pix',               label: 'Pix' },
+  { code: 'credito',           label: 'Cartão de crédito' },
+  { code: 'debito',            label: 'Cartão de débito' },
+  { code: 'dinheiro',          label: 'Dinheiro' },
+  { code: 'boleto',            label: 'Boleto' },
+  { code: 'transferencia',     label: 'Transferência (TED/DOC)' },
+  { code: 'debito_automatico', label: 'Débito automático' },
+  { code: 'outro',             label: 'Outro' },
+];
+
+/** Formas de RECEBIMENTO (receitas). */
+export const INCOME_PAYMENT_METHODS: PaymentMethodOption[] = [
+  { code: 'pix',           label: 'Pix' },
+  { code: 'dinheiro',      label: 'Dinheiro' },
+  { code: 'transferencia', label: 'Transferência (TED/DOC)' },
+  { code: 'cartao',        label: 'Cartão (maquininha)' },
+  { code: 'boleto',        label: 'Boleto' },
+  { code: 'deposito',      label: 'Depósito' },
+  { code: 'outro',         label: 'Outro' },
+];
+
+export function paymentMethodsFor(type: TransactionType): PaymentMethodOption[] {
+  return type === 'income' ? INCOME_PAYMENT_METHODS : EXPENSE_PAYMENT_METHODS;
+}
+
+/** Rótulo legível a partir do código da forma de pagamento. */
+export function paymentMethodLabel(code?: string | null): string {
+  if (!code) return '';
+  const all = [...EXPENSE_PAYMENT_METHODS, ...INCOME_PAYMENT_METHODS];
+  return all.find(m => m.code === code)?.label ?? code;
 }
 
 export interface Category {
