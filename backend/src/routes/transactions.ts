@@ -9,6 +9,7 @@ router.use(authenticate);
 router.use(dataLimiter);
 
 router.get('/',                   TransactionController.list);
+router.get('/tags',               TransactionController.tags);
 router.get('/export/csv',         TransactionController.exportCSV);
 router.get('/:id',                TransactionController.getById);
 router.get('/:id/history',        TransactionController.getHistory);

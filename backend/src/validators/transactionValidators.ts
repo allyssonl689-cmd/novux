@@ -20,9 +20,12 @@ export const updateTransactionSchema = createTransactionSchema.partial();
 export const transactionFiltersSchema = z.object({
   type: z.enum(['income', 'expense']).optional(),
   category: z.string().optional(),
+  categories: z.string().optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   search: z.string().optional(),
+  tags: z.string().optional(),
+  sort: z.enum(['asc', 'desc']).optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().min(1).max(1000).default(50),
 });

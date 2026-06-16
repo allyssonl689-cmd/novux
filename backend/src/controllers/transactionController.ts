@@ -18,6 +18,13 @@ export class TransactionController {
     } catch (err) { next(err); }
   }
 
+  static async tags(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const tags = await TransactionModel.getDistinctTags(req.userId);
+      res.json({ success: true, data: tags });
+    } catch (err) { next(err); }
+  }
+
   static async getById(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const transaction = await TransactionModel.findById(String(req.params.id), req.userId);

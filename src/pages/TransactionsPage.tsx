@@ -12,6 +12,7 @@ import { CSVImportModal } from '@/components/CSVImportModal';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Transaction } from '@/lib/types';
 import { toast } from 'sonner';
+import { useReportSummary, usePaginatedTransactions, useTransactionTags, toLocalDate } from '@/hooks/useReports';
 
 const ALL_CATS = [...new Set([...EXPENSE_CATS, ...INCOME_CATS])];
 
@@ -117,9 +118,10 @@ const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
 
 
 export default function TransactionsPage() {
-  const { transactions, deleteTransaction, toggleTransactionPaid } = useFinance();
+  const { deleteTransaction, toggleTransactionPaid } = useFinance();
   const { getRange } = usePeriod();
-  const [search, setSearch]       = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch]       = useState('');     // valor com debounce → enviado ao servidor
   const [searchOpen, setSearchOpen] = useState(false);
   const [tab, setTab]             = useState<'todos' | 'receitas' | 'despesas'>('todos');
   const [sortDir, setSortDir]     = useState<'desc' | 'asc'>('desc');
@@ -156,43 +158,51 @@ export default function TransactionsPage() {
     setFilterOpen(false);
   }
 
-  // Tags únicas disponíveis nas transações
-  const availableTags = useMemo(() => {
-    const s = new Set<string>();
-    transactions.forEach(t => (t.tags ?? []).forEach(tag => s.add(tag)));
-    return [...s].sort();
-  }, [transactions]);
+  // Debounce da busca textual — evita uma requisição por tecla digitada
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput.trim()), 350);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const { start, end } = getRange();
+  const s = toLocalDate(start);
+  const e = toLocalDate(end);
+
+  // Catálogo de tags vindo do servidor (não depende de carregar o histórico)
+  const tagsQuery = useTransactionTags();
+  const availableTags = tagsQuery.data ?? [];
 
   const hasActiveFilter = activeCats.length > 0 || activeTags.length > 0 || tab !== 'todos';
 
-  const periodTxs = useMemo(() => {
-    const { start, end } = getRange();
-    const s = start.toISOString().split('T')[0];
-    const e = end.toISOString().split('T')[0];
-    return transactions.filter(t => t.date >= s && t.date <= e);
-  }, [transactions, getRange]);
+  // Totais do período (regime de caixa) — agregados server-side (#4 Etapa B)
+  const summaryQuery = useReportSummary(s, e);
+  const sum = summaryQuery.data?.summary;
+  const monthTotals = {
+    income:    sum?.totalIncome      ?? 0,
+    expense:   sum?.totalExpenses    ?? 0,
+    received:  sum?.realizedIncome   ?? 0,
+    toReceive: sum?.pendingIncome    ?? 0,
+    paid:      sum?.realizedExpenses ?? 0,
+    pending:   sum?.pendingExpenses  ?? 0,
+  };
 
-  const monthTotals = useMemo(() => {
-    const income  = periodTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
-    const expense = periodTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
-    const received  = periodTxs.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
-    const toReceive = periodTxs.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-    const paid      = periodTxs.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
-    const pending   = periodTxs.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-    return { income, expense, received, toReceive, paid, pending };
-  }, [periodTxs]);
+  // Lista paginada server-side: período + tipo + categorias + tags + busca + ordenação.
+  // O servidor já filtra e ordena; o cliente apenas agrupa por data o que foi carregado.
+  const listQuery = usePaginatedTransactions({
+    startDate: s,
+    endDate:   e,
+    type:       tab === 'receitas' ? 'income' : tab === 'despesas' ? 'expense' : undefined,
+    categories: activeCats.length ? activeCats.join(',') : undefined,
+    tags:       activeTags.length ? activeTags.join(',') : undefined,
+    search:     search || undefined,
+    sort:       sortDir,
+  });
 
-  const filtered = useMemo(() => {
-    let txs = [...periodTxs].sort((a,b) =>
-      sortDir==='desc' ? new Date(b.date).getTime()-new Date(a.date).getTime() : new Date(a.date).getTime()-new Date(b.date).getTime()
-    );
-    if (tab==='receitas') txs = txs.filter(t=>t.type==='income');
-    if (tab==='despesas') txs = txs.filter(t=>t.type==='expense');
-    if (activeCats.length > 0) txs = txs.filter(t => activeCats.includes(t.category));
-    if (activeTags.length > 0) txs = txs.filter(t => (t.tags ?? []).some(tag => activeTags.includes(tag)));
-    if (search) { const s=search.toLowerCase(); txs=txs.filter(t=>t.description.toLowerCase().includes(s)||t.category.toLowerCase().includes(s)); }
-    return txs;
-  }, [periodTxs, tab, search, sortDir, activeCats, activeTags]);
+  const filtered = useMemo(
+    () => listQuery.data?.pages.flatMap(p => p.data) ?? [],
+    [listQuery.data],
+  );
+  const totalFound = listQuery.data?.pages[0]?.total ?? 0;
 
   const grouped = useMemo(() => {
     const g: Record<string, typeof filtered> = {};
@@ -246,7 +256,7 @@ export default function TransactionsPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Lançamentos</h1>
-            <p className="text-xs text-muted-foreground mt-1">{filtered.length} transações encontradas</p>
+            <p className="text-xs text-muted-foreground mt-1">{totalFound} transações encontradas</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Pesquisa inline */}
@@ -254,15 +264,15 @@ export default function TransactionsPage() {
               {searchOpen && (
                 <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: 180, opacity: 1 }}
                   exit={{ width: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                  <input autoFocus value={search} onChange={e => setSearch(e.target.value)}
-                    onKeyDown={e => e.key === 'Escape' && (setSearchOpen(false), setSearch(''))}
+                  <input autoFocus value={searchInput} onChange={e => setSearchInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Escape' && (setSearchOpen(false), setSearchInput(''))}
                     placeholder="Pesquisar..."
                     className="w-full rounded-xl border border-primary/40 bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground outline-none" />
                 </motion.div>
               )}
             </AnimatePresence>
             {/* Botão lupa */}
-            <button onClick={() => { setSearchOpen(v => !v); if (searchOpen) setSearch(''); }}
+            <button onClick={() => { setSearchOpen(v => !v); if (searchOpen) setSearchInput(''); }}
               title="Pesquisar" className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all ${searchOpen ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
               <Search className="h-4 w-4" />
             </button>
@@ -517,7 +527,19 @@ export default function TransactionsPage() {
         ))}
       </AnimatePresence>
 
-      {filtered.length === 0 && (
+      {/* Carregar mais — paginação server-side */}
+      {listQuery.hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => listQuery.fetchNextPage()}
+            disabled={listQuery.isFetchingNextPage}
+            className="px-5 py-2.5 text-xs font-semibold rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all disabled:opacity-50 disabled:cursor-wait">
+            {listQuery.isFetchingNextPage ? 'Carregando...' : 'Carregar mais'}
+          </button>
+        </div>
+      )}
+
+      {filtered.length === 0 && !listQuery.isLoading && (
         <div className="text-center py-16">
           <Search className="h-10 w-10 mx-auto mb-3 text-muted-foreground opacity-40" />
           <p className="text-sm font-medium text-muted-foreground">Nenhuma transação encontrada</p>

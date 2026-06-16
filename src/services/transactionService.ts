@@ -69,10 +69,12 @@ function toBackend(t: Partial<Omit<Transaction, 'id'>>): Partial<ApiTransaction>
 export interface TransactionFilters {
   type?: TransactionType;
   category?: string;
+  categories?: string;       // lista separada por vírgula (match exato no servidor)
   startDate?: string;
   endDate?: string;
   search?: string;
   tags?: string;
+  sort?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }
@@ -91,6 +93,11 @@ export const transactionService = {
     const qs = params.toString() ? `?${params}` : '';
     const res = await apiFetch<PaginatedResponse<ApiTransaction>>(`/api/transactions${qs}`);
     return { data: res.data.data.map(toFrontend), total: res.data.total, totalPages: res.data.totalPages };
+  },
+
+  async tags(): Promise<string[]> {
+    const res = await apiFetch<{ success: boolean; data: string[] }>('/api/transactions/tags');
+    return res.data;
   },
 
   async create(transaction: Omit<Transaction, 'id'>): Promise<Transaction> {

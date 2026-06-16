@@ -6,10 +6,12 @@ import { removeUploadFile } from '../utils/uploads';
 export interface TransactionFilters {
   type?: 'income' | 'expense';
   category?: string;
+  categories?: string;       // lista separada por vírgula → match exato (ANY)
   startDate?: string;
   endDate?: string;
   search?: string;
   tags?: string;
+  sort?: 'asc' | 'desc';     // ordenação por data (padrão: desc)
   page?: number;
   limit?: number;
 }
@@ -88,11 +90,12 @@ async function insertTx(executor: Queryable, userId: string, data: NewTransactio
 
 export class TransactionModel {
   static async findAll(userId: string, filters: TransactionFilters = {}): Promise<PaginatedResult<Transaction>> {
-    const { type, category, startDate, endDate, search, tags, page = 1, limit = 50 } = filters;
+    const { type, category, categories, startDate, endDate, search, tags, sort, page = 1, limit = 50 } = filters;
 
     // Busca textual: como description/notes são criptografados, filtramos em memória
     // (com teto de varredura — ver SEARCH_SCAN_LIMIT)
     const hasSearch = !!search;
+    const orderDir = sort === 'asc' ? 'ASC' : 'DESC';
 
     const conditions: string[] = ['user_id = $1'];
     const values: unknown[]    = [userId];
@@ -100,6 +103,11 @@ export class TransactionModel {
 
     if (type)      { conditions.push(`type = $${paramIndex++}`); values.push(type); }
     if (category)  { conditions.push(`category ILIKE $${paramIndex++}`); values.push(`%${category}%`); }
+    if (categories) {
+      // Múltiplas categorias (seleção exata na UI) → category = ANY(array)
+      const list = categories.split(',').map(c => c.trim()).filter(Boolean);
+      if (list.length) { conditions.push(`category = ANY($${paramIndex++})`); values.push(list); }
+    }
     if (startDate) { conditions.push(`date >= $${paramIndex++}`); values.push(startDate); }
     if (endDate)   { conditions.push(`date <= $${paramIndex++}`); values.push(endDate); }
     if (tags)      { conditions.push(`tags && $${paramIndex++}`); values.push(tags.split(',')); }
@@ -111,7 +119,7 @@ export class TransactionModel {
       // linhas (mais recentes primeiro) antes de descriptografar e filtrar por texto.
       // Isso elimina a descriptografia ilimitada (DoS) mantendo a busca por substring.
       const { rows } = await db.query<any>(
-        `SELECT * FROM transactions WHERE ${where} ORDER BY date DESC, created_at DESC LIMIT $${paramIndex}`,
+        `SELECT * FROM transactions WHERE ${where} ORDER BY date ${orderDir}, created_at ${orderDir} LIMIT $${paramIndex}`,
         [...values, SEARCH_SCAN_LIMIT]
       );
       const searchLower = search!.toLowerCase();
@@ -132,7 +140,7 @@ export class TransactionModel {
     const offset = (page - 1) * limit;
     const [{ rows: data }, { rows: countRows }] = await Promise.all([
       db.query<any>(
-        `SELECT * FROM transactions WHERE ${where} ORDER BY date DESC, created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+        `SELECT * FROM transactions WHERE ${where} ORDER BY date ${orderDir}, created_at ${orderDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
         [...values, limit, offset]
       ),
       db.query<{ count: string }>(`SELECT COUNT(*) FROM transactions WHERE ${where}`, values),
@@ -240,6 +248,15 @@ export class TransactionModel {
     // não pode ser revertido por ROLLBACK; só apaga se a transação confirmou).
     if (deleted && attachmentUrl) removeUploadFile(attachmentUrl);
     return deleted;
+  }
+
+  /** Tags distintas do usuário (catálogo para o filtro da tela de lançamentos). */
+  static async getDistinctTags(userId: string): Promise<string[]> {
+    const { rows } = await db.query<{ tag: string }>(
+      `SELECT DISTINCT unnest(tags) AS tag FROM transactions WHERE user_id = $1 ORDER BY tag`,
+      [userId]
+    );
+    return rows.map(r => r.tag).filter(Boolean);
   }
 
   static async getHistory(id: string, userId: string) {
