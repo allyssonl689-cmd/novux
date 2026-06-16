@@ -1,4 +1,5 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FinanceContext, FinanceContextType } from './finance-context';
 import { Transaction, Category } from '@/lib/types';
 import { generateInsights } from '@/lib/insights';
@@ -6,79 +7,110 @@ import { transactionService } from '@/services/transactionService';
 import { categoryService } from '@/services/categoryService';
 import { useAuth } from './AuthContext';
 
+// Tamanho de página ao carregar o histórico completo (máx. aceito pelo backend).
+const PAGE_SIZE = 1000;
+
+/**
+ * Carrega TODAS as transações do usuário paginando a API até o fim.
+ * Antes o app pedia apenas 500 (`limit: 500`) e calculava saldos/relatórios em
+ * cima desse recorte — com >500 lançamentos os números ficavam ERRADOS (#4).
+ */
+async function fetchAllTransactions(): Promise<Transaction[]> {
+  const all: Transaction[] = [];
+  let page = 1;
+  for (;;) {
+    const { data, total } = await transactionService.list({ page, limit: PAGE_SIZE });
+    all.push(...data);
+    if (data.length === 0 || all.length >= total) break;
+    page++;
+  }
+  return all;
+}
+
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, tokenReady } = useAuth();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isPremiumPreview, setIsPremiumPreview] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
+  const { user, isAuthenticated, tokenReady } = useAuth();
+  const queryClient = useQueryClient();
+  const userId = user?.id;
 
-  const loadData = useCallback(async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [txResult, cats] = await Promise.all([
-        transactionService.list({ limit: 500 }),
-        categoryService.list(),
-      ]);
-      setTransactions(txResult.data);
-      setCategories(cats);
-    } catch (err) {
-      console.error(err);
-      // Não deixa o usuário ver "R$ 0,00" sem explicação — comum no cold start (~30s) do Render
-      setLoadError('Não foi possível carregar seus dados. O servidor pode estar iniciando — isso pode levar alguns segundos no primeiro acesso.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  // Aguarda tokenReady para garantir que o access token está em memória (evita 401
+  // por race entre hydration da sessão e fetch). Chaves por usuário isolam o cache
+  // entre contas — no logout a query fica desabilitada e não vaza dados.
+  const enabled = isAuthenticated && tokenReady && !!userId;
+  const txKey  = useMemo(() => ['transactions', userId] as const, [userId]);
+  const catKey = useMemo(() => ['categories', userId] as const, [userId]);
 
-  useEffect(() => {
-    // Aguarda tokenReady para garantir que o access token está em memória
-    // Evita 401 por race condition entre hydration da sessão e fetch de dados
-    if (!isAuthenticated || !tokenReady) {
-      if (!isAuthenticated) {
-        setTransactions([]);
-        setCategories([]);
-        setLoadError(null);
-      }
-      return;
-    }
-    loadData();
-  }, [isAuthenticated, tokenReady, loadData]);
+  const txQuery = useQuery({
+    queryKey: txKey,
+    queryFn: fetchAllTransactions,
+    enabled,
+    staleTime: 60_000,
+  });
 
-  const insights = useMemo(() => generateInsights(transactions), [transactions]);
+  const catQuery = useQuery({
+    queryKey: catKey,
+    queryFn: () => categoryService.list(),
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+
+  const transactions = txQuery.data ?? [];
+  const categories   = catQuery.data ?? [];
+  const isLoading    = enabled && (txQuery.isLoading || catQuery.isLoading);
+  // Não deixa o usuário ver "R$ 0,00" sem explicação — comum no cold start (~30s) do Render
+  const loadError = (txQuery.isError || catQuery.isError)
+    ? 'Não foi possível carregar seus dados. O servidor pode estar iniciando — isso pode levar alguns segundos no primeiro acesso.'
+    : null;
+
+  const [isPremiumPreview, setIsPremiumPreview] = React.useState(false);
+
+  const reloadData = useCallback(async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: txKey }),
+      queryClient.invalidateQueries({ queryKey: catKey }),
+    ]);
+  }, [queryClient, txKey, catKey]);
+
+  // Helpers que atualizam o cache do TanStack Query — mantêm todas as telas
+  // (Dashboard, Relatórios, Lançamentos) sincronizadas a partir de uma fonte única.
+  const setTxCache = useCallback(
+    (updater: (prev: Transaction[]) => Transaction[]) => {
+      queryClient.setQueryData<Transaction[]>(txKey, prev => updater(prev ?? []));
+    },
+    [queryClient, txKey],
+  );
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {
     const created = await transactionService.create(transaction);
-    setTransactions(prev => [created, ...prev]);
-  }, []);
+    setTxCache(prev => [created, ...prev]);
+  }, [setTxCache]);
 
   const updateTransaction = useCallback(async (transaction: Transaction) => {
     const { id, ...rest } = transaction;
     const updated = await transactionService.update(id, rest);
-    setTransactions(prev => prev.map(t => t.id === id ? updated : t));
-  }, []);
+    setTxCache(prev => prev.map(t => t.id === id ? updated : t));
+  }, [setTxCache]);
 
   const deleteTransaction = useCallback(async (id: string) => {
     await transactionService.delete(id);
-    setTransactions(prev => prev.filter(t => t.id !== id));
-  }, []);
-
-  const addCategory = useCallback(async (name: string) => {
-    const created = await categoryService.create(name);
-    setCategories(prev => [...prev, created]);
-  }, []);
+    setTxCache(prev => prev.filter(t => t.id !== id));
+  }, [setTxCache]);
 
   const addTransactions = useCallback(async (newTransactions: Omit<Transaction, 'id'>[]) => {
     const created = await Promise.all(newTransactions.map(t => transactionService.create(t)));
-    setTransactions(prev => [...created, ...prev]);
-  }, []);
+    setTxCache(prev => [...created, ...prev]);
+  }, [setTxCache]);
 
   const toggleTransactionPaid = useCallback(async (id: string, paid: boolean) => {
     const updated = await transactionService.togglePaid(id, paid);
-    setTransactions(prev => prev.map(t => t.id === id ? updated : t));
-  }, []);
+    setTxCache(prev => prev.map(t => t.id === id ? updated : t));
+  }, [setTxCache]);
+
+  const addCategory = useCallback(async (name: string) => {
+    const created = await categoryService.create(name);
+    queryClient.setQueryData<Category[]>(catKey, prev => [...(prev ?? []), created]);
+  }, [queryClient, catKey]);
+
+  const insights = useMemo(() => generateInsights(transactions), [transactions]);
 
   const value = useMemo<FinanceContextType>(() => ({
     transactions,
@@ -87,7 +119,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     isPremiumPreview,
     isLoading,
     loadError,
-    reloadData: loadData,
+    reloadData,
     setPremiumPreview: setIsPremiumPreview,
     addTransaction,
     updateTransaction,
@@ -95,7 +127,7 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     addCategory,
     addTransactions,
     toggleTransactionPaid,
-  }), [transactions, categories, insights, isPremiumPreview, isLoading, loadError, loadData, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
+  }), [transactions, categories, insights, isPremiumPreview, isLoading, loadError, reloadData, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }
