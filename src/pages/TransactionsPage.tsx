@@ -119,7 +119,7 @@ const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
 
 
 export default function TransactionsPage() {
-  const { deleteTransaction, updateTransaction } = useFinance();
+  const { deleteTransaction, updateTransactionFields } = useFinance();
   const { getRange } = usePeriod();
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch]       = useState('');     // valor com debounce → enviado ao servidor
@@ -240,8 +240,7 @@ export default function TransactionsPage() {
     if (!paymentTx) return;
     setPaymentSaving(true);
     try {
-      await updateTransaction({
-        ...paymentTx,
+      await updateTransactionFields(paymentTx.id, {
         paid: true,
         paymentMethod: details.paymentMethod,
         paidAt: details.paidAt,
@@ -262,8 +261,7 @@ export default function TransactionsPage() {
     if (!paymentTx) return;
     setPaymentSaving(true);
     try {
-      await updateTransaction({
-        ...paymentTx,
+      await updateTransactionFields(paymentTx.id, {
         paid: false,
         paymentMethod: null,
         paidAt: null,

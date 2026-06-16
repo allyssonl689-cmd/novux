@@ -99,6 +99,13 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setTxCache(prev => prev.map(t => t.id === id ? updated : t));
   }, [setTxCache]);
 
+  // Update parcial: envia só os campos informados (evita revalidar a transação
+  // inteira no backend, que rejeita ex.: notes=null por ser opcional não-nullable).
+  const updateTransactionFields = useCallback(async (id: string, fields: Partial<Transaction>) => {
+    const updated = await transactionService.update(id, fields);
+    setTxCache(prev => prev.map(t => t.id === id ? updated : t));
+  }, [setTxCache]);
+
   const deleteTransaction = useCallback(async (id: string) => {
     await transactionService.delete(id);
     setTxCache(prev => prev.filter(t => t.id !== id));
@@ -133,11 +140,12 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     setPremiumPreview: setIsPremiumPreview,
     addTransaction,
     updateTransaction,
+    updateTransactionFields,
     deleteTransaction,
     addCategory,
     addTransactions,
     toggleTransactionPaid,
-  }), [transactions, categories, insights, isPremiumPreview, isLoading, loadError, reloadData, addTransaction, updateTransaction, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
+  }), [transactions, categories, insights, isPremiumPreview, isLoading, loadError, reloadData, addTransaction, updateTransaction, updateTransactionFields, deleteTransaction, addCategory, addTransactions, toggleTransactionPaid]);
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>;
 }
