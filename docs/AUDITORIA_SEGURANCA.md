@@ -164,11 +164,11 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 | 17 | ✅ **[CORRIGIDO]** Brute force no 2FA sem lockout por tentativa de TOTP | Segurança | `routes/auth.ts:11` |
 | 18 | ✅ **[CORRIGIDO]** TanStack Query instalado e provido, mas NUNCA usado — estado reinventado à mão. Agora o `FinanceContext` usa `useQuery`/`useQueryClient` (cache, refetch, invalidação). | Arquitetura | `App.tsx`, `FinanceContext` |
 | 19 | ✅ **[CORRIGIDO]** Zero testes e zero CI (Vitest/Playwright configurados, suíte vazia) | Arquitetura | — |
-| 20 | ✅ **[CORRIGIDO — parcial]** TransactionForm: modal hand-rolled sem a11y (sem focus trap, Escape, aria). Adicionado role/aria/Escape/foco; focus trap completo pendente. | UX | `TransactionForm.tsx` |
+| 20 | ✅ **[CORRIGIDO]** TransactionForm: modal hand-rolled sem a11y. **Migrado para Radix Dialog** — focus trap completo, Escape, aria-modal, aria-labelledby e restauração de foco nativos. | UX | `TransactionForm.tsx` |
 | 21 | ✅ **[CORRIGIDO]** Toasts configurados mas ausentes no CRUD — sem feedback de sucesso | UX | `App.tsx` + páginas |
 | 22 | ✅ **[CORRIGIDO]** Upload: arquivos órfãos (falha/troca/delete não limpam o antigo) | Backend | `transactionController:53-61` |
 | 23 | ✅ **[CORRIGIDO]** URLs de reset/verificação logadas em texto puro em falha de e-mail | Segurança | `authService.ts:59,243` |
-| 24 | Validação monetária frágil / sem máscara BRL (`type=number` rejeita vírgula) | UX | `TransactionForm.tsx:230` |
+| 24 | ✅ **[CORRIGIDO]** Validação monetária frágil / sem máscara BRL (`type=number` rejeita vírgula). Campo agora é texto com `inputMode=decimal` + parser pt-BR e formatação no blur. | UX | `TransactionForm.tsx` |
 | 25 | ✅ **[CORRIGIDO]** Sem lazy loading de rotas — bundle único (Recharts, Framer, jsPDF, landing) | UX | `App.tsx` |
 
 ---
@@ -261,15 +261,18 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 | Anexos | Comprovantes em **disco efêmero** do Render (somem a cada deploy). | **Decidir** o storage externo (S3 / Supabase Storage). Depois eu integro. |
 | #9 | Webhook do Telegram fica aberto se `TELEGRAM_WEBHOOK_SECRET` não estiver setado. | Garantir o secret em produção. (Posso também **tornar obrigatório no código** — me confirme.) |
 
+### ✅ Concluído nesta rodada (16/06/2026)
+- **#24** máscara/validação BRL · **#20** focus trap completo (Radix Dialog) · **CSV bulk** (1 requisição atômica) · **dívida rápida**: `safeDecrypt` não-silencioso, remoção de `mock-data`/`seed-data`, `no-useless-escape`/`!!` redundante.
+
 ### 🟡 Código aberto que EU posso fazer (sua decisão de priorizar)
-| # | Pendência | Observação |
+| # | Pendência | Esforço / risco |
 |---|---|---|
-| #24 | Validação monetária frágil / sem máscara BRL (`type=number` rejeita vírgula). | Frontend, baixo risco. |
-| #20 | Focus trap **completo** no `TransactionForm` (hoje só parcial). Ideal migrar p/ Radix Dialog. | Acessibilidade. |
-| CSV bulk | Importação de CSV faz **N requests** (1 POST por linha). Já existe `createMany` no backend — falta um endpoint bulk + ligar no front. | Performance. |
-| Dívida | a11y geral, mobile (status `hidden`/`group-hover` em touch), `verifyAccessToken` consulta o banco a cada request, parser de datas em UTC, `safeDecrypt` com fallback silencioso, `any` na camada de dados, tipos compartilhados front/back, remover `mock-data`/`seed-data`. | Itens 🟢 da auditoria. |
-| Etapa C (#4) | `insights`/`SmartIndicators`/`AIInsights` ainda usam o array completo do `FinanceContext`. Mover p/ server-side. | Evolução de escalabilidade. |
-| Lint | Backend tem 48 erros de lint pré-existentes; ESLint do front esbarra num worktree órfão. Limpar p/ poder **adicionar lint como gate do CI**. | Qualidade. |
+| Etapa C (#4) | `insights`/`SmartIndicators`/`AIInsights` ainda usam o array completo do `FinanceContext`. Mover p/ server-side (AIInsights monta contexto da Groq com todo o histórico). | **Grande** — porta lógica p/ backend ou novos endpoints. |
+| `any` + tipos compartilhados | `any` concentrado nos models e contrato front/back duplicado à mão (`toFrontend`/`toBackend`). | **Grande** — refactor de tipagem; habilita o gate de lint (ver abaixo). |
+| Lint como gate de CI | ~40 erros restantes são `no-explicit-any` (a dívida acima). **Decisão:** tipar de verdade (refactor) **ou** baixar a regra para `warn` (política). | Depende da decisão. |
+| `verifyAccessToken` | Consulta o banco (+ decrypt) a cada request → carga no pool. Cachear/otimizar. | **Médio** — sensível (auth), exige cuidado. |
+| Parser de datas em UTC | Datas relativas no parser do Telegram usam timezone do servidor → erro de dia p/ BRT. | Médio. |
+| a11y geral / mobile | `aria-label`/`role` ausentes em botões só-ícone; em mobile status `hidden` e editar/excluir só no `group-hover` (inacessível em touch). | Médio, incremental. |
 
 ### 🔭 Fora desta auditoria (segunda rodada recomendada)
 Admin/RBAC, fluxo 2FA completo, OAuth Google, audit log, `npm audit`/SCA de dependências, RLS do Supabase, pentest dinâmico, LGPD formal — ver "Escopo fora desta avaliação".
