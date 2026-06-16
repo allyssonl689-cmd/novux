@@ -163,7 +163,7 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 | 16 | ✅ **[CORRIGIDO]** Reset de senha sem validação de força (Zod ausente) | Segurança | `authController.ts:134-144` |
 | 17 | ✅ **[CORRIGIDO]** Brute force no 2FA sem lockout por tentativa de TOTP | Segurança | `routes/auth.ts:11` |
 | 18 | ✅ **[CORRIGIDO]** TanStack Query instalado e provido, mas NUNCA usado — estado reinventado à mão. Agora o `FinanceContext` usa `useQuery`/`useQueryClient` (cache, refetch, invalidação). | Arquitetura | `App.tsx`, `FinanceContext` |
-| 19 | Zero testes e zero CI (Vitest/Playwright configurados, suíte vazia) | Arquitetura | — |
+| 19 | ✅ **[CORRIGIDO]** Zero testes e zero CI (Vitest/Playwright configurados, suíte vazia) | Arquitetura | — |
 | 20 | ✅ **[CORRIGIDO — parcial]** TransactionForm: modal hand-rolled sem a11y (sem focus trap, Escape, aria). Adicionado role/aria/Escape/foco; focus trap completo pendente. | UX | `TransactionForm.tsx` |
 | 21 | ✅ **[CORRIGIDO]** Toasts configurados mas ausentes no CRUD — sem feedback de sucesso | UX | `App.tsx` + páginas |
 | 22 | ✅ **[CORRIGIDO]** Upload: arquivos órfãos (falha/troca/delete não limpam o antigo) | Backend | `transactionController:53-61` |
@@ -242,18 +242,36 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
   Concluído e no GitHub (branch fix/auditoria-bloco-rapidas, commits 309c574 · c4a1536 · 0845fcf · +Bloco 6):
   - Blocos 1–5: segurança rápida, UX, regime de caixa (#14), frontend (lazy + a11y), e backend hardening (#3, #22, #17).
   - Bloco 6: #11 (transações DB atômicas), #12 (migrations desambiguadas), #13 (contador de IA persistido).
-  - ✅ Migration 014 aplicada no Supabase → lockout de 2FA ativo após o deploy do backend.
-  - ⏳ Migration 015 (`ai_usage`) criada — **falta aplicar no Supabase** antes do deploy.
+  - ✅ Migration 014 (`pending_2fa.attempts`) aplicada no Supabase → lockout de 2FA ativo.
+  - ✅ Migration 015 (`ai_usage`) aplicada no Supabase → contador de IA persistido ativo.
 
   - Bloco 7: #5 (busca escalável — teto de varredura no `findAll`).
   - Bloco 8: #4 + #18 (Híbrido completo — Etapa A: TanStack Query + histórico completo; Etapa B: agregados server-side em Dashboard/Reports + paginação real na lista).
+  - Bloco 9: #19 (Vitest no backend + testes de criptografia/CSV; testes de financial-indicators no front; CI no GitHub Actions com type-check + testes).
 
-  Pendências (código puro):
-  - #19 (testes + CI).
+---
 
-  Continuam sendo sua parte:
-  - 🔴 Refresh token em texto puro + sem rotação (exige schema/produção).
-  - 🔐 Segredos no OneDrive sincronizado (mover + rotacionar — cuidado com ENCRYPTION_KEY).
-  - Anexos em disco efêmero → storage externo.
+## 📋 Pendências — o que falta fazer ou decidir
 
-  Lembrete de deploy: ao subir o backend, a migration já está aplicada, então /login/2fa funcionará normalmente.
+### 🔴 Sua parte (infra/produção/segurança — eu não faço sozinho)
+| # | Pendência | Ação necessária |
+|---|---|---|
+| Refresh token | Gravado em **texto puro** (coluna `token`) e **sem rotação** em `authService.ts`. | **Decidir** seguir com a correção (paro de gravar `token`, removo `OR token = $2`, implemento rotação) — **eu codifico**; você roda a **migration** que anula/remove a coluna em produção. |
+| #6 | Segredos de produção (`backend/.env`) dentro de pasta **OneDrive sincronizada**. | Mover o projeto p/ fora do OneDrive (ou dessincronizar o `.env`) e **rotacionar** os segredos. ⚠️ Rotacionar `ENCRYPTION_KEY` torna ilegível todo PII já cifrado — exige plano de re-criptografia. |
+| Anexos | Comprovantes em **disco efêmero** do Render (somem a cada deploy). | **Decidir** o storage externo (S3 / Supabase Storage). Depois eu integro. |
+| #9 | Webhook do Telegram fica aberto se `TELEGRAM_WEBHOOK_SECRET` não estiver setado. | Garantir o secret em produção. (Posso também **tornar obrigatório no código** — me confirme.) |
+
+### 🟡 Código aberto que EU posso fazer (sua decisão de priorizar)
+| # | Pendência | Observação |
+|---|---|---|
+| #24 | Validação monetária frágil / sem máscara BRL (`type=number` rejeita vírgula). | Frontend, baixo risco. |
+| #20 | Focus trap **completo** no `TransactionForm` (hoje só parcial). Ideal migrar p/ Radix Dialog. | Acessibilidade. |
+| CSV bulk | Importação de CSV faz **N requests** (1 POST por linha). Já existe `createMany` no backend — falta um endpoint bulk + ligar no front. | Performance. |
+| Dívida | a11y geral, mobile (status `hidden`/`group-hover` em touch), `verifyAccessToken` consulta o banco a cada request, parser de datas em UTC, `safeDecrypt` com fallback silencioso, `any` na camada de dados, tipos compartilhados front/back, remover `mock-data`/`seed-data`. | Itens 🟢 da auditoria. |
+| Etapa C (#4) | `insights`/`SmartIndicators`/`AIInsights` ainda usam o array completo do `FinanceContext`. Mover p/ server-side. | Evolução de escalabilidade. |
+| Lint | Backend tem 48 erros de lint pré-existentes; ESLint do front esbarra num worktree órfão. Limpar p/ poder **adicionar lint como gate do CI**. | Qualidade. |
+
+### 🔭 Fora desta auditoria (segunda rodada recomendada)
+Admin/RBAC, fluxo 2FA completo, OAuth Google, audit log, `npm audit`/SCA de dependências, RLS do Supabase, pentest dinâmico, LGPD formal — ver "Escopo fora desta avaliação".
+
+> **Lembrete de deploy:** migrations 014 e 015 já aplicadas no Supabase — `/login/2fa` e o contador de IA funcionam normalmente ao subir o backend.
