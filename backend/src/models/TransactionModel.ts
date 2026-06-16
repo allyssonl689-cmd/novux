@@ -1,4 +1,4 @@
-import { db } from '../config/database';
+import { db, withTransaction, Queryable } from '../config/database';
 import { Transaction, PaginatedResult } from './types';
 import { encrypt, decrypt } from '../utils/encryption';
 import { removeUploadFile } from '../utils/uploads';
@@ -37,16 +37,46 @@ function decryptTx(row: any): Transaction {
 }
 
 async function logHistory(
+  executor: Queryable,
   transactionId: string,
   userId: string,
   action: 'create' | 'update' | 'delete',
   snapshot: object
 ) {
-  await db.query(
+  await executor.query(
     `INSERT INTO transaction_history (transaction_id, user_id, action, snapshot)
      VALUES ($1, $2, $3, $4)`,
     [transactionId, userId, action, JSON.stringify(snapshot)]
   );
+}
+
+type NewTransaction = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+
+/**
+ * Insere uma transação usando o executor fornecido (pool ou client de transação)
+ * e registra o histórico. Não abre transação própria — o chamador decide o escopo
+ * atômico (ver `create` / `createMany`).
+ */
+async function insertTx(executor: Queryable, userId: string, data: NewTransaction): Promise<Transaction> {
+  const encDescription = encrypt(data.description);
+  const encNotes       = data.notes ? encrypt(data.notes) : null;
+
+  const { rows } = await executor.query<any>(
+    `INSERT INTO transactions
+       (user_id, type, value, category, date, description, notes, recurrence, recurrence_months, is_recurring, paid, tags, currency)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     RETURNING *`,
+    [
+      userId, data.type, data.value, data.category, data.date,
+      encDescription, encNotes,
+      data.recurrence ?? 'none', data.recurrence_months ?? null,
+      data.is_recurring ?? false, data.paid ?? false,
+      data.tags ?? [], (data as any).currency ?? 'BRL',
+    ]
+  );
+  const tx = decryptTx(rows[0]);
+  await logHistory(executor, tx.id, userId, 'create', tx);
+  return tx;
 }
 
 export class TransactionModel {
@@ -109,34 +139,31 @@ export class TransactionModel {
     };
   }
 
-  static async findById(id: string, userId: string): Promise<Transaction | null> {
-    const { rows } = await db.query<any>(
+  static async findById(id: string, userId: string, executor: Queryable = db): Promise<Transaction | null> {
+    const { rows } = await executor.query<any>(
       'SELECT * FROM transactions WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
     return rows[0] ? decryptTx(rows[0]) : null;
   }
 
-  static async create(userId: string, data: Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Transaction> {
-    const encDescription = encrypt(data.description);
-    const encNotes       = data.notes ? encrypt(data.notes) : null;
+  static async create(userId: string, data: NewTransaction): Promise<Transaction> {
+    // Insert + histórico em uma única transação atômica.
+    return withTransaction(client => insertTx(client, userId, data));
+  }
 
-    const { rows } = await db.query<any>(
-      `INSERT INTO transactions
-         (user_id, type, value, category, date, description, notes, recurrence, recurrence_months, is_recurring, paid, tags, currency)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-       RETURNING *`,
-      [
-        userId, data.type, data.value, data.category, data.date,
-        encDescription, encNotes,
-        data.recurrence ?? 'none', data.recurrence_months ?? null,
-        data.is_recurring ?? false, data.paid ?? false,
-        data.tags ?? [], (data as any).currency ?? 'BRL',
-      ]
-    );
-    const tx = decryptTx(rows[0]);
-    await logHistory(tx.id, userId, 'create', tx);
-    return tx;
+  /**
+   * Cria várias transações de forma atômica (tudo ou nada). Usado pela recorrência
+   * mensal: se um dos lançamentos falhar, nenhum é persistido.
+   */
+  static async createMany(userId: string, items: NewTransaction[]): Promise<Transaction[]> {
+    return withTransaction(async client => {
+      const created: Transaction[] = [];
+      for (const data of items) {
+        created.push(await insertTx(client, userId, data));
+      }
+      return created;
+    });
   }
 
   static async update(id: string, userId: string, data: Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<Transaction | null> {
@@ -164,14 +191,17 @@ export class TransactionModel {
     if (fields.length === 0) return this.findById(id, userId);
 
     values.push(id, userId);
-    const { rows } = await db.query<any>(
-      `UPDATE transactions SET ${fields.join(', ')} WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} RETURNING *`,
-      values
-    );
-    if (!rows[0]) return null;
-    const tx = decryptTx(rows[0]);
-    await logHistory(id, userId, 'update', tx);
-    return tx;
+    // Update + histórico em uma única transação atômica.
+    return withTransaction(async client => {
+      const { rows } = await client.query<any>(
+        `UPDATE transactions SET ${fields.join(', ')} WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} RETURNING *`,
+        values
+      );
+      if (!rows[0]) return null;
+      const tx = decryptTx(rows[0]);
+      await logHistory(client, id, userId, 'update', tx);
+      return tx;
+    });
   }
 
   static async setAttachment(id: string, userId: string, url: string): Promise<Transaction | null> {
@@ -183,15 +213,23 @@ export class TransactionModel {
   }
 
   static async delete(id: string, userId: string): Promise<boolean> {
-    const existing = await this.findById(id, userId);
-    if (existing) await logHistory(id, userId, 'delete', existing);
-    const { rowCount } = await db.query(
-      'DELETE FROM transactions WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
-    const deleted = (rowCount ?? 0) > 0;
-    // Remove o arquivo de comprovante associado, evitando lixo em disco
-    if (deleted && (existing as any)?.attachment_url) removeUploadFile((existing as any).attachment_url);
+    // Leitura + histórico + DELETE em uma única transação atômica.
+    const { deleted, attachmentUrl } = await withTransaction(async client => {
+      const existing = await this.findById(id, userId, client);
+      if (existing) await logHistory(client, id, userId, 'delete', existing);
+      const { rowCount } = await client.query(
+        'DELETE FROM transactions WHERE id = $1 AND user_id = $2',
+        [id, userId]
+      );
+      return {
+        deleted: (rowCount ?? 0) > 0,
+        attachmentUrl: (existing as any)?.attachment_url as string | undefined,
+      };
+    });
+
+    // Remove o arquivo de comprovante somente após o COMMIT (efeito em disco
+    // não pode ser revertido por ROLLBACK; só apaga se a transação confirmou).
+    if (deleted && attachmentUrl) removeUploadFile(attachmentUrl);
     return deleted;
   }
 

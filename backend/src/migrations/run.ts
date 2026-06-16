@@ -16,8 +16,13 @@ async function runMigrations(): Promise<void> {
     `);
 
     const migrationsDir = path.join(__dirname);
+    // Aplica APENAS migrations numeradas (`NNN_descricao.sql`). Scripts de setup
+    // manual (ALL_MIGRATIONS.sql, novux_migration.sql, novux_seeds.sql) vivem em
+    // `manual/` e NÃO devem ser executados pelo runner automático — rodá-los aqui
+    // recriaria/duplicaria o schema num banco novo.
+    const MIGRATION_PATTERN = /^\d{3,}_.*\.sql$/;
     const files = fs.readdirSync(migrationsDir)
-      .filter(f => f.endsWith('.sql'))
+      .filter(f => MIGRATION_PATTERN.test(f))
       .sort();
 
     for (const file of files) {

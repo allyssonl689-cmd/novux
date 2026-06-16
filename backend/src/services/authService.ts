@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { randomBytes, createHash } from 'crypto';
 import { verifySync } from 'otplib';
 import { sendPasswordResetEmail, sendWelcomeEmail, sendEmailVerificationEmail } from './emailService';
-import { db } from '../config/database';
+import { db, withTransaction } from '../config/database';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../config/auth';
 import { UserModel } from '../models/UserModel';
 import { AppError } from '../middleware/errorHandler';
@@ -31,21 +31,29 @@ export class AuthService {
     if (exists) throw new AppError('Email já cadastrado', 409);
 
     const password_hash = await bcrypt.hash(input.password, env.BCRYPT_ROUNDS);
-    const user = await UserModel.create({
-      name: input.name, email: input.email, password_hash,
-    });
-
-    await audit(user.id, 'register', 'account', ip, { name: input.name });
 
     // Gera token de verificação de e-mail
     const verifyToken = randomBytes(32).toString('base64url');
     const verifyHash  = hashToken(verifyToken);
     const verifyExp   = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h
-    await db.query(
-      `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.id, verifyHash, verifyExp]
-    );
+
+    // Cria o usuário e o token de verificação atomicamente: sem isso, uma falha
+    // no INSERT do token deixaria um usuário sem como verificar o e-mail.
+    const user = await withTransaction(async client => {
+      const created = await UserModel.create(
+        { name: input.name, email: input.email, password_hash },
+        client
+      );
+      await client.query(
+        `INSERT INTO email_verification_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3)`,
+        [created.id, verifyHash, verifyExp]
+      );
+      return created;
+    });
+
+    await audit(user.id, 'register', 'account', ip, { name: input.name });
+
     const verifyUrl = `${env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
 
     // Dispara e-mails em background — não bloqueia o registro
@@ -214,13 +222,16 @@ export class AuthService {
     if (!valid) throw new AppError('Senha atual incorreta', 401);
 
     const newHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
-    await db.query(
-      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
-      [newHash, userId]
-    );
-
-    // Invalida todos os refresh tokens (força re-login nos outros dispositivos)
-    await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+    // Troca de senha + invalidação dos refresh tokens de forma atômica: evita
+    // estado inconsistente onde a senha muda mas sessões antigas seguem válidas.
+    await withTransaction(async client => {
+      await client.query(
+        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+        [newHash, userId]
+      );
+      // Invalida todos os refresh tokens (força re-login nos outros dispositivos)
+      await client.query('DELETE FROM refresh_tokens WHERE user_id = $1', [userId]);
+    });
 
     await audit(userId, 'password_change', 'account', ip);
   }
@@ -231,18 +242,20 @@ export class AuthService {
     if (!user) return;
     if (user.password_hash === 'google-oauth') return;
 
-    // Invalida tokens anteriores deste usuário
-    await db.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
-
     const token = randomBytes(32).toString('base64url');
     const tokenHash = hashToken(token);
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
-    await db.query(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.id, tokenHash, expiresAt]
-    );
+    // Invalida tokens anteriores e cria o novo atomicamente: nunca deixa o usuário
+    // sem nenhum token de reset válido por falha entre o DELETE e o INSERT.
+    await withTransaction(async client => {
+      await client.query('DELETE FROM password_reset_tokens WHERE user_id = $1', [user.id]);
+      await client.query(
+        `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+         VALUES ($1, $2, $3)`,
+        [user.id, tokenHash, expiresAt]
+      );
+    });
 
     const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`;
 
@@ -274,20 +287,24 @@ export class AuthService {
     const entry = rows[0];
     if (!entry) throw new AppError('Link inválido ou expirado. Solicite um novo.', 400);
 
-    // Marca como usado antes de alterar a senha (evita replay em caso de erro)
-    await db.query(
-      'UPDATE password_reset_tokens SET used = true WHERE id = $1',
-      [entry.id]
-    );
-
     const newHash = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
-    await db.query(
-      'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
-      [newHash, entry.user_id]
-    );
 
-    // Invalida todos os refresh tokens (segurança: força re-login)
-    await db.query('DELETE FROM refresh_tokens WHERE user_id = $1', [entry.user_id]);
+    // Marca o token como usado, troca a senha e invalida as sessões atomicamente:
+    // qualquer falha no meio deixaria token consumido sem senha trocada (ou vice-versa).
+    await withTransaction(async client => {
+      // Marca como usado antes de alterar a senha (evita replay em caso de erro)
+      await client.query(
+        'UPDATE password_reset_tokens SET used = true WHERE id = $1',
+        [entry.id]
+      );
+      await client.query(
+        'UPDATE users SET password_hash = $1, updated_at = NOW() WHERE id = $2',
+        [newHash, entry.user_id]
+      );
+      // Invalida todos os refresh tokens (segurança: força re-login)
+      await client.query('DELETE FROM refresh_tokens WHERE user_id = $1', [entry.user_id]);
+    });
+
     await audit(entry.user_id, 'password_reset', 'account', ip);
   }
 

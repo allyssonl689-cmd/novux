@@ -53,6 +53,14 @@ Aplicado em 11/06/2026 — type-check de front e back **limpo** (`tsc --noEmit` 
 | #22 | **Limpeza de uploads órfãos:** falha pós-upload (transação inexistente) remove o arquivo; troca de anexo remove o antigo; exclusão da transação remove o arquivo. Util `utils/uploads.ts`. | ✅ Corrigido |
 | #17 | **Lockout 2FA:** `/login/2fa` conta tentativas de TOTP por sessão (coluna `pending_2fa.attempts`); após 5 falhas a sessão de 2FA é invalidada (HTTP 429). Persistido em banco (multi-instância). | ✅ Corrigido |
 
+### Bloco 6 — Backend: atomicidade, migrations e contador de IA
+| Item | Achado | Status |
+|---|---|---|
+| #11 | **Transações DB atômicas:** novo helper `withTransaction` em `config/database.ts` (BEGIN/COMMIT/ROLLBACK + release garantido). `TransactionModel.create/update/delete` envolvem escrita + `logHistory` numa única transação; novo `createMany` torna a recorrência mensal atômica (Telegram passa a usá-lo — antes era `Promise.all` de N inserts independentes). `authService.register` (usuário + token de verificação), `changePassword`, `forgotPassword` e `resetPassword` (senha + invalidação de sessões) também ficam atômicos. Remoção de arquivo de anexo no `delete` só após o COMMIT. | ✅ Corrigido |
+| #12 | **Migrations desambiguadas:** o runner (`run.ts`) agora só aplica arquivos no padrão `NNN_*.sql` — scripts de setup manual (`ALL_MIGRATIONS.sql`, `novux_migration.sql`, `novux_seeds.sql`) foram movidos para `migrations/manual/` (com README próprio) e não rodam mais automaticamente. README atualizado. Os duplicados `009_`/`010_` foram **mantidos** (renomear reexecutaria em bancos já migrados) com nota explicativa. | ✅ Corrigido |
+| #13 | **Contador de IA persistido:** `aiController` deixa de usar `Map` em memória (que zerava a cada deploy e divergia entre instâncias). Nova tabela `ai_usage` (uma linha por usuário/dia); leitura e incremento atômico via `INSERT ... ON CONFLICT DO UPDATE`. | ✅ Corrigido |
+
+> ⚠️ **Ação necessária (sua parte):** rodar a migration **`015_ai_usage.sql`** no banco antes/junto do deploy do backend — sem a tabela `ai_usage`, o endpoint de chat da IA falha.
 > ⚠️ **Ação necessária (sua parte):** rodar a migration **`014_pending_2fa_attempts.sql`** no banco antes/junto do deploy do backend — sem a coluna `attempts`, o endpoint `/login/2fa` falha.
 > ℹ️ **Persistência de anexos:** o acesso agora é seguro, mas os arquivos seguem em disco **efêmero** no Render (somem a cada deploy). Migrar para storage externo (S3/Supabase Storage) continua sendo sua parte.
 
@@ -145,9 +153,9 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 | # | Achado | Agentes | Local |
 |---|---|---|---|
 | 10 | ✅ **[CORRIGIDO]** `db.on('error')` → `process.exit(1)`: erro de socket ocioso derruba o processo | Seg + Backend | `config/database.ts:19-22` |
-| 11 | Operações multi-tabela sem transação DB (transação+history, register, reset, recorrência) | Arq + Backend | `TransactionModel`, `authService`, `TelegramBotService` |
-| 12 | Migrations ambíguas: `ALL_MIGRATIONS.sql` + numeradas + dois `009_` e dois `010_` | Arq + Backend | `migrations/run.ts:18-22` |
-| 13 | Contador de IA em `Map` em memória — zera no deploy, diverge em multi-instância | Arq + Backend | `aiController.ts:10` |
+| 11 | ✅ **[CORRIGIDO]** Operações multi-tabela sem transação DB (transação+history, register, reset, recorrência) | Arq + Backend | `TransactionModel`, `authService`, `TelegramBotService` |
+| 12 | ✅ **[CORRIGIDO]** Migrations ambíguas: `ALL_MIGRATIONS.sql` + numeradas + dois `009_` e dois `010_` | Arq + Backend | `migrations/run.ts:18-22` |
+| 13 | ✅ **[CORRIGIDO]** Contador de IA em `Map` em memória — zera no deploy, diverge em multi-instância | Arq + Backend | `aiController.ts:10` |
 | 14 | ✅ **[CORRIGIDO — regime de caixa]** Saldo/resumo não distingue `paid` vs pendente — mistura realizado com previsto | Backend | `TransactionModel.getSummary` |
 | 15 | ✅ **[CORRIGIDO]** Contexto da IA sem limite de tamanho nem timeout no fetch Groq | Backend | `aiController.ts:63-78` |
 | 16 | ✅ **[CORRIGIDO]** Reset de senha sem validação de força (Zod ausente) | Segurança | `authController.ts:134-144` |
@@ -226,3 +234,21 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 ---
 
 **Placar:** 🔴 ~9 críticos/altos · 🟡 16 médios · 🟢 12 dívida técnica.
+
+  --📌 Onde paramos
+
+  Concluído e no GitHub (branch fix/auditoria-bloco-rapidas, commits 309c574 · c4a1536 · 0845fcf · +Bloco 6):
+  - Blocos 1–5: segurança rápida, UX, regime de caixa (#14), frontend (lazy + a11y), e backend hardening (#3, #22, #17).
+  - Bloco 6: #11 (transações DB atômicas), #12 (migrations desambiguadas), #13 (contador de IA persistido).
+  - ✅ Migration 014 aplicada no Supabase → lockout de 2FA ativo após o deploy do backend.
+  - ⏳ Migration 015 (`ai_usage`) criada — **falta aplicar no Supabase** antes do deploy.
+
+  Pendências (código puro):
+  - Maiores: #4 + #18 (paginação real + TanStack Query), #5 (busca escalável), #19 (testes + CI).
+
+  Continuam sendo sua parte:
+  - 🔴 Refresh token em texto puro + sem rotação (exige schema/produção).
+  - 🔐 Segredos no OneDrive sincronizado (mover + rotacionar — cuidado com ENCRYPTION_KEY).
+  - Anexos em disco efêmero → storage externo.
+
+  Lembrete de deploy: ao subir o backend, a migration já está aplicada, então /login/2fa funcionará normalmente.

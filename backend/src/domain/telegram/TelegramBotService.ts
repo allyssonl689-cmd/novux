@@ -297,20 +297,21 @@ export async function handleCallback(update: TgCallbackQuery): Promise<void> {
     try {
       if (parsed.recurrence === 'monthly' && parsed.recurrence_months > 1) {
         const [baseY, baseM, baseD] = txDate.split('-').map(Number);
-        const promises = Array.from({ length: parsed.recurrence_months }, (_, i) => {
+        const items = Array.from({ length: parsed.recurrence_months }, (_, i) => {
           const targetMonth = ((baseM - 1 + i) % 12) + 1;
           const targetYear  = baseY + Math.floor((baseM - 1 + i) / 12);
           const lastDay     = new Date(targetYear, targetMonth, 0).getDate();
           const day         = Math.min(baseD, lastDay);
           const dateStr     = `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-          return TransactionModel.create(userId, {
+          return {
             type: parsed.type, value: parsed.value, category: parsed.category,
             date: dateStr, description: parsed.description,
             recurrence: 'monthly', recurrence_months: parsed.recurrence_months,
             is_recurring: i > 0, paid: parsed.paid, tags: [], currency: 'BRL',
-          } as any);
+          };
         });
-        await Promise.all(promises);
+        // Atômico: ou todos os lançamentos mensais são criados, ou nenhum.
+        await TransactionModel.createMany(userId, items as any);
         await sendMessage(chatId, `✅ *${parsed.recurrence_months} lançamentos mensais criados!*\n\n${summaryText(parsed)}`);
       } else {
         await TransactionModel.create(userId, {

@@ -18,22 +18,32 @@ async function isUserPremium(userId: string): Promise<boolean> {
   return (rows[0]?.plan ?? 'free') !== 'free';
 }
 
-// In-memory daily counter: userId → { date: 'YYYY-MM-DD', count: number }
-const usageMap = new Map<string, { date: string; count: number }>();
-
+// Contador diário persistido em `ai_usage` (uma linha por usuário/dia).
+// Substitui o Map em memória, que zerava a cada deploy e divergia entre instâncias.
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getUserUsage(userId: string): { date: string; count: number } {
-  const today = todayStr();
-  const entry = usageMap.get(userId);
-  if (!entry || entry.date !== today) {
-    const fresh = { date: today, count: 0 };
-    usageMap.set(userId, fresh);
-    return fresh;
-  }
-  return entry;
+/** Lê o número de mensagens já usadas pelo usuário no dia (0 se não houver registro). */
+async function getUsageCount(userId: string, date: string): Promise<number> {
+  const { rows } = await db.query<{ count: number }>(
+    'SELECT count FROM ai_usage WHERE user_id = $1 AND usage_date = $2',
+    [userId, date]
+  );
+  return rows[0]?.count ?? 0;
+}
+
+/** Incrementa (ou cria) o contador do dia de forma atômica e retorna o novo total. */
+async function incrementUsage(userId: string, date: string): Promise<number> {
+  const { rows } = await db.query<{ count: number }>(
+    `INSERT INTO ai_usage (user_id, usage_date, count)
+     VALUES ($1, $2, 1)
+     ON CONFLICT (user_id, usage_date)
+     DO UPDATE SET count = ai_usage.count + 1, updated_at = NOW()
+     RETURNING count`,
+    [userId, date]
+  );
+  return rows[0].count;
 }
 
 export class AIController {
@@ -52,20 +62,23 @@ export class AIController {
       // isPremium é derivado do banco (users.plan), nunca do corpo da requisição
       const isPremium = await isUserPremium(req.userId);
 
-      // Rate limit for non-premium users
+      const today = todayStr();
+      let usedToday = 0;
+
+      // Rate limit for non-premium users — contador persistido em `ai_usage`
       if (!isPremium) {
-        const usage = getUserUsage(req.userId);
-        if (usage.count >= FREE_DAILY_LIMIT) {
+        const current = await getUsageCount(req.userId, today);
+        if (current >= FREE_DAILY_LIMIT) {
           res.status(429).json({
             success: false,
             code: 'AI_LIMIT_REACHED',
             message: `Você atingiu o limite de ${FREE_DAILY_LIMIT} mensagens gratuitas por dia. Faça upgrade para o plano Pro e tenha conversas ilimitadas com a IA.`,
             remaining: 0,
-            resetAt: `${todayStr()}T23:59:59`,
+            resetAt: `${today}T23:59:59`,
           });
           return;
         }
-        usage.count++;
+        usedToday = await incrementUsage(req.userId, today);
       }
 
       // Limita o tamanho do contexto serializado para conter custo/tokens da Groq
@@ -137,8 +150,7 @@ ${contextStr}`;
 
       const text = groqData.choices?.[0]?.message?.content ?? 'Não consegui processar. Tente novamente.';
 
-      const usage = getUserUsage(req.userId);
-      const remaining = isPremium ? null : Math.max(0, FREE_DAILY_LIMIT - usage.count);
+      const remaining = isPremium ? null : Math.max(0, FREE_DAILY_LIMIT - usedToday);
 
       res.json({ success: true, data: { text, remaining } });
     } catch (err) {
@@ -146,9 +158,13 @@ ${contextStr}`;
     }
   }
 
-  static async usage(req: Request, res: Response): Promise<void> {
-    const usage = getUserUsage(req.userId);
-    const remaining = Math.max(0, FREE_DAILY_LIMIT - usage.count);
-    res.json({ success: true, data: { used: usage.count, remaining, limit: FREE_DAILY_LIMIT } });
+  static async usage(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const used = await getUsageCount(req.userId, todayStr());
+      const remaining = Math.max(0, FREE_DAILY_LIMIT - used);
+      res.json({ success: true, data: { used, remaining, limit: FREE_DAILY_LIMIT } });
+    } catch (err) {
+      next(err);
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { db } from '../config/database';
+import { db, Queryable } from '../config/database';
 import { User, PublicUser } from './types';
 import { encrypt, decrypt, emailHmac } from '../utils/encryption';
 
@@ -43,12 +43,12 @@ export class UserModel {
     return safeDecryptUser(rows[0]) as User;
   }
 
-  static async create(data: { name: string; email: string; password_hash: string }): Promise<PublicUser> {
+  static async create(data: { name: string; email: string; password_hash: string }, executor: Queryable = db): Promise<PublicUser> {
     const encryptedName  = encrypt(data.name);
     const encryptedEmail = encrypt(data.email.toLowerCase());
     const hash           = emailHmac(data.email);
 
-    const { rows } = await db.query<any>(
+    const { rows } = await executor.query<any>(
       `INSERT INTO users (name, email, email_hash, password_hash)
        VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, email_hash, avatar_url, is_active, created_at, updated_at`,

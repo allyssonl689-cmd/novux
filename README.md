@@ -365,7 +365,8 @@ goals               -- id, user_id, title, target_value, current_value,
 transaction_history -- id, transaction_id, user_id, action, snapshot (jsonb)
 ```
 
-Scripts de migração: `backend/src/migrations/ALL_MIGRATIONS.sql`
+Scripts de migração: `backend/src/migrations/manual/ALL_MIGRATIONS.sql`
+(migrations numeradas automáticas via `npm run migrate`; ver `backend/src/migrations/manual/README.md`)
 
 ---
 
@@ -425,8 +426,10 @@ npm run dev                  # http://localhost:5173
 cd backend
 npm install
 cp .env.example .env         # Preencha DATABASE_URL, JWT_SECRET, etc.
-# Criar tabelas (uma vez):
-psql $DATABASE_URL -f src/migrations/ALL_MIGRATIONS.sql
+# Criar tabelas (uma vez) — escolha UMA opção:
+npm run migrate                                          # aplica as migrations numeradas (recomendado)
+# ou setup manual completo:
+psql $DATABASE_URL -f src/migrations/manual/ALL_MIGRATIONS.sql
 npm run dev                  # http://localhost:3001
 ```
 

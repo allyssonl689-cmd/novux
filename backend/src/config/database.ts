@@ -1,5 +1,13 @@
-import { Pool } from 'pg';
+import { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg';
 import { env } from './env';
+
+/**
+ * Algo capaz de executar queries: o pool (`db`) ou um client de transação.
+ * Interface estrutural — tanto `Pool` quanto `PoolClient` são compatíveis.
+ */
+export interface Queryable {
+  query<R extends QueryResultRow = any>(text: string, values?: unknown[]): Promise<QueryResult<R>>;
+}
 
 const isProduction = env.NODE_ENV === 'production';
 
@@ -22,6 +30,30 @@ db.on('error', (err) => {
   // Matar o processo aqui causava reinícios desnecessários e indisponibilidade.
   console.error('Erro inesperado no pool do banco de dados (recuperável):', err);
 });
+
+/**
+ * Executa `fn` dentro de uma transação (BEGIN/COMMIT/ROLLBACK) usando um client
+ * dedicado do pool. Em caso de erro, faz ROLLBACK e relança. O client é sempre
+ * liberado. Use para operações multi-tabela que precisam ser atômicas.
+ */
+export async function withTransaction<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch {
+      // Ignora falha no ROLLBACK (ex.: conexão já perdida) — o erro original é o que importa.
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+}
 
 let _dbReady = false;
 export const isDbReady = () => _dbReady;
