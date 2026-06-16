@@ -128,10 +128,10 @@ Recibos em `/uploads/<hex>.ext` acessíveis por URL sem checar dono nem expiraç
 Com >500 lançamentos, saldos e relatórios ficam **incorretos** (não só lentos).
 **Correção:** paginação server-side real; agregados vindos dos endpoints de relatório existentes.
 
-### 5. Busca textual descriptografa a tabela inteira (DoS trivial)
+### 5. ✅ [CORRIGIDO] Busca textual descriptografa a tabela inteira (DoS trivial)
 **2 agentes (Arquitetura, Backend).** `backend/src/models/TransactionModel.ts:70-90`
 Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
-**Correção:** índice HMAC de termos ou `tsvector`; no mínimo um `LIMIT` defensivo.
+**Correção aplicada:** teto de varredura `SEARCH_SCAN_LIMIT = 1000` — os filtros estruturados (type/category/date/tags) vão ao SQL e a busca textual passa a descriptografar no máximo as 1000 transações mais recentes que casam, eliminando a descriptografia ilimitada. Substring preservado. (Índice HMAC/`tsvector` permanece como evolução futura: exigiria coluna determinística + backfill dos dados já cifrados, e só daria match por palavra inteira — mudança de schema + UX.)
 
 ### 6. 🔐 Segredos de produção em `backend/.env` dentro de pasta OneDrive sincronizada
 **Segurança.** Os `.env` **não** estão no git (✅), mas o `backend/.env` real (`DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `GROQ_API_KEY`, `SMTP_PASS`, `ENCRYPTION_KEY`) está dentro de `OneDrive - Empreendimentos Farmacêuticos Globo` → replicado para nuvem corporativa.
@@ -243,8 +243,10 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
   - ✅ Migration 014 aplicada no Supabase → lockout de 2FA ativo após o deploy do backend.
   - ⏳ Migration 015 (`ai_usage`) criada — **falta aplicar no Supabase** antes do deploy.
 
+  - Bloco 7: #5 (busca escalável — teto de varredura no `findAll`).
+
   Pendências (código puro):
-  - Maiores: #4 + #18 (paginação real + TanStack Query), #5 (busca escalável), #19 (testes + CI).
+  - Maiores: #4 + #18 (paginação real + TanStack Query), #19 (testes + CI).
 
   Continuam sendo sua parte:
   - 🔴 Refresh token em texto puro + sem rotação (exige schema/produção).

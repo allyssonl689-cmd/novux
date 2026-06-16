@@ -52,6 +52,13 @@ async function logHistory(
 
 type NewTransaction = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
 
+// Teto de linhas descriptografadas por busca textual. Como description/notes são
+// cifrados (AES-GCM, não pesquisável em SQL), a busca precisa descriptografar e
+// filtrar em memória — sem teto, `?search=` força a descriptografia da tabela
+// inteira (DoS trivial). A varredura cobre as N transações mais recentes que casam
+// com os filtros estruturados (type/category/date/tags), suficiente para o uso real.
+const SEARCH_SCAN_LIMIT = 1000;
+
 /**
  * Insere uma transação usando o executor fornecido (pool ou client de transação)
  * e registra o histórico. Não abre transação própria — o chamador decide o escopo
@@ -84,6 +91,7 @@ export class TransactionModel {
     const { type, category, startDate, endDate, search, tags, page = 1, limit = 50 } = filters;
 
     // Busca textual: como description/notes são criptografados, filtramos em memória
+    // (com teto de varredura — ver SEARCH_SCAN_LIMIT)
     const hasSearch = !!search;
 
     const conditions: string[] = ['user_id = $1'];
@@ -99,14 +107,15 @@ export class TransactionModel {
     const where = conditions.join(' AND ');
 
     if (hasSearch) {
-      // Busca textual: busca todas as linhas filtradas (sem paginação SQL) e filtra após decrypt
+      // Aplica os filtros estruturados no SQL e limita a varredura a SEARCH_SCAN_LIMIT
+      // linhas (mais recentes primeiro) antes de descriptografar e filtrar por texto.
+      // Isso elimina a descriptografia ilimitada (DoS) mantendo a busca por substring.
       const { rows } = await db.query<any>(
-        `SELECT * FROM transactions WHERE ${where} ORDER BY date DESC, created_at DESC`,
-        values
+        `SELECT * FROM transactions WHERE ${where} ORDER BY date DESC, created_at DESC LIMIT $${paramIndex}`,
+        [...values, SEARCH_SCAN_LIMIT]
       );
       const searchLower = search!.toLowerCase();
-      const allDecrypted = rows.map(decryptTx);
-      const filtered     = allDecrypted.filter(t =>
+      const filtered     = rows.map(decryptTx).filter(t =>
         t.description.toLowerCase().includes(searchLower) ||
         (t.notes ?? '').toLowerCase().includes(searchLower)
       );
