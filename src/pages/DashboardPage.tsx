@@ -5,9 +5,15 @@ import { useFinance } from '@/contexts/FinanceContext';
 import { usePeriod } from '@/contexts/PeriodContext';
 import { Wallet, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ArrowDownRight, ChevronRight, Sparkles, AlertTriangle, CheckCircle2, Info, Clock, AlertCircle, BadgeCheck, CircleDollarSign } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { buildFinancialIndicators } from '@/lib/financial-indicators';
 import { Skeleton } from '@/components/ui/skeleton';
 import { CHART } from '@/lib/tokens';
+import { useReportSummary, useMonthlyBreakdown, useRecentTransactions, toLocalDate } from '@/hooks/useReports';
+
+/** Formata 'YYYY-MM' como rótulo curto pt-BR (ex.: "fev/25"). */
+function monthLabel(ym: string) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
+}
 
 const fmt = (v: number) => `R$ ${Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtSigned = (v: number) => `${v < 0 ? '-' : ''}${fmt(v)}`;
@@ -77,25 +83,6 @@ const INSIGHT_CFG: Record<string, { color: string; Icon: any }> = {
   info:     { color: 'hsl(var(--primary))',     Icon: Info },
 };
 
-function buildMonthlySummary(transactions: { type: string; value: number; date: string }[]) {
-  const months: Record<string, { income: number; expense: number }> = {};
-  transactions.forEach(t => {
-    const key = t.date.slice(0, 7);
-    if (!months[key]) months[key] = { income: 0, expense: 0 };
-    if (t.type === 'income') months[key].income += t.value;
-    else months[key].expense += t.value;
-  });
-  return Object.entries(months)
-    .sort(([a], [b]) => a.localeCompare(b))   // ordem cronológica — sem slice
-    .map(([key, { income, expense }]) => {
-      const [year, month] = key.split('-');
-      const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-      // Inclui o ano abreviado quando há múltiplos anos no histórico
-      const shortMonth = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-      return { shortMonth, income, expense, savings: income - expense };
-    });
-}
-
 function DashboardSkeleton() {
   return (
     <div className="max-w-[1400px] mx-auto space-y-6">
@@ -117,76 +104,66 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
-  const { transactions, insights, isLoading } = useFinance();
+  const { insights } = useFinance();
   const { getRange, period, customRange } = usePeriod();
   const [chartMode, setChartMode] = useState<'bar' | 'area'>('bar');
 
-  // Converte Date para string local YYYY-MM-DD (sem offset UTC — evita off-by-one em fusos)
-  function toLocalDate(d: Date) {
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
+  const { start: startDate, end: endDate } = getRange();
+  const s = toLocalDate(startDate);
+  const e = toLocalDate(endDate);
 
-  const periodTxs = useMemo(() => {
-    const { start, end } = getRange();
-    const s = toLocalDate(start);
-    const e = toLocalDate(end);
-    return transactions.filter(t => t.date >= s && t.date <= e);
-    // deps explícitas em period/customRange em vez de getRange (função nova a cada render)
-  }, [transactions, period, customRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Agregados vindos do servidor — corretos em qualquer volume, sem depender de
+  // carregar todo o histórico em memória (#4 Etapa B).
+  const summaryQuery = useReportSummary(s, e);
+  const monthlyQuery = useMonthlyBreakdown();
+  const recentQuery  = useRecentTransactions(s, e, 7);
 
-  // Fluxo de Caixa mostra todos os meses (histórico completo independente do filtro)
-  const monthlySummary = useMemo(() => buildMonthlySummary(transactions), [transactions]);
+  const isLoading = summaryQuery.isLoading || monthlyQuery.isLoading;
 
-  // Totais gerais acumulados (todo o histórico, ignora filtro propositalmente)
+  const cur    = summaryQuery.data?.summary;
+  const prev   = summaryQuery.data?.previous;
+  const months = monthlyQuery.data ?? [];
+
+  // Fluxo de Caixa: série mensal de todo o histórico (independe do filtro de período)
+  const monthlySummary = useMemo(() => months.map(m => ({
+    shortMonth: monthLabel(m.month),
+    income: m.income, expense: m.expense, savings: m.income - m.expense,
+  })), [months]);
+
+  // Totais gerais acumulados (todo o histórico)
   const allTimeStats = useMemo(() => ({
-    income:  transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0),
-    expense: transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0),
-  }), [transactions]);
+    income:  months.reduce((acc, m) => acc + m.income, 0),
+    expense: months.reduce((acc, m) => acc + m.expense, 0),
+  }), [months]);
 
-  // Status de pagamento — baseado no período selecionado
+  // Status de pagamento do período (regime de caixa) — vem do summary do servidor
   const payStats = useMemo(() => {
-    const received   = periodTxs.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
-    const toReceive  = periodTxs.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-    const paid       = periodTxs.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
-    const pending    = periodTxs.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
+    const received  = cur?.realizedIncome   ?? 0;
+    const toReceive = cur?.pendingIncome    ?? 0;
+    const paid      = cur?.realizedExpenses ?? 0;
+    const pending   = cur?.pendingExpenses  ?? 0;
     const realBalance = received - paid;
     const commitment = received > 0 ? Math.round((pending / received) * 100) : 0;
     return { received, toReceive, paid, pending, realBalance, commitment };
-  }, [periodTxs]);
+  }, [cur]);
 
   const stats = useMemo(() => {
-    const cur = periodTxs;
-    // compare against equivalent previous period
-    const { start, end } = getRange();
-    const dur = end.getTime() - start.getTime();
-    const prevEnd = new Date(start.getTime() - 1);
-    const prevStart = new Date(prevEnd.getTime() - dur);
-    const ps = toLocalDate(prevStart);
-    const pe = toLocalDate(prevEnd);
-    const prev = transactions.filter(t => t.date >= ps && t.date <= pe);
+    const income  = cur?.totalIncome    ?? 0;
+    const expense = cur?.totalExpenses  ?? 0;
+    const pIncome = prev?.totalIncome   ?? 0;
+    const pExpense= prev?.totalExpenses ?? 0;
 
-    const income  = cur.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
-    const expense = cur.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
-    const pIncome = prev.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
-    const pExpense= prev.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    const totalExpenses = expense;
+    const categories = (summaryQuery.data?.categories ?? [])
+      .filter(c => c.type === 'expense')
+      .map(c => ({ name: c.category, value: parseFloat(c.total) }))
+      .sort((a,b) => b.value - a.value)
+      .map((c,i) => ({ ...c, color: PIE_COLORS[i%PIE_COLORS.length], pct: totalExpenses>0 ? Math.round((c.value/totalExpenses)*100) : 0 }));
 
-    const byCategory: Record<string,number> = {};
-    cur.filter(t=>t.type==='expense').forEach(t => { byCategory[t.category]=(byCategory[t.category]||0)+t.value; });
-    const totalExpenses = cur.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
-    const categories = Object.entries(byCategory)
-      .map(([name,value],i) => ({ name, value, color: PIE_COLORS[i%PIE_COLORS.length], pct: totalExpenses>0 ? Math.round((value/totalExpenses)*100) : 0 }))
-      .sort((a,b)=>b.value-a.value);
-
-    // Saldo em regime de CAIXA: considera apenas lançamentos realizados (paid).
-    // Receitas/Despesas (KPIs) seguem brutas — mostram a movimentação do período.
-    const realIncome   = cur.filter(t=>t.type==='income'  && t.paid===true).reduce((s,t)=>s+t.value,0);
-    const realExpense  = cur.filter(t=>t.type==='expense' && t.paid===true).reduce((s,t)=>s+t.value,0);
-    const pRealIncome  = prev.filter(t=>t.type==='income'  && t.paid===true).reduce((s,t)=>s+t.value,0);
-    const pRealExpense = prev.filter(t=>t.type==='expense' && t.paid===true).reduce((s,t)=>s+t.value,0);
-    const curBalance  = realIncome - realExpense;
-    const prevBalance = pRealIncome - pRealExpense;
-    const hasPrevData = pRealIncome > 0 || pRealExpense > 0;
-
+    // Saldo em regime de CAIXA (realizado). Receitas/Despesas (KPIs) seguem brutas.
+    const curBalance  = cur?.balance  ?? 0;
+    const prevBalance = prev?.balance ?? 0;
+    const hasPrevData = (prev?.realizedIncome ?? 0) > 0 || (prev?.realizedExpenses ?? 0) > 0;
     // Variação real do saldo (usa |prevBalance| como base para evitar divisão negativa estranha)
     const balanceDelta = !hasPrevData || Math.abs(prevBalance) < 0.01
       ? 0
@@ -198,21 +175,23 @@ export default function DashboardPage() {
       expDelta:     pExpense>0 ? Math.round(((expense-pExpense)/pExpense)*100) : 0,
       balanceDelta,
     };
-  }, [periodTxs, transactions, getRange]);
+  }, [cur, prev, summaryQuery.data]);
 
-  const indicators = useMemo(() => buildFinancialIndicators(periodTxs), [periodTxs]);
+  // Score de saúde financeira a partir do riskRatio do mês CALENDÁRIO atual (bruto).
+  const riskRatio = useMemo(() => {
+    const thisYm = toLocalDate(new Date()).slice(0, 7);
+    const m = months.find(x => x.month === thisYm);
+    if (!m) return null;
+    return m.income > 0 ? m.expense / m.income : m.expense > 0 ? 1 : 0;
+  }, [months]);
   // Score hiperbólico: 500/riskRatio — nunca zera, reflete gradualmente a saúde financeira
-  // riskRatio 0.5 (poupou 50%) → ~950  | riskRatio 1.0 (break-even) → ~500
-  // riskRatio 1.5 (déficit 50%) → ~333 | riskRatio 2.0 (déficit 100%) → ~250
-  const score = indicators
-    ? (indicators.riskRatio <= 0
-        ? 950
-        : Math.max(30, Math.min(950, Math.round(500 / indicators.riskRatio))))
-    : 720;
+  const score = riskRatio === null
+    ? 720
+    : (riskRatio <= 0 ? 950 : Math.max(30, Math.min(950, Math.round(500 / riskRatio))));
   const scoreLabel = score>=800?'Excelente':score>=650?'Muito Bom':score>=450?'Regular':score>=250?'Atenção':'Crítico';
   const scoreColor = score>=650 ? 'hsl(var(--success))' : score>=400 ? 'hsl(var(--warning))' : 'hsl(var(--destructive))';
 
-  const recent = useMemo(() => [...periodTxs].sort((a,b)=>new Date(b.date).getTime()-new Date(a.date).getTime()).slice(0,7), [periodTxs]);
+  const recent = recentQuery.data?.data ?? [];
   // Taxa de poupança em regime de caixa: saldo realizado sobre o que foi recebido
   const savingsRate = payStats.received > 0 ? (payStats.realBalance / payStats.received * 100).toFixed(1) : '0';
 

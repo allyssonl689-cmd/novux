@@ -70,13 +70,22 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
     ]);
   }, [queryClient, txKey, catKey]);
 
+  // Agregados server-side (Dashboard/Relatórios e recentes) derivam das transações;
+  // após qualquer mutação eles precisam ser revalidados para refletir a mudança.
+  const invalidateDerived = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['reports'] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', 'recent'] });
+    queryClient.invalidateQueries({ queryKey: ['transactions', 'page'] });
+  }, [queryClient]);
+
   // Helpers que atualizam o cache do TanStack Query — mantêm todas as telas
   // (Dashboard, Relatórios, Lançamentos) sincronizadas a partir de uma fonte única.
   const setTxCache = useCallback(
     (updater: (prev: Transaction[]) => Transaction[]) => {
       queryClient.setQueryData<Transaction[]>(txKey, prev => updater(prev ?? []));
+      invalidateDerived();
     },
-    [queryClient, txKey],
+    [queryClient, txKey, invalidateDerived],
   );
 
   const addTransaction = useCallback(async (transaction: Omit<Transaction, 'id'>) => {

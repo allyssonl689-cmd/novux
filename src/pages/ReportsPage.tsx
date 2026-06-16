@@ -6,6 +6,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { TrendingUp, TrendingDown, BarChart3, Activity, FileDown, Lock, CheckCircle2, Clock, AlertCircle, BadgeCheck, CircleDollarSign } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { CHART } from '@/lib/tokens';
+import { useReportSummary, useMonthlyBreakdown, toLocalDate } from '@/hooks/useReports';
 
 // Lazy import — jsPDF (~600KB) carregado somente quando o usuário clica em exportar
 const loadGeneratePDF = () => import('@/lib/generatePDF').then(m => m.generateFinancialPDF);
@@ -42,100 +43,83 @@ const TABS = [
   { id:'trend', label:'Tendências',   icon: TrendingUp },
 ] as const;
 
-function buildMonthlySummary(txList: { type: string; value: number; date: string }[], limitMonths?: number) {
-  const months: Record<string, { income: number; expense: number }> = {};
-  txList.forEach(t => {
-    const key = t.date.slice(0, 7);
-    if (!months[key]) months[key] = { income: 0, expense: 0 };
-    if (t.type === 'income') months[key].income += t.value;
-    else months[key].expense += t.value;
-  });
-  let entries = Object.entries(months).sort(([a], [b]) => a.localeCompare(b));
-  if (limitMonths) entries = entries.slice(-limitMonths);
-  return entries.map(([key, { income, expense }]) => {
-    const [year, month] = key.split('-');
-    const date = new Date(parseInt(year), parseInt(month) - 1, 1);
-    const shortMonth = date.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-    return { shortMonth, income, expense, savings: income - expense };
-  });
-}
-
-function toLocalDate(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+/** Formata 'YYYY-MM' como rótulo curto pt-BR (ex.: "fev/25"). */
+function monthLabel(ym: string) {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
 }
 
 export default function ReportsPage() {
-  const { transactions, insights } = useFinance();
-  const { getRange, period, customRange } = usePeriod();
+  const { insights } = useFinance();
+  const { getRange } = usePeriod();
   const { user } = useAuth();
   const [tab, setTab] = useState<'visao'|'cats'|'trend'>('visao');
   const [pdfLoading, setPdfLoading] = useState(false);
   // PDF disponível para todos até billing ser implementado; quando ativo, usar user?.plan === 'premium'
   const isPremium = true;
 
-  const periodTxs = useMemo(() => {
-    const { start, end } = getRange();
-    const s = toLocalDate(start);
-    const e = toLocalDate(end);
-    return transactions.filter(t => t.date >= s && t.date <= e);
-  }, [transactions, period, customRange]); // eslint-disable-line react-hooks/exhaustive-deps
+  const { start, end } = getRange();
+  const s = toLocalDate(start);
+  const e = toLocalDate(end);
 
-  // History charts use ALL transactions (not period-filtered) to show full timeline
-  const allMonthlySummary = useMemo(() => buildMonthlySummary(transactions), [transactions]);
+  // Agregados server-side (#4 Etapa B) — corretos em qualquer volume.
+  const summaryQuery = useReportSummary(s, e);
+  const monthlyQuery = useMonthlyBreakdown();
 
-  // Period-filtered summary (used only where period filter matters)
-  const monthlySummary = useMemo(() => buildMonthlySummary(periodTxs), [periodTxs]);
+  const cur    = summaryQuery.data?.summary;
+  const months = monthlyQuery.data ?? [];
 
-  // Total acumulado — todo o histórico, independe do filtro de período
+  // Histórico completo: série mensal (independe do filtro de período)
+  const allMonthlySummary = useMemo(() => months.map(m => ({
+    shortMonth: monthLabel(m.month),
+    income: m.income, expense: m.expense, savings: m.income - m.expense,
+  })), [months]);
+
+  // Total acumulado — todo o histórico
   const allTimeStats = useMemo(() => {
-    const income  = transactions.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
-    const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
+    const income  = months.reduce((acc, m) => acc + m.income, 0);
+    const expense = months.reduce((acc, m) => acc + m.expense, 0);
     return { income, expense, balance: income - expense };
-  }, [transactions]);
+  }, [months]);
 
-  // Status de pagamento — baseado no período selecionado
+  // Status de pagamento do período selecionado (regime de caixa) — vem do servidor
   const payStats = useMemo(() => {
-    const received   = periodTxs.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
-    const toReceive  = periodTxs.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-    const paid       = periodTxs.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
-    const pending    = periodTxs.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-    const totalInc   = received + toReceive;
-    const totalExp   = paid + pending;
+    const received  = cur?.realizedIncome   ?? 0;
+    const toReceive = cur?.pendingIncome    ?? 0;
+    const paid      = cur?.realizedExpenses ?? 0;
+    const pending   = cur?.pendingExpenses  ?? 0;
+    const totalInc  = received + toReceive;
+    const totalExp  = paid + pending;
     return { received, toReceive, paid, pending, totalInc, totalExp,
-      receiptRate:  totalInc > 0 ? Math.round(received  / totalInc * 100) : 0,
-      paymentRate:  totalExp > 0 ? Math.round(paid      / totalExp * 100) : 0,
+      receiptRate:  totalInc > 0 ? Math.round(received / totalInc * 100) : 0,
+      paymentRate:  totalExp > 0 ? Math.round(paid     / totalExp * 100) : 0,
       realBalance:  received - paid,
     };
-  }, [periodTxs]);
+  }, [cur]);
 
-  // Histórico mensal de status de pagamento — independe do filtro (todo o histórico)
-  const monthlyPaySummary = useMemo(() =>
-    buildMonthlySummary(transactions).map(m => {
-      const monthKey = transactions.filter(t => {
-        const d = new Date(t.date+'T12:00:00');
-        return d.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' }) === m.shortMonth;
-      });
-      const received  = monthKey.filter(t=>t.type==='income'  && t.paid===true ).reduce((s,t)=>s+t.value,0);
-      const toReceive = monthKey.filter(t=>t.type==='income'  && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-      const paid      = monthKey.filter(t=>t.type==='expense' && t.paid===true ).reduce((s,t)=>s+t.value,0);
-      const pending   = monthKey.filter(t=>t.type==='expense' && t.paid!==true ).reduce((s,t)=>s+t.value,0);
-      return { ...m, received, toReceive, paid, pending };
-    }),
-  [transactions]);
+  // Histórico mensal de status de pagamento (todo o histórico)
+  const monthlyPaySummary = useMemo(() => months.map(m => ({
+    shortMonth: monthLabel(m.month),
+    income: m.income, expense: m.expense, savings: m.income - m.expense,
+    received: m.received, toReceive: m.toReceive, paid: m.paid, pending: m.pending,
+  })), [months]);
 
   const stats = useMemo(() => {
-    const income  = periodTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.value,0);
-    const expense = periodTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.value,0);
-    const byCategory: Record<string,number> = {};
-    periodTxs.filter(t=>t.type==='expense').forEach(t => { byCategory[t.category]=(byCategory[t.category]||0)+t.value; });
-    const categories = Object.entries(byCategory).map(([name,value],i)=>({ name, value, color: COLORS[i%COLORS.length], pct: expense>0?Math.round((value/expense)*100):0 })).sort((a,b)=>b.value-a.value);
-    return { income, expense, balance: income-expense, count: periodTxs.length, categories };
-  }, [periodTxs]);
+    const income  = cur?.totalIncome   ?? 0;
+    const expense = cur?.totalExpenses ?? 0;
+    const categories = (summaryQuery.data?.categories ?? [])
+      .filter(c => c.type === 'expense')
+      .map(c => ({ name: c.category, value: parseFloat(c.total) }))
+      .sort((a,b) => b.value - a.value)
+      .map((c,i) => ({ ...c, color: COLORS[i%COLORS.length], pct: expense>0?Math.round((c.value/expense)*100):0 }));
+    const count = (cur?.incomeCount ?? 0) + (cur?.expenseCount ?? 0);
+    return { income, expense, balance: income-expense, count, categories };
+  }, [cur, summaryQuery.data]);
 
   const patrimony = useMemo(() =>
     allMonthlySummary.map((d, i) => ({
       ...d,
-      patrimony: allMonthlySummary.slice(0, i + 1).reduce((s, m) => s + m.savings, 0),
+      patrimony: allMonthlySummary.slice(0, i + 1).reduce((acc, m) => acc + m.savings, 0),
     })),
   [allMonthlySummary]);
 
