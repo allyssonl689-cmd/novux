@@ -98,11 +98,11 @@ Os agentes de **Segurança** e **Arquitetura/Backend** leram o mesmo código de 
 
 **Conclusão:** o achado **CRÍTICO procede** — um dump/leitura do banco (Supabase) expõe credenciais de sessão reutilizáveis por 7 dias, sem necessidade de quebrar hash. O agente de Arquitetura interpretou mal (viu o `token_hash` e assumiu que era a única coluna).
 
-**Correção (NÃO incluída no bloco "Rápidas" — toca schema + auth de produção):**
-1. Parar de gravar a coluna `token` em claro em `issueTokens` (gravar só `token_hash`).
-2. Remover o `OR token = $2` das queries de `refresh` e `logout`.
-3. Implementar rotação: a cada `refresh`, emitir novo refresh token, invalidar o antigo e re-setar o cookie; idealmente com detecção de reuso.
-4. Migration para remover/anular a coluna `token` (requer execução no banco de produção — **sua parte**).
+**✅ Correção aplicada (commit `3e8e7d2`):**
+1. ✅ `issueTokens` grava só `token_hash` (nunca o texto puro).
+2. ✅ `refresh` e `logout` não consultam mais a coluna `token`.
+3. ✅ Rotação: cada `refresh` consome o token atual, emite um novo par e re-seta o cookie; reuso de token (não encontrado no banco) revoga todas as sessões.
+4. ⏳ **Sua parte:** rodar migrations **016** (nullable, antes do deploy) e **017** (drop da coluna, após o deploy) no Supabase.
 
 ---
 
@@ -256,7 +256,7 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 ### 🔴 Sua parte (infra/produção/segurança — eu não faço sozinho)
 | # | Pendência | Ação necessária |
 |---|---|---|
-| Refresh token | Gravado em **texto puro** (coluna `token`) e **sem rotação** em `authService.ts`. | **Decidir** seguir com a correção (paro de gravar `token`, removo `OR token = $2`, implemento rotação) — **eu codifico**; você roda a **migration** que anula/remove a coluna em produção. |
+| Refresh token | ✅ **CÓDIGO CORRIGIDO** (commit `3e8e7d2`): grava só o hash, rotação a cada refresh + detecção de reuso. **Falta você rodar 2 migrations** no Supabase: **016** (torna `token` nullable) **antes** do deploy e **017** (dropa a coluna) **depois** do deploy confirmado. |
 | #6 | Segredos de produção (`backend/.env`) dentro de pasta **OneDrive sincronizada**. | Mover o projeto p/ fora do OneDrive (ou dessincronizar o `.env`) e **rotacionar** os segredos. ⚠️ Rotacionar `ENCRYPTION_KEY` torna ilegível todo PII já cifrado — exige plano de re-criptografia. |
 | Anexos | Comprovantes em **disco efêmero** do Render (somem a cada deploy). | **Decidir** o storage externo (S3 / Supabase Storage). Depois eu integro. |
 | #9 | Webhook do Telegram fica aberto se `TELEGRAM_WEBHOOK_SECRET` não estiver setado. | Garantir o secret em produção. (Posso também **tornar obrigatório no código** — me confirme.) |
