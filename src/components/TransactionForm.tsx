@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import * as Dialog from '@radix-ui/react-dialog';
 import { useFinance } from '@/contexts/FinanceContext';
 import { Transaction, TransactionType, RecurrenceType, CURRENCIES } from '@/lib/types';
 import {
@@ -60,14 +60,31 @@ function addMonthsClamped(dateStr: string, months: number): string {
   return `${targetYear}-${String(targetMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
+/**
+ * Converte um valor digitado (pt-BR) em número. Aceita "1.234,56", "1234,56",
+ * "1234.56" e "1234". Quando há vírgula, pontos são tratados como separador de
+ * milhar. `type=number` rejeitava vírgula — por isso o campo agora é texto.
+ */
+function parseCurrencyInput(raw: string): number {
+  if (!raw) return NaN;
+  let s = raw.replace(/[^\d.,-]/g, '');
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  return parseFloat(s);
+}
+
+/** Formata um número como moeda pt-BR sem símbolo (ex.: 1234.5 → "1.234,50"). */
+function formatCurrencyInput(n: number): string {
+  if (!Number.isFinite(n)) return '';
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 export function TransactionForm({ open, onClose, editId }: Props) {
   const { transactions, addTransaction, updateTransaction, addTransactions } = useFinance();
   const editing = editId ? transactions.find(t => t.id === editId) : undefined;
   const attachRef = useRef<HTMLInputElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
 
   const [type, setType] = useState<TransactionType>(editing?.type || 'expense');
-  const [value, setValue]           = useState(editing?.value?.toString() || '');
+  const [value, setValue]           = useState(editing ? formatCurrencyInput(editing.value) : '');
   const [currency, setCurrency]     = useState(editing?.currency || 'BRL');
   const [category, setCategory]     = useState(editing?.category || '');
   const [date, setDate]             = useState(editing?.date || new Date().toISOString().split('T')[0]);
@@ -86,7 +103,7 @@ export function TransactionForm({ open, onClose, editId }: Props) {
   useEffect(() => {
     if (!open) return;
     if (editing) {
-      setType(editing.type); setValue(editing.value.toString());
+      setType(editing.type); setValue(formatCurrencyInput(editing.value));
       setCurrency(editing.currency || 'BRL');
       setCategory(editing.category); setDate(editing.date);
       setDesc(editing.description); setNotes(editing.notes || '');
@@ -102,21 +119,13 @@ export function TransactionForm({ open, onClose, editId }: Props) {
     setErrors({}); setTagInput('');
   }, [editId, open]);
 
-  // Acessibilidade do modal: fecha no Escape e leva o foco para dentro ao abrir
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
-    dialogRef.current?.focus();
-    return () => document.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
-
   const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS;
   const currencySymbol = CURRENCIES.find(c => c.code === currency)?.symbol ?? 'R$';
 
   function validate() {
     const e: Record<string,string> = {};
-    if (!value || isNaN(Number(value)) || Number(value) <= 0) e.value = 'Valor inválido';
+    const num = parseCurrencyInput(value);
+    if (!value || isNaN(num) || num <= 0) e.value = 'Valor inválido';
     if (!category) e.category = 'Selecione uma categoria';
     if (!desc.trim()) e.desc = 'Informe uma descrição';
     setErrors(e); return Object.keys(e).length === 0;
@@ -170,7 +179,7 @@ export function TransactionForm({ open, onClose, editId }: Props) {
     if (!validate()) return;
     setSaving(true);
     const baseData = {
-      type, value: parseFloat(value), category, date,
+      type, value: parseCurrencyInput(value), category, date,
       description: desc.trim(), notes: notes.trim() || undefined,
       recurrence: recurrence === 'none' ? undefined : recurrence,
       recurrenceMonths: recurrence === 'monthly' ? recMonths : undefined,
@@ -199,16 +208,14 @@ export function TransactionForm({ open, onClose, editId }: Props) {
   const accentColor = type === 'income' ? 'hsl(161 90% 42%)' : 'hsl(343 90% 62%)';
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/65 backdrop-blur-sm"
-          onClick={e => e.target === e.currentTarget && onClose()}>
-          <motion.div initial={{ opacity: 0, y: 40, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 40 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-            ref={dialogRef} role="dialog" aria-modal="true" aria-labelledby="tx-form-title" tabIndex={-1}
-            className="w-full max-w-lg rounded-2xl border border-border bg-card overflow-hidden outline-none"
-            style={{ boxShadow: '0 24px 80px hsl(0 0% 0% / 0.45)' }}>
+    <Dialog.Root open={open} onOpenChange={o => { if (!o) onClose(); }}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        {/* Radix Content fornece focus trap, Escape, aria-modal e restauração de foco */}
+        <Dialog.Content
+          aria-describedby={undefined}
+          className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-lg max-h-[90vh] -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-border bg-card overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+          style={{ boxShadow: '0 24px 80px hsl(0 0% 0% / 0.45)' }}>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -218,9 +225,9 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                     ? <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
                     : <TrendingDown className="h-4 w-4" style={{ color: accentColor }} />}
                 </div>
-                <h2 id="tx-form-title" className="text-sm font-bold text-foreground" style={{ fontFamily: 'Syne, sans-serif' }}>
+                <Dialog.Title className="text-sm font-bold text-foreground" style={{ fontFamily: 'Syne, sans-serif' }}>
                   {editing ? 'Editar Lançamento' : 'Novo Lançamento'}
-                </h2>
+                </Dialog.Title>
               </div>
               <button onClick={onClose} aria-label="Fechar" className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-foreground transition-all">
                 <X className="h-4 w-4" />
@@ -249,8 +256,10 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                   <label className="text-[11px] font-medium text-muted-foreground block mb-1.5">Valor</label>
                   <div className="relative">
                     <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">{currencySymbol}</span>
-                    <input type="number" step="0.01" min="0" placeholder="0,00"
-                      value={value} onChange={e => setValue(e.target.value)}
+                    <input type="text" inputMode="decimal" placeholder="0,00"
+                      value={value}
+                      onChange={e => setValue(e.target.value.replace(/[^\d.,]/g, ''))}
+                      onBlur={() => { const n = parseCurrencyInput(value); if (Number.isFinite(n)) setValue(formatCurrencyInput(n)); }}
                       className={`w-full rounded-xl border pl-10 pr-4 py-3 text-lg font-bold bg-secondary outline-none transition-all ${errors.value ? 'border-destructive' : 'border-border focus:border-primary/50'}`}
                       style={{ color: value ? accentColor : undefined }} />
                   </div>
@@ -450,9 +459,8 @@ export function TransactionForm({ open, onClose, editId }: Props) {
                 }
               </button>
             </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
