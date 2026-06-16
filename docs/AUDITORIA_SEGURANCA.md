@@ -102,7 +102,7 @@ Os agentes de **Segurança** e **Arquitetura/Backend** leram o mesmo código de 
 1. ✅ `issueTokens` grava só `token_hash` (nunca o texto puro).
 2. ✅ `refresh` e `logout` não consultam mais a coluna `token`.
 3. ✅ Rotação: cada `refresh` consome o token atual, emite um novo par e re-seta o cookie; reuso de token (não encontrado no banco) revoga todas as sessões.
-4. ⏳ **Sua parte:** rodar migrations **016** (nullable, antes do deploy) e **017** (drop da coluna, após o deploy) no Supabase.
+4. ✅ Migrations **016** (nullable) e **017** (drop da coluna `token`) aplicadas no Supabase. **Concluído em produção.**
 
 ---
 
@@ -256,7 +256,7 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 ### 🔴 Sua parte (infra/produção/segurança — eu não faço sozinho)
 | # | Pendência | Ação necessária |
 |---|---|---|
-| Refresh token | ✅ **CÓDIGO CORRIGIDO** (commit `3e8e7d2`): grava só o hash, rotação a cada refresh + detecção de reuso. **Falta você rodar 2 migrations** no Supabase: **016** (torna `token` nullable) **antes** do deploy e **017** (dropa a coluna) **depois** do deploy confirmado. |
+| Refresh token | ✅ **CONCLUÍDO** (commit `3e8e7d2`, em produção): grava só o hash, rotação a cada refresh + detecção de reuso. Migrations **016** (nullable) e **017** (drop da coluna `token`) aplicadas no Supabase. Nenhum refresh token fica mais legível no banco. |
 | #6 | Segredos de produção (`backend/.env`) dentro de pasta **OneDrive sincronizada**. | Mover o projeto p/ fora do OneDrive (ou dessincronizar o `.env`) e **rotacionar** os segredos. ⚠️ Rotacionar `ENCRYPTION_KEY` torna ilegível todo PII já cifrado — exige plano de re-criptografia. |
 | Anexos | Comprovantes em **disco efêmero** do Render (somem a cada deploy). | **Decidir** o storage externo (S3 / Supabase Storage). Depois eu integro. |
 | #9 | Webhook do Telegram fica aberto se `TELEGRAM_WEBHOOK_SECRET` não estiver setado. | Garantir o secret em produção. (Posso também **tornar obrigatório no código** — me confirme.) |
