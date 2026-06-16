@@ -123,11 +123,12 @@ Qualquer usuário envia `{"isPremium": true}` no body e ganha chamadas Groq ilim
 Recibos em `/uploads/<hex>.ext` acessíveis por URL sem checar dono nem expiração. No Render o disco é **efêmero** — anexos somem a cada deploy.
 **Correção:** servir por rota autenticada que valida `user_id` dono; migrar para storage externo.
 
-### 4. ✅ [CORRIGIDO — correção numérica] Frontend lê só 500 transações e calcula tudo em memória → dados ERRADOS
+### 4. ✅ [CORRIGIDO] Frontend lê só 500 transações e calcula tudo em memória → dados ERRADOS
 **Arquitetura.** `src/contexts/FinanceContext.tsx:29`
 Com >500 lançamentos, saldos e relatórios ficam **incorretos** (não só lentos).
-**Correção aplicada (Etapa A — commit `8723fe4`):** `FinanceContext` migrado para **TanStack Query** (resolve também #18) e passa a **paginar a API até carregar o histórico completo** (não mais o recorte de 500) — os números voltam a ficar corretos em todas as telas. Cache chaveado por usuário; mutações atualizam o cache (fonte única, telas sincronizadas).
-**Evolução futura (Etapa B — escalabilidade, não correção):** mover Dashboard/Relatórios para os agregados server-side (`/api/reports/summary` + `/monthly`) e paginação real na tela de Lançamentos, para não carregar todo o histórico em memória. Hoje aceitável para volumes pessoais.
+**Etapa A (commit `8723fe4`):** `FinanceContext` migrado para **TanStack Query** (resolve também #18) e passa a paginar a API até carregar o histórico completo (não mais o recorte de 500) — correção numérica imediata em todas as telas. Cache por usuário; mutações atualizam o cache.
+**Etapa B (commits `f78f402` · `b982e9f` · `7cd951a`):** agregados **server-side**. Backend ganhou `/api/reports/summary` (com período anterior p/ deltas + categorias), `/api/reports/monthly-breakdown` (série mensal all-time com status de pagamento) e `/api/transactions/tags`; `findAll` aceita `categories` (match exato) e `sort`. Dashboard e Relatórios passam a consumir esses endpoints (corretos em qualquer volume, sem recalcular sobre o array). Tela de Lançamentos com **paginação server-side real** (`useInfiniteQuery` + "Carregar mais"): período, tipo, categorias, tags, busca (debounce) e ordenação aplicados no servidor.
+**Resta (fora de #4):** `insights`/`SmartIndicators`/`AIInsights` ainda consomem o array completo do `FinanceContext` — mover esses para server-side é evolução separada.
 
 ### 5. ✅ [CORRIGIDO] Busca textual descriptografa a tabela inteira (DoS trivial)
 **2 agentes (Arquitetura, Backend).** `backend/src/models/TransactionModel.ts:70-90`
@@ -245,9 +246,10 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
   - ⏳ Migration 015 (`ai_usage`) criada — **falta aplicar no Supabase** antes do deploy.
 
   - Bloco 7: #5 (busca escalável — teto de varredura no `findAll`).
+  - Bloco 8: #4 + #18 (Híbrido completo — Etapa A: TanStack Query + histórico completo; Etapa B: agregados server-side em Dashboard/Reports + paginação real na lista).
 
   Pendências (código puro):
-  - Maiores: #4 + #18 (paginação real + TanStack Query), #19 (testes + CI).
+  - #19 (testes + CI).
 
   Continuam sendo sua parte:
   - 🔴 Refresh token em texto puro + sem rotação (exige schema/produção).
