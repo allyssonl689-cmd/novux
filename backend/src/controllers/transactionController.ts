@@ -8,6 +8,7 @@ import {
 } from '../validators/transactionValidators';
 import { AppError } from '../middleware/errorHandler';
 import { resolveUploadPath, removeUploadFile } from '../utils/uploads';
+import { csvCell } from '../utils/csv';
 
 export class TransactionController {
   static async list(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -116,14 +117,6 @@ export class TransactionController {
       const { startDate, endDate, limit: limitStr } = req.query as { startDate?: string; endDate?: string; limit?: string };
       const limit = Math.min(parseInt(limitStr ?? '10000', 10), 50000);
       const result = await TransactionModel.findAll(req.userId, { startDate, endDate, limit });
-
-      // Safely escape a CSV cell: wrap in quotes, escape internal quotes, strip formula-injection chars
-      function csvCell(val: unknown): string {
-        const str = String(val ?? '').replace(/"/g, '""');
-        // Prevent CSV formula injection (cells starting with =, +, -, @)
-        const safe = str.replace(/^[=+\-@\t\r]/, "'$&");
-        return `"${safe}"`;
-      }
 
       const headers = ['id','type','value','currency','category','date','description','notes','tags','paid'];
       const rows = result.data.map(t => [
