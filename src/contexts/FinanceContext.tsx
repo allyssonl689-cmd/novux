@@ -105,7 +105,8 @@ export function FinanceProvider({ children }: { children: React.ReactNode }) {
   }, [setTxCache]);
 
   const addTransactions = useCallback(async (newTransactions: Omit<Transaction, 'id'>[]) => {
-    const created = await Promise.all(newTransactions.map(t => transactionService.create(t)));
+    // Uma única requisição em lote (atômica) em vez de N POSTs.
+    const created = await transactionService.createMany(newTransactions);
     setTxCache(prev => [...created, ...prev]);
   }, [setTxCache]);
 

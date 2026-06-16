@@ -5,6 +5,7 @@ import {
   createTransactionSchema,
   updateTransactionSchema,
   transactionFiltersSchema,
+  bulkCreateSchema,
 } from '../validators/transactionValidators';
 import { AppError } from '../middleware/errorHandler';
 import { resolveUploadPath, removeUploadFile } from '../utils/uploads';
@@ -39,6 +40,15 @@ export class TransactionController {
       const input = createTransactionSchema.parse(req.body);
       const transaction = await TransactionModel.create(req.userId, input as any);
       res.status(201).json({ success: true, data: transaction });
+    } catch (err) { next(err); }
+  }
+
+  static async bulkCreate(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { transactions } = bulkCreateSchema.parse(req.body);
+      // Atômico: ou todas as linhas do CSV entram, ou nenhuma (createMany usa transação).
+      const created = await TransactionModel.createMany(req.userId, transactions as any);
+      res.status(201).json({ success: true, data: created });
     } catch (err) { next(err); }
   }
 

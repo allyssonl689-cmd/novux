@@ -108,6 +108,15 @@ export const transactionService = {
     return toFrontend(res.data);
   },
 
+  // Criação em lote (importação de CSV) — uma única requisição, atômica no backend.
+  async createMany(transactions: Omit<Transaction, 'id'>[]): Promise<Transaction[]> {
+    const res = await apiFetch<{ success: boolean; data: ApiTransaction[] }>('/api/transactions/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ transactions: transactions.map(toBackend) }),
+    });
+    return res.data.map(toFrontend);
+  },
+
   async update(id: string, transaction: Partial<Omit<Transaction, 'id'>>): Promise<Transaction> {
     const res = await apiFetch<SingleResponse<ApiTransaction>>(`/api/transactions/${id}`, {
       method: 'PUT',

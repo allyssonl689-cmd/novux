@@ -17,6 +17,11 @@ export const createTransactionSchema = z.object({
 
 export const updateTransactionSchema = createTransactionSchema.partial();
 
+// Criação em lote (importação de CSV) — evita N requisições, uma por linha.
+export const bulkCreateSchema = z.object({
+  transactions: z.array(createTransactionSchema).min(1).max(1000),
+});
+
 export const transactionFiltersSchema = z.object({
   type: z.enum(['income', 'expense']).optional(),
   category: z.string().optional(),

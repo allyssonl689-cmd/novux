@@ -15,6 +15,7 @@ router.get('/:id',                TransactionController.getById);
 router.get('/:id/history',        TransactionController.getHistory);
 router.get('/:id/attachment',     TransactionController.getAttachment);
 router.post('/',                   TransactionController.create);
+router.post('/bulk',              TransactionController.bulkCreate);
 router.post('/:id/attachment',    upload.single('file'), TransactionController.uploadAttachment);
 router.put('/:id',                TransactionController.update);
 router.delete('/:id',             TransactionController.remove);
