@@ -123,10 +123,11 @@ Qualquer usuário envia `{"isPremium": true}` no body e ganha chamadas Groq ilim
 Recibos em `/uploads/<hex>.ext` acessíveis por URL sem checar dono nem expiração. No Render o disco é **efêmero** — anexos somem a cada deploy.
 **Correção:** servir por rota autenticada que valida `user_id` dono; migrar para storage externo.
 
-### 4. Frontend lê só 500 transações e calcula tudo em memória → dados ERRADOS
+### 4. ✅ [CORRIGIDO — correção numérica] Frontend lê só 500 transações e calcula tudo em memória → dados ERRADOS
 **Arquitetura.** `src/contexts/FinanceContext.tsx:29`
 Com >500 lançamentos, saldos e relatórios ficam **incorretos** (não só lentos).
-**Correção:** paginação server-side real; agregados vindos dos endpoints de relatório existentes.
+**Correção aplicada (Etapa A — commit `8723fe4`):** `FinanceContext` migrado para **TanStack Query** (resolve também #18) e passa a **paginar a API até carregar o histórico completo** (não mais o recorte de 500) — os números voltam a ficar corretos em todas as telas. Cache chaveado por usuário; mutações atualizam o cache (fonte única, telas sincronizadas).
+**Evolução futura (Etapa B — escalabilidade, não correção):** mover Dashboard/Relatórios para os agregados server-side (`/api/reports/summary` + `/monthly`) e paginação real na tela de Lançamentos, para não carregar todo o histórico em memória. Hoje aceitável para volumes pessoais.
 
 ### 5. ✅ [CORRIGIDO] Busca textual descriptografa a tabela inteira (DoS trivial)
 **2 agentes (Arquitetura, Backend).** `backend/src/models/TransactionModel.ts:70-90`
@@ -160,7 +161,7 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 | 15 | ✅ **[CORRIGIDO]** Contexto da IA sem limite de tamanho nem timeout no fetch Groq | Backend | `aiController.ts:63-78` |
 | 16 | ✅ **[CORRIGIDO]** Reset de senha sem validação de força (Zod ausente) | Segurança | `authController.ts:134-144` |
 | 17 | ✅ **[CORRIGIDO]** Brute force no 2FA sem lockout por tentativa de TOTP | Segurança | `routes/auth.ts:11` |
-| 18 | TanStack Query instalado e provido, mas NUNCA usado — estado reinventado à mão | Arquitetura | `App.tsx`, `FinanceContext` |
+| 18 | ✅ **[CORRIGIDO]** TanStack Query instalado e provido, mas NUNCA usado — estado reinventado à mão. Agora o `FinanceContext` usa `useQuery`/`useQueryClient` (cache, refetch, invalidação). | Arquitetura | `App.tsx`, `FinanceContext` |
 | 19 | Zero testes e zero CI (Vitest/Playwright configurados, suíte vazia) | Arquitetura | — |
 | 20 | ✅ **[CORRIGIDO — parcial]** TransactionForm: modal hand-rolled sem a11y (sem focus trap, Escape, aria). Adicionado role/aria/Escape/foco; focus trap completo pendente. | UX | `TransactionForm.tsx` |
 | 21 | ✅ **[CORRIGIDO]** Toasts configurados mas ausentes no CRUD — sem feedback de sucesso | UX | `App.tsx` + páginas |
