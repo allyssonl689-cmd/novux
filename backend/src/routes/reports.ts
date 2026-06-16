@@ -10,5 +10,6 @@ router.use(dataLimiter);
 
 router.get('/summary', ReportController.summary);
 router.get('/monthly', ReportController.monthly);
+router.get('/monthly-breakdown', ReportController.monthlyBreakdown);
 
 export default router;

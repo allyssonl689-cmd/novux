@@ -286,6 +286,38 @@ export class TransactionModel {
     };
   }
 
+  /**
+   * Série mensal de TODO o histórico, com desdobramento de status de pagamento.
+   * Substitui o cálculo client-side que dependia de carregar todas as transações.
+   * Retorna uma linha por mês (YYYY-MM) em ordem cronológica.
+   */
+  static async getMonthlyBreakdown(userId: string) {
+    const { rows } = await db.query<{
+      month: string; income: string; expense: string;
+      received: string; to_receive: string; paid: string; pending: string;
+    }>(
+      `SELECT to_char(date, 'YYYY-MM')                                                   AS month,
+              COALESCE(SUM(value) FILTER (WHERE type = 'income'),  0)                    AS income,
+              COALESCE(SUM(value) FILTER (WHERE type = 'expense'), 0)                    AS expense,
+              COALESCE(SUM(value) FILTER (WHERE type = 'income'  AND paid = true), 0)    AS received,
+              COALESCE(SUM(value) FILTER (WHERE type = 'income'  AND paid IS NOT TRUE), 0) AS to_receive,
+              COALESCE(SUM(value) FILTER (WHERE type = 'expense' AND paid = true), 0)    AS paid,
+              COALESCE(SUM(value) FILTER (WHERE type = 'expense' AND paid IS NOT TRUE), 0) AS pending
+       FROM transactions WHERE user_id = $1
+       GROUP BY month ORDER BY month`,
+      [userId]
+    );
+    return rows.map(r => ({
+      month:     r.month,
+      income:    parseFloat(r.income),
+      expense:   parseFloat(r.expense),
+      received:  parseFloat(r.received),
+      toReceive: parseFloat(r.to_receive),
+      paid:      parseFloat(r.paid),
+      pending:   parseFloat(r.pending),
+    }));
+  }
+
   static async getMonthlySummary(userId: string, year: number) {
     const { rows } = await db.query(
       `SELECT EXTRACT(MONTH FROM date) as month, type, SUM(value) as total

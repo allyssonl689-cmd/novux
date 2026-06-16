@@ -17,12 +17,37 @@ export class ReportController {
       const start = startDate ?? format(startOfMonth(now), 'yyyy-MM-dd');
       const end = endDate ?? format(endOfMonth(now), 'yyyy-MM-dd');
 
-      const [summary, categories] = await Promise.all([
+      // Período anterior equivalente (mesma duração, imediatamente antes de `start`)
+      // — usado para os deltas "vs período anterior" do Dashboard.
+      const startMs = new Date(`${start}T00:00:00`).getTime();
+      const endMs   = new Date(`${end}T00:00:00`).getTime();
+      const duration = Math.max(0, endMs - startMs);
+      const prevEnd   = format(new Date(startMs - 86_400_000), 'yyyy-MM-dd');
+      const prevStart = format(new Date(startMs - 86_400_000 - duration), 'yyyy-MM-dd');
+
+      const [summary, previous, categories] = await Promise.all([
         TransactionModel.getSummary(req.userId, start, end),
+        TransactionModel.getSummary(req.userId, prevStart, prevEnd),
         TransactionModel.getCategoryBreakdown(req.userId, start, end),
       ]);
 
-      res.json({ success: true, data: { summary, categories, period: { start, end } } });
+      res.json({
+        success: true,
+        data: {
+          summary, previous, categories,
+          period: { start, end },
+          previousPeriod: { start: prevStart, end: prevEnd },
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async monthlyBreakdown(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const months = await TransactionModel.getMonthlyBreakdown(req.userId);
+      res.json({ success: true, data: { months } });
     } catch (err) {
       next(err);
     }
