@@ -30,7 +30,7 @@ async function fetchAllTransactions(): Promise<Transaction[]> {
 export function FinanceProvider({ children }: { children: React.ReactNode }) {
   const { user, isAuthenticated, tokenReady } = useAuth();
   const queryClient = useQueryClient();
-  const userId = user?.id;
+  const userId = user?.userId;
 
   // Aguarda tokenReady para garantir que o access token está em memória (evita 401
   // por race entre hydration da sessão e fetch). Chaves por usuário isolam o cache

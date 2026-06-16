@@ -10,7 +10,7 @@ export function toLocalDate(d: Date): string {
 
 function useEnabled() {
   const { user, isAuthenticated, tokenReady } = useAuth();
-  return { userId: user?.id, enabled: isAuthenticated && tokenReady && !!user?.id };
+  return { userId: user?.userId, enabled: isAuthenticated && tokenReady && !!user?.userId };
 }
 
 /** Agregados do período (atual + anterior + categorias) vindos do servidor. */
