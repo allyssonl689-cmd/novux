@@ -69,7 +69,7 @@ function extractDate(text: string): string {
   const year = now.getFullYear();
 
   // "vencimento 05/06" | "dia 05/06" | "para 05/06" | "até 05/06"
-  const ddmm = text.match(/(?:vencimento|vence|dia|para|até|ate|data|em)\s+(\d{1,2})[\/\-](\d{1,2})/i);
+  const ddmm = text.match(/(?:vencimento|vence|dia|para|até|ate|data|em)\s+(\d{1,2})[/-](\d{1,2})/i);
   if (ddmm) {
     const d = parseInt(ddmm[1], 10);
     const m = parseInt(ddmm[2], 10);
@@ -78,7 +78,7 @@ function extractDate(text: string): string {
   }
 
   // "05/06" ou "5/6" sem prefixo (data isolada)
-  const ddmmAlone = text.match(/\b(\d{1,2})[\/\-](\d{1,2})\b/);
+  const ddmmAlone = text.match(/\b(\d{1,2})[/-](\d{1,2})\b/);
   if (ddmmAlone) {
     const d = parseInt(ddmmAlone[1], 10);
     const m = parseInt(ddmmAlone[2], 10);
@@ -146,7 +146,7 @@ function parseWithRegex(text: string): ParsedTransaction | null {
   const description = text
     .replace(/R?\$?\s*[\d.,]+\s*(?:reais?)?/gi, '')
     .replace(/gastei|paguei|comprei|recebi|ganhei|todo.?mês|mensal|fixo|vencimento|vence/gi, '')
-    .replace(/\d{1,2}[\/\-]\d{1,2}/g, '')
+    .replace(/\d{1,2}[/-]\d{1,2}/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 60)

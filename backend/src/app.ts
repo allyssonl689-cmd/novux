@@ -45,9 +45,9 @@ app.get('/health', (_req, res) => {
     status,
     version: '1.2.0',
     db:      dbReady ? 'connected' : 'connecting',
-    email:   !!(env.BREVO_API_KEY || env.SMTP_HOST) ? 'configured' : 'not_configured',
-    ai:      !!env.GROQ_API_KEY ? 'configured' : 'not_configured',
-    telegram:!!env.TELEGRAM_BOT_TOKEN ? 'configured' : 'not_configured',
+    email:   env.BREVO_API_KEY || env.SMTP_HOST ? 'configured' : 'not_configured',
+    ai:      env.GROQ_API_KEY ? 'configured' : 'not_configured',
+    telegram:env.TELEGRAM_BOT_TOKEN ? 'configured' : 'not_configured',
     timestamp: new Date().toISOString(),
     uptime: Math.floor(process.uptime()),
   });

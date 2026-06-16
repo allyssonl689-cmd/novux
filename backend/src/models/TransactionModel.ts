@@ -27,7 +27,15 @@ function safeDecrypt(value: string): string;
 function safeDecrypt(value: string | null): string | null;
 function safeDecrypt(value: string | null): string | null {
   if (value == null) return null;
-  try { return decrypt(value); } catch { return value; } // fallback para texto puro (legado)
+  try {
+    return decrypt(value);
+  } catch {
+    // Fallback para texto puro (dados legados pré-criptografia). Se isto disparar
+    // para dados que deveriam estar cifrados, indica ENCRYPTION_KEY errada — não
+    // mascaramos mais em silêncio.
+    console.warn('[safeDecrypt] valor não pôde ser decifrado — assumindo texto puro (legado ou ENCRYPTION_KEY incorreta)');
+    return value;
+  }
 }
 
 function decryptTx(row: any): Transaction {
