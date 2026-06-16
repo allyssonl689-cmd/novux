@@ -46,8 +46,7 @@ function KPI({ label, value, sub, icon: Icon, color, delta, idx }: {
     <motion.div
       initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
       transition={{ delay: idx * 0.06, type: 'spring', stiffness: 300, damping: 24 }}
-      className="rounded-2xl border border-border bg-card p-4 card-hover relative overflow-hidden group"
-      style={{ boxShadow: '0 2px 12px hsl(0 0% 0% / 0.4), 0 0 0 1px hsl(var(--border))' }}>
+      className="rounded-2xl border border-border bg-card p-4 card-hover relative overflow-hidden group">
       <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at 80% 20%, ${color}08 0%, transparent 60%)` }} />
       <div className="flex items-start justify-between mb-3">
