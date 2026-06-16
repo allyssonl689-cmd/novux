@@ -43,7 +43,7 @@ app.get('/health', (_req, res) => {
   const code    = dbReady ? 200 : 503;
   res.status(code).json({
     status,
-    version: '1.2.0',
+    version: '1.3.0', // refresh token só por hash + rotação (marcador p/ verificar o build em prod)
     db:      dbReady ? 'connected' : 'connecting',
     email:   env.BREVO_API_KEY || env.SMTP_HOST ? 'configured' : 'not_configured',
     ai:      env.GROQ_API_KEY ? 'configured' : 'not_configured',
