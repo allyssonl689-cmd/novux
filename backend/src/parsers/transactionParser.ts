@@ -63,17 +63,37 @@ function inferCategory(text: string): string {
   return 'Outros';
 }
 
+/* ─── Datas no fuso do Brasil (America/Sao_Paulo) ─── */
+// O servidor roda em UTC (Render). Usar toISOString()/new Date(ano,mês,dia) gerava
+// erro de dia p/ usuários BRT (ex.: 23h em SP já é o dia seguinte em UTC). Ancoramos
+// tudo no fuso de SP e fazemos a aritmética de dias ao meio-dia UTC (seguro).
+const BR_TZ = 'America/Sao_Paulo';
+
+/** 'YYYY-MM-DD' de hoje no fuso de São Paulo. */
+function todayYMDSaoPaulo(): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: BR_TZ }).format(new Date());
+}
+/** Date ancorada ao meio-dia UTC do YMD (somar/subtrair dias não cruza fronteira em BRT). */
+function anchor(ymd: string): Date {
+  return new Date(`${ymd}T12:00:00Z`);
+}
+/** YMD a partir de uma Date ancorada ao meio-dia UTC. */
+function ymd(d: Date): string {
+  return d.toISOString().split('T')[0];
+}
+
 /* ─── Extração de data em português ─── */
 function extractDate(text: string): string {
-  const now = new Date();
-  const year = now.getFullYear();
+  const today = todayYMDSaoPaulo();
+  const [year, month, day] = today.split('-').map(Number); // month é 1-based
+  const todayDate = anchor(today);
 
   // "vencimento 05/06" | "dia 05/06" | "para 05/06" | "até 05/06"
   const ddmm = text.match(/(?:vencimento|vence|dia|para|até|ate|data|em)\s+(\d{1,2})[/-](\d{1,2})/i);
   if (ddmm) {
     const d = parseInt(ddmm[1], 10);
     const m = parseInt(ddmm[2], 10);
-    const targetYear = (m < now.getMonth() + 1) ? year + 1 : year;
+    const targetYear = (m < month) ? year + 1 : year;
     return `${targetYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   }
 
@@ -83,7 +103,7 @@ function extractDate(text: string): string {
     const d = parseInt(ddmmAlone[1], 10);
     const m = parseInt(ddmmAlone[2], 10);
     if (d >= 1 && d <= 31 && m >= 1 && m <= 12) {
-      const targetYear = (m < now.getMonth() + 1) ? year + 1 : year;
+      const targetYear = (m < month) ? year + 1 : year;
       return `${targetYear}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     }
   }
@@ -93,38 +113,38 @@ function extractDate(text: string): string {
   if (dia) {
     const d = parseInt(dia[1], 10);
     if (d >= 1 && d <= 31) {
-      let target = new Date(year, now.getMonth(), d);
-      if (target <= now) target = new Date(year, now.getMonth() + 1, d);
-      return target.toISOString().split('T')[0];
+      let target = new Date(Date.UTC(year, month - 1, d, 12));
+      if (target <= todayDate) target = new Date(Date.UTC(year, month, d, 12));
+      return ymd(target);
     }
   }
 
   // "amanhã"
   if (/amanhã|amanha/i.test(text)) {
-    const t = new Date(now); t.setDate(t.getDate() + 1);
-    return t.toISOString().split('T')[0];
+    const t = anchor(today); t.setUTCDate(t.getUTCDate() + 1);
+    return ymd(t);
   }
 
   // "semana que vem" / "próxima semana"
   if (/semana.que.vem|próxima.semana|proxima.semana/i.test(text)) {
-    const t = new Date(now); t.setDate(t.getDate() + 7);
-    return t.toISOString().split('T')[0];
+    const t = anchor(today); t.setUTCDate(t.getUTCDate() + 7);
+    return ymd(t);
   }
 
-  // "mês que vem" / "próximo mês"
+  // "mês que vem" / "próximo mês" (mesmo dia no mês seguinte)
   if (/mês.que.vem|mes.que.vem|próximo.mês|proximo.mes/i.test(text)) {
-    const t = new Date(year, now.getMonth() + 1, now.getDate());
-    return t.toISOString().split('T')[0];
+    const t = new Date(Date.UTC(year, month, day, 12));
+    return ymd(t);
   }
 
   // "ontem"
   if (/ontem/i.test(text)) {
-    const t = new Date(now); t.setDate(t.getDate() - 1);
-    return t.toISOString().split('T')[0];
+    const t = anchor(today); t.setUTCDate(t.getUTCDate() - 1);
+    return ymd(t);
   }
 
   // Padrão: hoje
-  return now.toISOString().split('T')[0];
+  return today;
 }
 
 /* ─── Regex fallback ─── */

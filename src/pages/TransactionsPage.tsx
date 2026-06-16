@@ -273,17 +273,17 @@ export default function TransactionsPage() {
             </AnimatePresence>
             {/* Botão lupa */}
             <button onClick={() => { setSearchOpen(v => !v); if (searchOpen) setSearchInput(''); }}
-              title="Pesquisar" className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all ${searchOpen ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
+              title="Pesquisar" aria-label="Pesquisar" className={`h-9 w-9 rounded-xl border flex items-center justify-center transition-all ${searchOpen ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
               <Search className="h-4 w-4" />
             </button>
             {/* Botão filtro */}
-            <button onClick={openFilter} title="Filtros"
+            <button onClick={openFilter} title="Filtros" aria-label="Filtros"
               className={`relative h-9 w-9 rounded-xl border flex items-center justify-center transition-all ${hasActiveFilter ? 'border-primary/40 bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40'}`}>
               <SlidersHorizontal className="h-4 w-4" />
               {hasActiveFilter && <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-primary" />}
             </button>
             {/* CSV + Novo */}
-            <button onClick={() => setCsvOpen(true)} title="Importar CSV"
+            <button onClick={() => setCsvOpen(true)} title="Importar CSV" aria-label="Importar CSV"
               className="hidden sm:flex items-center gap-2 px-3 py-2 text-xs font-semibold rounded-xl border border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all">
               <FileUp className="h-3.5 w-3.5" />
             </button>
@@ -492,7 +492,8 @@ export default function TransactionsPage() {
                       onClick={() => handleTogglePaid(tx)}
                       disabled={isToggling}
                       title={isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
-                      className={`hidden sm:flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg border transition-all shrink-0 ${
+                      aria-label={isPaid ? 'Marcar como pendente' : 'Marcar como pago'}
+                      className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg border transition-all shrink-0 ${
                         isPaid
                           ? 'bg-success-muted border-success/30 text-success hover:opacity-70'
                           : 'bg-secondary border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
@@ -507,9 +508,10 @@ export default function TransactionsPage() {
                       {tx.type==='income'?'+':'−'}{fmt(tx.value)}
                     </span>
 
-                    {/* Actions */}
-                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Actions — visíveis em touch (mobile); revelam no hover só no desktop */}
+                    <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button onClick={() => { setEditId(tx.id); setFormOpen(true); }}
+                        aria-label="Editar transação"
                         className="h-7 w-7 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-all">
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
