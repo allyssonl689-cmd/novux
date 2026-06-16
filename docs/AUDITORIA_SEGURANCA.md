@@ -177,16 +177,16 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 
 - ✅ **[CORRIGIDO]** Branding antigo **"Sapiens Finance"** ainda no código (`EmptyDashboard.tsx:15`).
 - ✅ **[CORRIGIDO]** **`Calendar` não importado** em `MainLayout.tsx` (só não quebra porque `PeriodSelector` é dead code).
-- **a11y geral fraca**: `aria-label`/`role` quase ausentes; botões só-ícone sem label.
+- 🟡 **[PARCIAL]** **a11y geral fraca**: `aria-label`/`role` quase ausentes. Tela de Lançamentos coberta (botões só-ícone com `aria-label`); demais telas pendentes.
 - ✅ **[CORRIGIDO]** **`<a href>` para navegação interna** → full reload em vez de SPA (`DashboardPage:479,544`); também `window.location.href` no menu do avatar → `useNavigate`.
-- **Mobile**: status de pagamento `hidden` e editar/excluir só no `group-hover` (inacessível em touch).
-- **`verifyAccessToken` faz query ao banco a cada request** (+ decrypt) → carga no pool.
-- **Datas relativas no parser usam timezone do servidor (UTC)** → erro de dia para usuários BRT.
-- **`safeDecrypt` faz fallback silencioso para texto puro** — mascara erro de chave.
+- ✅ **[CORRIGIDO]** **Mobile**: status de pagamento e editar/excluir agora **visíveis em touch** (antes `hidden`/`group-hover`); hover-reveal mantido só no desktop.
+- ✅ **[CORRIGIDO]** **`verifyAccessToken` faz query ao banco a cada request** → cache em memória (TTL 30s, só positivos) no `authMiddleware`; token segue validado por assinatura sempre.
+- ✅ **[CORRIGIDO]** **Datas relativas no parser usam timezone do servidor (UTC)** → ancoradas em `America/Sao_Paulo`.
+- ✅ **[CORRIGIDO]** **`safeDecrypt` faz fallback silencioso para texto puro** — agora loga aviso.
 - **`any` concentrado na camada de dados** (models); bodies sem Zod em vários endpoints.
 - **Sem tipos compartilhados front/back** — contrato duplicado à mão (`toFrontend`/`toBackend`).
-- **Importação CSV faz N requests** (um POST por linha) — falta endpoint bulk.
-- **`mock-data.ts` / `seed-data.ts`** dead code num produto em produção.
+- ✅ **[CORRIGIDO]** **Importação CSV faz N requests** → endpoint bulk `POST /api/transactions/bulk` (atômico).
+- ✅ **[CORRIGIDO]** **`mock-data.ts` / `seed-data.ts`** dead code removido.
 
 ---
 
@@ -262,17 +262,15 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 | #9 | Webhook do Telegram fica aberto se `TELEGRAM_WEBHOOK_SECRET` não estiver setado. | Garantir o secret em produção. (Posso também **tornar obrigatório no código** — me confirme.) |
 
 ### ✅ Concluído nesta rodada (16/06/2026)
-- **#24** máscara/validação BRL · **#20** focus trap completo (Radix Dialog) · **CSV bulk** (1 requisição atômica) · **dívida rápida**: `safeDecrypt` não-silencioso, remoção de `mock-data`/`seed-data`, `no-useless-escape`/`!!` redundante.
+- **#24** máscara/validação BRL · **#20** focus trap completo (Radix Dialog) · **CSV bulk** (1 requisição atômica) · **#5 parser de datas** em fuso BRT · **#6 a11y/mobile** na lista (touch + aria-labels) · **#4 `verifyAccessToken`** com cache · dívida rápida (`safeDecrypt`, dead code, lint trivial).
 
-### 🟡 Código aberto que EU posso fazer (sua decisão de priorizar)
+### 🟡 Pendências de código (sua decisão de priorizar) — TODAS grandes/decisão
 | # | Pendência | Esforço / risco |
 |---|---|---|
 | Etapa C (#4) | `insights`/`SmartIndicators`/`AIInsights` ainda usam o array completo do `FinanceContext`. Mover p/ server-side (AIInsights monta contexto da Groq com todo o histórico). | **Grande** — porta lógica p/ backend ou novos endpoints. |
-| `any` + tipos compartilhados | `any` concentrado nos models e contrato front/back duplicado à mão (`toFrontend`/`toBackend`). | **Grande** — refactor de tipagem; habilita o gate de lint (ver abaixo). |
+| `any` + tipos compartilhados | `any` concentrado nos models e contrato front/back duplicado à mão (`toFrontend`/`toBackend`); bodies sem Zod em vários endpoints. | **Grande** — refactor de tipagem; habilita o gate de lint (abaixo). |
 | Lint como gate de CI | ~40 erros restantes são `no-explicit-any` (a dívida acima). **Decisão:** tipar de verdade (refactor) **ou** baixar a regra para `warn` (política). | Depende da decisão. |
-| `verifyAccessToken` | Consulta o banco (+ decrypt) a cada request → carga no pool. Cachear/otimizar. | **Médio** — sensível (auth), exige cuidado. |
-| Parser de datas em UTC | Datas relativas no parser do Telegram usam timezone do servidor → erro de dia p/ BRT. | Médio. |
-| a11y geral / mobile | `aria-label`/`role` ausentes em botões só-ícone; em mobile status `hidden` e editar/excluir só no `group-hover` (inacessível em touch). | Médio, incremental. |
+| a11y demais telas | `aria-label`/`role` no restante das telas (a de Lançamentos já coberta). | Médio, incremental. |
 
 ### 🔭 Fora desta auditoria (segunda rodada recomendada)
 Admin/RBAC, fluxo 2FA completo, OAuth Google, audit log, `npm audit`/SCA de dependências, RLS do Supabase, pentest dinâmico, LGPD formal — ver "Escopo fora desta avaliação".
