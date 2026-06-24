@@ -50,6 +50,18 @@ const envSchema = z.object({
   // Chave de criptografia AES-256 — 64 caracteres hex (32 bytes)
   // Gerar com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY deve ter exatamente 64 caracteres hex'),
+}).superRefine((val, ctx) => {
+  // Se o bot do Telegram está habilitado em produção, o secret do webhook é
+  // obrigatório (mín. 16 chars) — caso contrário o webhook ficaria inseguro.
+  if (val.NODE_ENV === 'production' && val.TELEGRAM_BOT_TOKEN) {
+    if (!val.TELEGRAM_WEBHOOK_SECRET || val.TELEGRAM_WEBHOOK_SECRET.length < 16) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['TELEGRAM_WEBHOOK_SECRET'],
+        message: 'TELEGRAM_WEBHOOK_SECRET é obrigatório (mín. 16 caracteres) em produção quando TELEGRAM_BOT_TOKEN está definido',
+      });
+    }
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);
