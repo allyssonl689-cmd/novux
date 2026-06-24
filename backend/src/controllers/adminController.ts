@@ -4,10 +4,18 @@ import { TransactionModel } from '../models/TransactionModel';
 import { audit } from '../services/auditService';
 import { db } from '../config/database';
 
+/** Mascara o e-mail para exibição no painel admin: joao@dominio.com -> j***@dominio.com */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const head = local.slice(0, 1);
+  return `${head}${'*'.repeat(Math.max(local.length - 1, 1))}@${domain}`;
+}
+
 export class AdminController {
   static async metrics(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      await audit(req.userId, 'admin_view_users', 'metrics', req.ip);
+      await audit(req.userId, 'admin_view_metrics', 'metrics', req.ip);
 
       const userMetrics = await UserModel.getMetrics();
 
@@ -49,8 +57,13 @@ export class AdminController {
     try {
       const limit  = Math.min(parseInt(String(req.query.limit  ?? 50), 10), 100);
       const offset = parseInt(String(req.query.offset ?? 0), 10);
+      await audit(req.userId, 'admin_list_users', 'users', req.ip, { limit, offset });
+
       const users  = await UserModel.listAll(limit, offset);
-      res.json({ success: true, data: users });
+      // Não expor e-mail em claro no painel (mascarado); resposta nunca cacheada.
+      const masked = users.map(u => ({ ...u, email: maskEmail(u.email) }));
+      res.setHeader('Cache-Control', 'no-store');
+      res.json({ success: true, data: masked });
     } catch (err) { next(err); }
   }
 }

@@ -179,7 +179,8 @@ export async function sendPasswordResetEmail(
 
   await dispatch(to, name, subject, html);
   if (!env.BREVO_API_KEY && !env.SMTP_HOST) {
-    console.warn(`[EMAIL] Sem provedor. URL de reset: ${resetUrl}`);
+    // Nunca logar a URL/token de reset (concede controle da conta).
+    console.warn('[EMAIL] Sem provedor de e-mail configurado — e-mail de reset não enviado.');
   }
 }
 

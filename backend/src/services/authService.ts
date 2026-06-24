@@ -11,7 +11,7 @@ import { RegisterInput, LoginInput } from '../validators/authValidators';
 import { PublicUser } from '../models/types';
 import { recordLoginAttempt } from '../middleware/bruteForce';
 import { audit } from './auditService';
-import { decrypt } from '../utils/encryption';
+import { decrypt, emailHmac } from '../utils/encryption';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -52,7 +52,8 @@ export class AuthService {
       return created;
     });
 
-    await audit(user.id, 'register', 'account', ip, { name: input.name });
+    // Não grava PII (nome) em claro no audit log — o user.id já identifica.
+    await audit(user.id, 'register', 'account', ip);
 
     const verifyUrl = `${env.FRONTEND_URL}/verify-email?token=${verifyToken}`;
 
@@ -75,7 +76,8 @@ export class AuthService {
     const user = await UserModel.findByEmail(input.email);
     if (!user) {
       await recordLoginAttempt(input.email, ip ?? 'unknown', false);
-      await audit(null, 'login_failed', 'account', ip, { email: input.email });
+      // E-mail nunca em claro no audit — grava só o HMAC (correlação sem expor PII).
+      await audit(null, 'login_failed', 'account', ip, { emailHash: emailHmac(input.email) });
       throw new AppError('Email ou senha inválidos', 401);
     }
 

@@ -7,6 +7,7 @@ import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { encrypt, decrypt } from '../utils/encryption';
 import { totpTokenSchema } from '../validators/authValidators';
+import { audit } from '../services/auditService';
 
 const disableSchema = totpTokenSchema.extend({
   currentPassword: z.string().min(1).optional(),
@@ -52,6 +53,7 @@ export class TwoFactorController {
       if (!result?.valid) throw new AppError('Token inválido', 400);
 
       await db.query('UPDATE users SET totp_enabled = true WHERE id = $1', [req.userId]);
+      await audit(req.userId, 'totp_enabled', 'account', req.ip);
       res.json({ success: true, message: '2FA ativado com sucesso' });
     } catch (err) {
       next(err);
@@ -83,6 +85,7 @@ export class TwoFactorController {
       if (!result?.valid) throw new AppError('Token inválido', 400);
 
       await db.query('UPDATE users SET totp_secret = NULL, totp_enabled = false WHERE id = $1', [req.userId]);
+      await audit(req.userId, 'totp_disabled', 'account', req.ip);
       res.json({ success: true, message: '2FA desativado' });
     } catch (err) {
       next(err);
