@@ -5,6 +5,28 @@
 
 ---
 
+## Login com Google — ✅ HABILITADO (operacional)
+
+**Status (2026-06-25):** configurado e ativo. O OAuth Client foi criado no Google Cloud e as
+variáveis setadas (mesmo Client ID nos dois lados); o endpoint saiu do 503. Serviço **gratuito**
+(sem assinatura/billing; escopos `email`/`profile` não-sensíveis → sem verificação Google).
+
+**Como está cabeado:**
+- Front: `src/components/auth/GoogleButton.tsx` lê `VITE_GOOGLE_CLIENT_ID` (botão oculto se vazio).
+- Back: `src/routes/authGoogle.ts` valida o ID token com `audience = GOOGLE_CLIENT_ID`.
+- Variáveis (mesmo valor; o Client ID **não é segredo**, sem Client Secret nesse fluxo):
+  - **Vercel:** `VITE_GOOGLE_CLIENT_ID`  ·  **Render:** `GOOGLE_CLIENT_ID`
+
+**Pontos de atenção operacionais:**
+- `VITE_*` é **build-time** → mudar na Vercel exige **redeploy** (salvar não basta).
+- As **Origens JavaScript autorizadas** do OAuth Client devem bater com o domínio de produção
+  (+ `http://localhost:5173` p/ dev). Previews da Vercel têm URL variável e não funcionam sem cadastrar.
+- Tela de consentimento em **"Testes"** só permite login dos *test users*; publique para liberar geral.
+- Hardening já aplicado (commits `bb978a4`, `c41c241`): grava só `token_hash`; valida `email_verified`+`iss`;
+  `email_verified=TRUE` p/ contas Google; cookie via `setRefreshCookie`; `authLimiter`; token inválido → **401** (antes 500).
+
+---
+
 ## M6 (parte do banco) — validar o certificado TLS do Postgres
 
 **Status do código:** já pronto. O backend usa `DATABASE_CA_CERT` (PEM) quando presente
