@@ -22,7 +22,8 @@ export const db = new Pool({
   // quebrar a conexão com o Session Pooler de cert auto-assinado.
   ssl: isProduction
     ? (env.DATABASE_CA_CERT
-        ? { ca: env.DATABASE_CA_CERT, rejectUnauthorized: true }
+        // Aceita o PEM multilinha OU colado em uma linha só com "\n" literais.
+        ? { ca: env.DATABASE_CA_CERT.replace(/\\n/g, '\n'), rejectUnauthorized: true }
         : { rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED })
     : false,
   application_name: 'novux-finance',
