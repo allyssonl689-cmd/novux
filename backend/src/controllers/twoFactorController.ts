@@ -1,10 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
+import { z } from 'zod';
 import { generateSecret, generateSync, verifySync, generateURI } from 'otplib';
 import QRCode from 'qrcode';
 import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { encrypt, decrypt } from '../utils/encryption';
 import { totpTokenSchema } from '../validators/authValidators';
+
+const disableSchema = totpTokenSchema.extend({
+  currentPassword: z.string().min(1).optional(),
+});
 
 export class TwoFactorController {
   static async setup(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -54,14 +60,23 @@ export class TwoFactorController {
 
   static async disable(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token } = totpTokenSchema.parse(req.body);
+      const { token, currentPassword } = disableSchema.parse(req.body);
 
-      const { rows } = await db.query<{ totp_secret: string | null; totp_enabled: boolean }>(
-        'SELECT totp_secret, totp_enabled FROM users WHERE id = $1',
+      const { rows } = await db.query<{ totp_secret: string | null; totp_enabled: boolean; password_hash: string }>(
+        'SELECT totp_secret, totp_enabled, password_hash FROM users WHERE id = $1',
         [req.userId]
       );
       const user = rows[0];
       if (!user?.totp_enabled || !user.totp_secret) throw new AppError('2FA não está ativado', 400);
+
+      // Reautenticação por senha: desativar o 2FA reduz a postura de segurança da
+      // conta, então exige a senha (não basta uma sessão/token possivelmente roubado).
+      // Contas OAuth-only (sem senha local — password_hash não-bcrypt) ficam dispensadas.
+      if (user.password_hash?.startsWith('$2')) {
+        if (!currentPassword) throw new AppError('Senha atual obrigatória para desativar o 2FA', 400);
+        const okPass = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!okPass) throw new AppError('Senha incorreta', 401);
+      }
 
       const secret = decrypt(user.totp_secret)!;
       const result = verifySync({ token, secret });

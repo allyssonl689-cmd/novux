@@ -31,6 +31,7 @@ export default function ProfilePage() {
   const [qrUrl, setQrUrl]       = useState('');
   const [secret, setSecret]     = useState('');
   const [token2FA, setToken2FA] = useState('');
+  const [password2FA, setPassword2FA] = useState('');
   const [show2FAToken, setShow2FAToken] = useState(false);
   const [twoFALoading, setTwoFALoading] = useState(false);
   const [twoFAError, setTwoFAError]     = useState('');
@@ -121,8 +122,8 @@ export default function ProfilePage() {
   async function handle2FADisable() {
     setTwoFALoading(true); setTwoFAError('');
     try {
-      await twoFactorService.disable(token2FA);
-      setTwoFAEnabled(false); setShowDisable(false); setToken2FA('');
+      await twoFactorService.disable(token2FA, password2FA || undefined);
+      setTwoFAEnabled(false); setShowDisable(false); setToken2FA(''); setPassword2FA('');
       setTwoFASuccess('2FA desativado.');
       setTimeout(() => setTwoFASuccess(''), 3000);
     } catch (e: any) { setTwoFAError(e.message ?? 'Token inválido'); }
@@ -341,11 +342,14 @@ export default function ProfilePage() {
               className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs font-bold text-foreground">Confirmar desativação do 2FA</p>
-                <button onClick={() => setShowDisable(false)} className="text-muted-foreground hover:text-foreground transition-colors">
+                <button onClick={() => { setShowDisable(false); setPassword2FA(''); }} className="text-muted-foreground hover:text-foreground transition-colors">
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground">Insira o código atual do seu app autenticador.</p>
+              <p className="text-[11px] text-muted-foreground">Insira sua senha e o código atual do app autenticador.</p>
+              <input type="password" value={password2FA} onChange={e => setPassword2FA(e.target.value)}
+                placeholder="Senha da conta" autoComplete="current-password"
+                className="w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none focus:border-destructive/50 transition-colors" />
               <div className="flex gap-2">
                 <input type="text" value={token2FA} onChange={e => setToken2FA(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000" maxLength={6}

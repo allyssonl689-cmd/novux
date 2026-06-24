@@ -15,8 +15,8 @@ export const twoFactorService = {
   async verify(token: string): Promise<void> {
     await apiFetch('/api/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ token }) });
   },
-  async disable(token: string): Promise<void> {
-    await apiFetch('/api/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ token }) });
+  async disable(token: string, currentPassword?: string): Promise<void> {
+    await apiFetch('/api/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ token, currentPassword }) });
   },
 };
 
