@@ -32,8 +32,15 @@ router.post('/google', authLimiter, async (req: Request, res: Response, next: Ne
       return;
     }
 
-    const ticket  = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
-    const payload = ticket.getPayload();
+    // Token inválido/expirado/malformado → 401 limpo (a lib lança; sem isso virava 500).
+    let payload;
+    try {
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: GOOGLE_CLIENT_ID });
+      payload = ticket.getPayload();
+    } catch {
+      res.status(401).json({ success: false, message: 'Token Google inválido' });
+      return;
+    }
     if (!payload?.email) {
       res.status(400).json({ success: false, message: 'Token Google inválido' });
       return;
