@@ -1,5 +1,18 @@
 import { env } from '../config/env';
 
+/**
+ * Escapa caracteres com significado em HTML — evita injeção de HTML/phishing no
+ * corpo do e-mail via campos controlados pelo usuário (ex.: nome).
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 /* ─── Brevo HTTP API ────────────────────────────────────────────
    Usa a API REST do Brevo — não abre conexão SMTP, logo não é
    bloqueada por hospedagens cloud como o Render.
@@ -78,7 +91,7 @@ async function dispatch(
 
 /* ─── E-mail de boas-vindas ──────────────────────────────────── */
 export async function sendWelcomeEmail(to: string, name: string | undefined): Promise<void> {
-  const firstName = name?.split(' ')[0] ?? 'usuário';
+  const firstName = escapeHtml(name?.split(' ')[0] ?? 'usuário');
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#f9fafb;padding:32px;border-radius:12px;color:#111">
       <div style="background:#050816;padding:20px 24px;border-radius:10px;margin-bottom:24px;text-align:center">
@@ -103,7 +116,7 @@ export async function sendWelcomeEmail(to: string, name: string | undefined): Pr
 
 /* ─── E-mail de verificação de e-mail ───────────────────────── */
 export async function sendEmailVerificationEmail(to: string, name: string | undefined, verifyUrl: string): Promise<void> {
-  const firstName = name?.split(' ')[0] ?? 'usuário';
+  const firstName = escapeHtml(name?.split(' ')[0] ?? 'usuário');
   const html = `
     <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#f9fafb;padding:32px;border-radius:12px;color:#111">
       <div style="background:#050816;padding:20px 24px;border-radius:10px;margin-bottom:24px;text-align:center">
@@ -130,7 +143,7 @@ export async function sendPasswordResetEmail(
   name: string | undefined,
   resetUrl: string
 ): Promise<void> {
-  const firstName = name?.split(' ')[0] ?? 'usuário';
+  const firstName = escapeHtml(name?.split(' ')[0] ?? 'usuário');
 
   const subject = 'Redefinição de senha — Novux Finance';
   const html = `

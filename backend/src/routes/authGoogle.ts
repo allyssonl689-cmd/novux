@@ -6,15 +6,19 @@ import { signAccessToken, signRefreshToken } from '../config/auth';
 import { env } from '../config/env';
 import { encrypt, decrypt, emailHmac } from '../utils/encryption';
 import { googleCredentialSchema } from '../validators/authValidators';
+import { authLimiter } from '../middleware/rateLimiter';
+import { setRefreshCookie } from '../controllers/authController';
 
 const router = Router();
 
 const GOOGLE_CLIENT_ID = env.GOOGLE_CLIENT_ID ?? '';
 const client = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-const REFRESH_COOKIE = 'novux_refresh';
+// Issuers válidos de um ID token do Google (defesa em profundidade — a
+// google-auth-library já valida assinatura/aud/exp).
+const GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
 
-router.post('/google', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/google', authLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const parsed = googleCredentialSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -35,6 +39,13 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
       return;
     }
 
+    // Só aceita e-mail comprovadamente verificado pelo Google e issuer legítimo —
+    // evita account-takeover por e-mail não verificado (vínculo a conta local existente).
+    if (payload.email_verified !== true || !GOOGLE_ISSUERS.includes(payload.iss ?? '')) {
+      res.status(401).json({ success: false, message: 'Conta Google não verificada' });
+      return;
+    }
+
     const { email, name, picture } = payload;
     const normalizedEmail  = email.toLowerCase();
     const encryptedEmail   = encrypt(normalizedEmail);
@@ -50,15 +61,16 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
     let rows: Array<{ id: string; name: string; email: string; avatar_url: string | null }>;
     if (existing[0]) {
       const { rows: updated } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
-        `UPDATE users SET name = $1, email = $2, email_hash = $3, avatar_url = COALESCE($4, avatar_url), updated_at = NOW()
+        `UPDATE users SET name = $1, email = $2, email_hash = $3, avatar_url = COALESCE($4, avatar_url),
+                          email_verified = TRUE, updated_at = NOW()
          WHERE id = $5 RETURNING id, name, email, avatar_url`,
         [encryptedName, encryptedEmail, hash, picture ?? null, existing[0].id]
       );
       rows = updated;
     } else {
       const { rows: inserted } = await db.query<{ id: string; name: string; email: string; avatar_url: string | null }>(
-        `INSERT INTO users (name, email, email_hash, password_hash, avatar_url)
-         VALUES ($1, $2, $3, 'google-oauth', $4)
+        `INSERT INTO users (name, email, email_hash, password_hash, avatar_url, email_verified)
+         VALUES ($1, $2, $3, 'google-oauth', $4, TRUE)
          RETURNING id, name, email, avatar_url`,
         [encryptedName, encryptedEmail, hash, picture ?? null]
       );
@@ -78,18 +90,15 @@ router.post('/google', async (req: Request, res: Response, next: NextFunction): 
 
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
+    // Grava APENAS o hash do refresh token (a coluna `token` em texto puro foi
+    // removida pela migration 017) — alinhado ao AuthService.issueTokens.
     await db.query(
-      'INSERT INTO refresh_tokens (user_id, token, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
-      [user.id, refreshToken, tokenHash, expiresAt]
+      'INSERT INTO refresh_tokens (user_id, token_hash, expires_at) VALUES ($1, $2, $3)',
+      [user.id, tokenHash, expiresAt]
     );
 
-    res.cookie(REFRESH_COOKIE, refreshToken, {
-      httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/api/auth',
-    });
+    // Mesma config de cookie do login normal (sameSite none/lax conforme ambiente).
+    setRefreshCookie(res, refreshToken);
 
     res.json({ success: true, data: { accessToken, user } });
   } catch (err) {

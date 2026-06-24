@@ -1,7 +1,8 @@
 import { z } from 'zod';
 
 export const registerSchema = z.object({
-  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100),
+  name: z.string().min(2, 'Nome deve ter pelo menos 2 caracteres').max(100)
+    .regex(/^[^<>]+$/, 'Nome contém caracteres inválidos'),
   email: z.string().email('Email inválido').toLowerCase(),
   password: z
     .string()
