@@ -47,6 +47,13 @@ const envSchema = z.object({
   TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
   BACKEND_URL: z.string().optional(), // ex: https://novux.onrender.com
 
+  // Supabase Storage — comprovantes/anexos (bucket PRIVADO).
+  // SUPABASE_URL: URL do projeto (ex.: https://xxxx.supabase.co)
+  // SUPABASE_SERVICE_ROLE_KEY: chave service_role (NUNCA expor no frontend)
+  SUPABASE_URL: z.string().url('SUPABASE_URL inválida').optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().default('receipts'),
+
   // Chave de criptografia AES-256 — 64 caracteres hex (32 bytes)
   // Gerar com: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
   ENCRYPTION_KEY: z.string().length(64, 'ENCRYPTION_KEY deve ter exatamente 64 caracteres hex'),

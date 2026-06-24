@@ -1,7 +1,7 @@
 import { db, withTransaction, Queryable } from '../config/database';
 import { Transaction, PaginatedResult } from './types';
 import { encrypt, decrypt } from '../utils/encryption';
-import { removeUploadFile } from '../utils/uploads';
+import { removeAttachment } from '../services/storageService';
 
 export interface TransactionFilters {
   type?: 'income' | 'expense';
@@ -255,9 +255,9 @@ export class TransactionModel {
       };
     });
 
-    // Remove o arquivo de comprovante somente após o COMMIT (efeito em disco
+    // Remove o objeto do comprovante somente após o COMMIT (efeito externo
     // não pode ser revertido por ROLLBACK; só apaga se a transação confirmou).
-    if (deleted && attachmentUrl) removeUploadFile(attachmentUrl);
+    if (deleted && attachmentUrl) await removeAttachment(attachmentUrl);
     return deleted;
   }
 

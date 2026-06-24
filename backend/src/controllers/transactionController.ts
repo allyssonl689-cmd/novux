@@ -1,4 +1,5 @@
-import fs from 'fs';
+import path from 'path';
+import { randomBytes } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import { TransactionModel } from '../models/TransactionModel';
 import {
@@ -8,7 +9,7 @@ import {
   bulkCreateSchema,
 } from '../validators/transactionValidators';
 import { AppError } from '../middleware/errorHandler';
-import { resolveUploadPath, removeUploadFile } from '../utils/uploads';
+import * as storage from '../services/storageService';
 import { csvCell } from '../utils/csv';
 
 export class TransactionController {
@@ -74,44 +75,46 @@ export class TransactionController {
       if (!req.file) throw new AppError('Nenhum arquivo enviado', 400);
 
       const existing = await TransactionModel.findById(String(req.params.id), req.userId);
-      if (!existing) {
-        // Transação inexistente: remove o arquivo recém-enviado para não deixar órfão
-        removeUploadFile(req.file.filename);
-        throw new AppError('Transação não encontrada', 404);
-      }
+      if (!existing) throw new AppError('Transação não encontrada', 404);
 
-      const oldUrl = (existing as any).attachment_url as string | undefined;
-      const url = `/uploads/${req.file.filename}`;
-      const transaction = await TransactionModel.setAttachment(String(req.params.id), req.userId, url);
+      // Chave do objeto no bucket: namespaced por usuário/transação + nome aleatório.
+      const ext = path.extname(req.file.originalname).toLowerCase();
+      const key = `${req.userId}/${req.params.id}/${randomBytes(16).toString('hex')}${ext}`;
+      await storage.uploadAttachment(key, req.file.buffer, req.file.mimetype);
+
+      const oldKey = (existing as any).attachment_url as string | undefined;
+      const transaction = await TransactionModel.setAttachment(String(req.params.id), req.userId, key);
       if (!transaction) {
-        removeUploadFile(req.file.filename);
+        // Não conseguiu vincular: remove o objeto recém-enviado para não deixar órfão.
+        await storage.removeAttachment(key);
         throw new AppError('Transação não encontrada', 404);
       }
 
       // Remove o anexo anterior (se houver e for diferente do novo)
-      if (oldUrl && oldUrl !== url) removeUploadFile(oldUrl);
+      if (oldKey && oldKey !== key) await storage.removeAttachment(oldKey);
 
       res.json({ success: true, data: transaction });
     } catch (err) { next(err); }
   }
 
   /**
-   * Serve o comprovante de forma autenticada: valida que a transação pertence ao
-   * usuário antes de transmitir o arquivo. Substitui o antigo express.static público.
+   * Serve o comprovante de forma autenticada (proxy): valida que a transação
+   * pertence ao usuário, baixa o objeto do bucket PRIVADO do Supabase e o transmite.
+   * O arquivo nunca é exposto publicamente.
    */
   static async getAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const transaction = await TransactionModel.findById(String(req.params.id), req.userId);
-      const attachmentUrl = transaction ? (transaction as any).attachment_url as string | undefined : undefined;
-      if (!transaction || !attachmentUrl) throw new AppError('Comprovante não encontrado', 404);
+      const key = transaction ? (transaction as any).attachment_url as string | undefined : undefined;
+      if (!transaction || !key) throw new AppError('Comprovante não encontrado', 404);
 
-      const filePath = resolveUploadPath(attachmentUrl);
-      if (!fs.existsSync(filePath)) throw new AppError('Arquivo não encontrado', 404);
+      const { buffer, contentType } = await storage.downloadAttachment(key);
 
-      // nosniff + inline: tipos já restritos a imagem/pdf no upload (fileFilter)
+      // nosniff: tipos já restritos a imagem/pdf no upload (fileFilter)
+      res.setHeader('Content-Type', contentType);
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Cache-Control', 'private, max-age=300');
-      res.sendFile(filePath, (err) => { if (err) next(err); });
+      res.send(buffer);
     } catch (err) { next(err); }
   }
 

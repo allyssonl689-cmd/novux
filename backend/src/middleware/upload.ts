@@ -1,20 +1,9 @@
 import multer from 'multer';
 import path from 'path';
-import { randomBytes } from 'crypto';
-import { Request } from 'express';
-import { UPLOADS_DIR, ensureUploadsDir } from '../utils/uploads';
 
-ensureUploadsDir();
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req: Request, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    // Use cryptographically random name to prevent collisions and path traversal
-    const name = `${randomBytes(16).toString('hex')}${ext}`;
-    cb(null, name);
-  },
-});
+// Armazenamento em memória: o buffer é enviado direto ao Supabase Storage
+// pelo controller (não tocamos mais o disco efêmero do Render).
+const storage = multer.memoryStorage();
 
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf', '.webp'];
 const ALLOWED_MIMETYPES   = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
