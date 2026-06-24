@@ -16,11 +16,14 @@ export interface TransactionFilters {
   limit?: number;
 }
 
-function encryptTx(data: Partial<Transaction>): Partial<Transaction> {
-  const out = { ...data } as any;
-  if (data.description !== undefined) out.description = encrypt(data.description);
-  if (data.notes       !== undefined && data.notes !== null) out.notes = encrypt(data.notes);
-  return out;
+/**
+ * Linha crua da tabela `transactions` como retorna do banco: igual a `Transaction`
+ * mais as colunas que não fazem parte do contrato público (`attachment_url`,
+ * `currency`). Os campos `description`/`notes`/`payment_notes` chegam cifrados.
+ */
+export interface TransactionRow extends Transaction {
+  attachment_url: string | null;
+  currency: string;
 }
 
 function safeDecrypt(value: string): string;
@@ -38,7 +41,7 @@ function safeDecrypt(value: string | null): string | null {
   }
 }
 
-function decryptTx(row: any): Transaction {
+function decryptTx(row: TransactionRow): TransactionRow {
   return {
     ...row,
     description:   safeDecrypt(row.description),
@@ -61,7 +64,12 @@ async function logHistory(
   );
 }
 
-type NewTransaction = Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+// Campos opcionais na criação (o insert aplica defaults/`null` via insertTx).
+type OptionalOnCreate = 'notes' | 'recurrence_months' | 'payment_method' | 'paid_at' | 'payment_notes';
+export type NewTransaction =
+  Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at' | OptionalOnCreate>
+  & Partial<Pick<Transaction, OptionalOnCreate>>
+  & { currency?: string };
 
 // Teto de linhas descriptografadas por busca textual. Como description/notes são
 // cifrados (AES-GCM, não pesquisável em SQL), a busca precisa descriptografar e
@@ -80,7 +88,7 @@ async function insertTx(executor: Queryable, userId: string, data: NewTransactio
   const encNotes        = data.notes ? encrypt(data.notes) : null;
   const encPaymentNotes = data.payment_notes ? encrypt(data.payment_notes) : null;
 
-  const { rows } = await executor.query<any>(
+  const { rows } = await executor.query<TransactionRow>(
     `INSERT INTO transactions
        (user_id, type, value, category, date, description, notes, recurrence, recurrence_months, is_recurring, paid, tags, currency, payment_method, paid_at, payment_notes)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
@@ -90,7 +98,7 @@ async function insertTx(executor: Queryable, userId: string, data: NewTransactio
       encDescription, encNotes,
       data.recurrence ?? 'none', data.recurrence_months ?? null,
       data.is_recurring ?? false, data.paid ?? false,
-      data.tags ?? [], (data as any).currency ?? 'BRL',
+      data.tags ?? [], data.currency ?? 'BRL',
       data.payment_method ?? null, data.paid_at ?? null, encPaymentNotes,
     ]
   );
@@ -100,7 +108,7 @@ async function insertTx(executor: Queryable, userId: string, data: NewTransactio
 }
 
 export class TransactionModel {
-  static async findAll(userId: string, filters: TransactionFilters = {}): Promise<PaginatedResult<Transaction>> {
+  static async findAll(userId: string, filters: TransactionFilters = {}): Promise<PaginatedResult<TransactionRow>> {
     const { type, category, categories, startDate, endDate, search, tags, sort, page = 1, limit = 50 } = filters;
 
     // Busca textual: como description/notes são criptografados, filtramos em memória
@@ -129,7 +137,7 @@ export class TransactionModel {
       // Aplica os filtros estruturados no SQL e limita a varredura a SEARCH_SCAN_LIMIT
       // linhas (mais recentes primeiro) antes de descriptografar e filtrar por texto.
       // Isso elimina a descriptografia ilimitada (DoS) mantendo a busca por substring.
-      const { rows } = await db.query<any>(
+      const { rows } = await db.query<TransactionRow>(
         `SELECT * FROM transactions WHERE ${where} ORDER BY date ${orderDir}, created_at ${orderDir} LIMIT $${paramIndex}`,
         [...values, SEARCH_SCAN_LIMIT]
       );
@@ -150,7 +158,7 @@ export class TransactionModel {
 
     const offset = (page - 1) * limit;
     const [{ rows: data }, { rows: countRows }] = await Promise.all([
-      db.query<any>(
+      db.query<TransactionRow>(
         `SELECT * FROM transactions WHERE ${where} ORDER BY date ${orderDir}, created_at ${orderDir} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
         [...values, limit, offset]
       ),
@@ -167,8 +175,8 @@ export class TransactionModel {
     };
   }
 
-  static async findById(id: string, userId: string, executor: Queryable = db): Promise<Transaction | null> {
-    const { rows } = await executor.query<any>(
+  static async findById(id: string, userId: string, executor: Queryable = db): Promise<TransactionRow | null> {
+    const { rows } = await executor.query<TransactionRow>(
       'SELECT * FROM transactions WHERE id = $1 AND user_id = $2',
       [id, userId]
     );
@@ -194,7 +202,7 @@ export class TransactionModel {
     });
   }
 
-  static async update(id: string, userId: string, data: Partial<Omit<Transaction, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<Transaction | null> {
+  static async update(id: string, userId: string, data: Partial<Omit<TransactionRow, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<Transaction | null> {
     const fields: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -203,15 +211,15 @@ export class TransactionModel {
     const cryptoUpdatable = ['description', 'notes', 'payment_notes'] as const;
 
     for (const key of plainUpdatable) {
-      if ((data as any)[key] !== undefined) {
+      if (data[key] !== undefined) {
         fields.push(`${key} = $${paramIndex++}`);
-        values.push((data as any)[key]);
+        values.push(data[key]);
       }
     }
     for (const key of cryptoUpdatable) {
-      if ((data as any)[key] !== undefined) {
+      const v = data[key];
+      if (v !== undefined) {
         fields.push(`${key} = $${paramIndex++}`);
-        const v = (data as any)[key];
         values.push(v != null ? encrypt(v) : null);
       }
     }
@@ -221,7 +229,7 @@ export class TransactionModel {
     values.push(id, userId);
     // Update + histórico em uma única transação atômica.
     return withTransaction(async client => {
-      const { rows } = await client.query<any>(
+      const { rows } = await client.query<TransactionRow>(
         `UPDATE transactions SET ${fields.join(', ')} WHERE id = $${paramIndex} AND user_id = $${paramIndex + 1} RETURNING *`,
         values
       );
@@ -233,7 +241,7 @@ export class TransactionModel {
   }
 
   static async setAttachment(id: string, userId: string, url: string): Promise<Transaction | null> {
-    const { rows } = await db.query<any>(
+    const { rows } = await db.query<TransactionRow>(
       `UPDATE transactions SET attachment_url = $1 WHERE id = $2 AND user_id = $3 RETURNING *`,
       [url, id, userId]
     );
@@ -251,7 +259,7 @@ export class TransactionModel {
       );
       return {
         deleted: (rowCount ?? 0) > 0,
-        attachmentUrl: (existing as any)?.attachment_url as string | undefined,
+        attachmentUrl: existing?.attachment_url ?? undefined,
       };
     });
 

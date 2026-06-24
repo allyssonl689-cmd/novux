@@ -1,7 +1,7 @@
 import path from 'path';
 import { randomBytes } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
-import { TransactionModel } from '../models/TransactionModel';
+import { TransactionModel, NewTransaction } from '../models/TransactionModel';
 import {
   createTransactionSchema,
   updateTransactionSchema,
@@ -39,7 +39,7 @@ export class TransactionController {
   static async create(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = createTransactionSchema.parse(req.body);
-      const transaction = await TransactionModel.create(req.userId, input as any);
+      const transaction = await TransactionModel.create(req.userId, input as NewTransaction);
       res.status(201).json({ success: true, data: transaction });
     } catch (err) { next(err); }
   }
@@ -48,7 +48,7 @@ export class TransactionController {
     try {
       const { transactions } = bulkCreateSchema.parse(req.body);
       // Atômico: ou todas as linhas do CSV entram, ou nenhuma (createMany usa transação).
-      const created = await TransactionModel.createMany(req.userId, transactions as any);
+      const created = await TransactionModel.createMany(req.userId, transactions as NewTransaction[]);
       res.status(201).json({ success: true, data: created });
     } catch (err) { next(err); }
   }
@@ -56,7 +56,7 @@ export class TransactionController {
   static async update(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const input = updateTransactionSchema.parse(req.body);
-      const transaction = await TransactionModel.update(String(req.params.id), req.userId, input as any);
+      const transaction = await TransactionModel.update(String(req.params.id), req.userId, input as Partial<NewTransaction>);
       if (!transaction) throw new AppError('Transação não encontrada', 404);
       res.json({ success: true, data: transaction });
     } catch (err) { next(err); }
@@ -82,7 +82,7 @@ export class TransactionController {
       const key = `${req.userId}/${req.params.id}/${randomBytes(16).toString('hex')}${ext}`;
       await storage.uploadAttachment(key, req.file.buffer, req.file.mimetype);
 
-      const oldKey = (existing as any).attachment_url as string | undefined;
+      const oldKey = existing.attachment_url;
       const transaction = await TransactionModel.setAttachment(String(req.params.id), req.userId, key);
       if (!transaction) {
         // Não conseguiu vincular: remove o objeto recém-enviado para não deixar órfão.
@@ -105,7 +105,7 @@ export class TransactionController {
   static async getAttachment(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const transaction = await TransactionModel.findById(String(req.params.id), req.userId);
-      const key = transaction ? (transaction as any).attachment_url as string | undefined : undefined;
+      const key = transaction ? transaction.attachment_url : undefined;
       if (!transaction || !key) throw new AppError('Comprovante não encontrado', 404);
 
       const { buffer, contentType } = await storage.downloadAttachment(key);
@@ -134,7 +134,7 @@ export class TransactionController {
       const headers = ['id','type','value','currency','category','date','description','notes','tags','paid'];
       const rows = result.data.map(t => [
         csvCell(t.id), csvCell(t.type), csvCell(t.value),
-        csvCell((t as any).currency ?? 'BRL'), csvCell(t.category),
+        csvCell(t.currency ?? 'BRL'), csvCell(t.category),
         csvCell(t.date), csvCell(t.description), csvCell(t.notes ?? ''),
         csvCell(t.tags.join('|')), csvCell(t.paid),
       ].join(','));

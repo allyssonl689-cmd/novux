@@ -4,6 +4,7 @@ import QRCode from 'qrcode';
 import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { encrypt, decrypt } from '../utils/encryption';
+import { totpTokenSchema } from '../validators/authValidators';
 
 export class TwoFactorController {
   static async setup(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -31,8 +32,7 @@ export class TwoFactorController {
 
   static async verify(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token } = req.body as { token: string };
-      if (!token) throw new AppError('Token obrigatório', 400);
+      const { token } = totpTokenSchema.parse(req.body);
 
       const { rows } = await db.query<{ totp_secret: string | null }>(
         'SELECT totp_secret FROM users WHERE id = $1',
@@ -54,8 +54,7 @@ export class TwoFactorController {
 
   static async disable(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { token } = req.body as { token: string };
-      if (!token) throw new AppError('Token obrigatório', 400);
+      const { token } = totpTokenSchema.parse(req.body);
 
       const { rows } = await db.query<{ totp_secret: string | null; totp_enabled: boolean }>(
         'SELECT totp_secret, totp_enabled FROM users WHERE id = $1',

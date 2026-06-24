@@ -3,7 +3,7 @@
  * O TelegramController delega toda a lógica para cá — ele só coordena request/response.
  */
 import { TelegramModel } from '../../models/TelegramModel';
-import { TransactionModel } from '../../models/TransactionModel';
+import { TransactionModel, NewTransaction } from '../../models/TransactionModel';
 import { GoalModel } from '../../models/GoalModel';
 import { parseTransaction, ParsedTransaction } from '../../parsers/transactionParser';
 import {
@@ -218,10 +218,10 @@ export async function handleResumo(chatId: number, userId: string): Promise<void
   const savingsRate  = summary.realizedIncome > 0
     ? ((summary.balance / summary.realizedIncome) * 100).toFixed(1)
     : '0';
-  const activeGoals  = (goals ?? []).filter((g: any) => !g.is_completed);
+  const activeGoals  = (goals ?? []).filter(g => !g.is_completed);
   const goalsLine    = activeGoals.length > 0
     ? `\n\n🎯 *Metas em andamento:* ${activeGoals.length}\n` +
-      activeGoals.slice(0, 2).map((g: any) => {
+      activeGoals.slice(0, 2).map(g => {
         const pct = Number(g.target_value) > 0 ? Math.round((Number(g.current_value) / Number(g.target_value)) * 100) : 0;
         return `  • ${g.title}: ${pct}%`;
       }).join('\n')
@@ -311,7 +311,7 @@ export async function handleCallback(update: TgCallbackQuery): Promise<void> {
           };
         });
         // Atômico: ou todos os lançamentos mensais são criados, ou nenhum.
-        await TransactionModel.createMany(userId, items as any);
+        await TransactionModel.createMany(userId, items as NewTransaction[]);
         await sendMessage(chatId, `✅ *${parsed.recurrence_months} lançamentos mensais criados!*\n\n${summaryText(parsed)}`);
       } else {
         await TransactionModel.create(userId, {
@@ -319,7 +319,7 @@ export async function handleCallback(update: TgCallbackQuery): Promise<void> {
           date: txDate, description: parsed.description,
           recurrence: 'none', is_recurring: false,
           paid: parsed.paid, tags: [], currency: 'BRL',
-        } as any);
+        } as NewTransaction);
         await sendMessage(chatId, `✅ *Lançamento registrado!*\n\n${summaryText(parsed)}`);
       }
     } catch (err) {

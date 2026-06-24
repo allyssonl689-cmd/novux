@@ -1,6 +1,12 @@
 import { Request, Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { AppError } from '../middleware/errorHandler';
 import { db } from '../config/database';
+
+const chatSchema = z.object({
+  message: z.string().trim().min(1, 'Mensagem obrigatória').max(2000, 'Mensagem muito longa'),
+  context: z.record(z.string(), z.string()).optional(),
+});
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile';
@@ -49,12 +55,7 @@ async function incrementUsage(userId: string, date: string): Promise<number> {
 export class AIController {
   static async chat(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { message, context } = req.body as {
-        message: string;
-        context: Record<string, string>;
-      };
-
-      if (!message?.trim()) throw new AppError('Mensagem obrigatória', 400);
+      const { message, context } = chatSchema.parse(req.body);
 
       const groqKey = process.env.GROQ_API_KEY;
       if (!groqKey) throw new AppError('Serviço de IA não configurado', 503);

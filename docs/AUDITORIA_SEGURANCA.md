@@ -183,8 +183,8 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 - ✅ **[CORRIGIDO]** **`verifyAccessToken` faz query ao banco a cada request** → cache em memória (TTL 30s, só positivos) no `authMiddleware`; token segue validado por assinatura sempre.
 - ✅ **[CORRIGIDO]** **Datas relativas no parser usam timezone do servidor (UTC)** → ancoradas em `America/Sao_Paulo`.
 - ✅ **[CORRIGIDO]** **`safeDecrypt` faz fallback silencioso para texto puro** — agora loga aviso.
-- **`any` concentrado na camada de dados** (models); bodies sem Zod em vários endpoints.
-- **Sem tipos compartilhados front/back** — contrato duplicado à mão (`toFrontend`/`toBackend`).
+- ✅ **[CORRIGIDO]** **`any` na camada de dados (backend)**: tipados com `TransactionRow`/`UserRow` (linhas do banco) — 0 `any` no `eslint src`. **Zod** adicionado aos endpoints que liam `req.body` sem schema (login 2FA, forgot-password, 2FA verify/disable, Google credential, IA chat). Lint do **backend** agora é **gate bloqueante** no CI.
+- **Sem tipos compartilhados front/back** — contrato duplicado à mão (`toFrontend`/`toBackend`). *(ainda pendente)*
 - ✅ **[CORRIGIDO]** **Importação CSV faz N requests** → endpoint bulk `POST /api/transactions/bulk` (atômico).
 - ✅ **[CORRIGIDO]** **`mock-data.ts` / `seed-data.ts`** dead code removido.
 
@@ -268,8 +268,9 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 | # | Pendência | Esforço / risco |
 |---|---|---|
 | Etapa C (#4) | `insights`/`SmartIndicators`/`AIInsights` ainda usam o array completo do `FinanceContext`. Mover p/ server-side (AIInsights monta contexto da Groq com todo o histórico). | **Grande** — porta lógica p/ backend ou novos endpoints. |
-| `any` + tipos compartilhados | `any` concentrado nos models e contrato front/back duplicado à mão (`toFrontend`/`toBackend`); bodies sem Zod em vários endpoints. | **Grande** — refactor de tipagem; habilita o gate de lint (abaixo). |
-| Lint como gate de CI | ~40 erros restantes são `no-explicit-any` (a dívida acima). **Decisão:** tipar de verdade (refactor) **ou** baixar a regra para `warn` (política). | Depende da decisão. |
+| `any` + Zod (backend) | ✅ **CONCLUÍDO** — backend tipado de verdade (`TransactionRow`/`UserRow`), Zod nos bodies faltantes, `eslint src` = 0. | — |
+| Lint como gate de CI | ✅ **Backend** vira gate bloqueante (decisão: tipar de verdade). 🟡 **Frontend** entra como passo **não-bloqueante** — restam **68 problemas em 11 regras** (`react-hooks/exhaustive-deps`, `set-state-in-effect`, `purity`, 15 `any`, etc.). | Cleanup do front é incremental/arriscado (mexe em hooks) — tarefa separada. |
+| Tipos compartilhados front/back | Contrato duplicado à mão (`toFrontend`/`toBackend`). | **Grande** — ainda pendente. |
 | a11y demais telas | `aria-label`/`role` no restante das telas (a de Lançamentos já coberta). | Médio, incremental. |
 
 ### 🔭 Fora desta auditoria (segunda rodada recomendada)

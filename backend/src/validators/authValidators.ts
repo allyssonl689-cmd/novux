@@ -37,6 +37,24 @@ export const resetPasswordSchema = z.object({
     .regex(/[0-9]/, 'Nova senha deve conter pelo menos um número'),
 });
 
+export const login2faSchema = z.object({
+  tempToken: z.string().min(1, 'tempToken é obrigatório'),
+  totpToken: z.string().min(1, 'Código 2FA é obrigatório'),
+});
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Email inválido').toLowerCase(),
+});
+
+// Código TOTP (6 dígitos; aceita até 10 p/ tolerar espaços/recovery codes)
+export const totpTokenSchema = z.object({
+  token: z.string().trim().min(6, 'Código deve ter ao menos 6 dígitos').max(10),
+});
+
+export const googleCredentialSchema = z.object({
+  credential: z.string().min(1, 'credential é obrigatório'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;

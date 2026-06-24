@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../services/authService';
-import { registerSchema, loginSchema, changePasswordSchema, resetPasswordSchema } from '../validators/authValidators';
+import { registerSchema, loginSchema, changePasswordSchema, resetPasswordSchema, login2faSchema, forgotPasswordSchema } from '../validators/authValidators';
 import { env } from '../config/env';
 
 const REFRESH_COOKIE = 'novux_refresh';
@@ -67,8 +67,7 @@ export class AuthController {
 
   static async loginWith2FA(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { tempToken, totpToken } = req.body as { tempToken: string; totpToken: string };
-      if (!tempToken || !totpToken) throw new Error('Dados incompletos');
+      const { tempToken, totpToken } = login2faSchema.parse(req.body);
       const result = await AuthService.loginWith2FA(tempToken, totpToken);
       setRefreshCookie(res, result.refreshToken);
       res.json({ success: true, data: { accessToken: result.accessToken, user: result.user } });
@@ -123,8 +122,7 @@ export class AuthController {
 
   static async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
-      const { email } = req.body as { email: string };
-      if (!email) { res.status(400).json({ success: false, message: 'E-mail obrigatório' }); return; }
+      const { email } = forgotPasswordSchema.parse(req.body);
       const ip = req.ip ?? req.socket?.remoteAddress;
       await AuthService.forgotPassword(email, ip);
       // Resposta sempre 200 para não vazar se o e-mail existe
@@ -169,7 +167,7 @@ export class AuthController {
     try {
       const user = await import('../models/UserModel').then(m => m.UserModel.findById(req.userId));
       if (!user) { res.status(404).json({ success: false, message: 'Usuário não encontrado' }); return; }
-      if ((user as any).email_verified) { res.json({ success: true, message: 'E-mail já verificado' }); return; }
+      if ((user as { email_verified?: boolean }).email_verified) { res.json({ success: true, message: 'E-mail já verificado' }); return; }
       await AuthService.resendVerification(req.userId, user.email, user.name ?? undefined);
       res.json({ success: true, message: 'E-mail de verificação reenviado' });
     } catch (err) { next(err); }

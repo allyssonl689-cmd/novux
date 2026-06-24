@@ -44,6 +44,6 @@ export const dataLimiter = rateLimit({
   max: env.NODE_ENV === 'development' ? 2000 : 300,
   standardHeaders: true,
   legacyHeaders: false,
-  keyGenerator: (req) => (req as any).userId ?? req.ip ?? 'anon',
+  keyGenerator: (req) => req.userId ?? req.ip ?? 'anon',
   message: { success: false, message: 'Muitas requisições. Aguarde um momento.' },
 });

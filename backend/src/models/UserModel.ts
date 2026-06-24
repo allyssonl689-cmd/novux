@@ -3,10 +3,33 @@ import { User, PublicUser } from './types';
 import { encrypt, decrypt, emailHmac } from '../utils/encryption';
 
 /**
+ * Linha crua da tabela `users` como retorna do banco. `name`/`email` chegam
+ * cifrados quando `email_hash` está preenchido. As colunas variam por SELECT,
+ * então as não essenciais são opcionais.
+ */
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  email_hash: string | null;
+  password_hash?: string;
+  avatar_url: string | null;
+  is_active: boolean;
+  plan?: string;
+  is_admin?: boolean;
+  email_verified?: boolean;
+  onboarding_completed?: boolean;
+  referral_code?: string | null;
+  referred_by?: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/**
  * Descriptografa name/email apenas se o usuário já passou pela migração de criptografia.
  * Usuários antigos (email_hash IS NULL) têm valores em texto puro — retorna como estão.
  */
-function safeDecryptUser(row: any): PublicUser {
+function safeDecryptUser(row: UserRow): UserRow {
   const encrypted = !!row.email_hash;
   return {
     ...row,
@@ -17,7 +40,7 @@ function safeDecryptUser(row: any): PublicUser {
 
 export class UserModel {
   static async findById(id: string): Promise<PublicUser | null> {
-    const { rows } = await db.query<any>(
+    const { rows } = await db.query<UserRow>(
       `SELECT id, name, email, email_hash, avatar_url, is_active, plan, is_admin,
               COALESCE(email_verified, false) AS email_verified,
               created_at, updated_at
@@ -32,7 +55,7 @@ export class UserModel {
     const hash       = emailHmac(email);
     const normalized = email.toLowerCase().trim();
 
-    const { rows } = await db.query<any>(
+    const { rows } = await db.query<UserRow>(
       `SELECT * FROM users
        WHERE (email_hash = $1 OR (email_hash IS NULL AND email = $2))
          AND is_active = true
@@ -48,7 +71,7 @@ export class UserModel {
     const encryptedEmail = encrypt(data.email.toLowerCase());
     const hash           = emailHmac(data.email);
 
-    const { rows } = await executor.query<any>(
+    const { rows } = await executor.query<UserRow>(
       `INSERT INTO users (name, email, email_hash, password_hash)
        VALUES ($1, $2, $3, $4)
        RETURNING id, name, email, email_hash, avatar_url, is_active, created_at, updated_at`,
@@ -79,7 +102,7 @@ export class UserModel {
     if (fields.length === 0) return this.findById(id);
 
     values.push(id);
-    const { rows } = await db.query<any>(
+    const { rows } = await db.query<UserRow>(
       `UPDATE users SET ${fields.join(', ')}
        WHERE id = $${paramIndex}
        RETURNING id, name, email, email_hash, avatar_url, is_active, created_at, updated_at`,
@@ -103,7 +126,10 @@ export class UserModel {
     total: number; active30d: number; newThisMonth: number;
     plans: Record<string, number>;
   }> {
-    const { rows } = await db.query(`
+    const { rows } = await db.query<{
+      total: string; active30d: string; new_this_month: string;
+      free_count: string; premium_count: string;
+    }>(`
       SELECT
         COUNT(*)                                                    AS total,
         COUNT(*) FILTER (WHERE updated_at > NOW() - INTERVAL '30 days') AS active30d,
@@ -112,7 +138,7 @@ export class UserModel {
         COUNT(*) FILTER (WHERE plan = 'premium')                   AS premium_count
       FROM users WHERE is_active = true
     `);
-    const r = rows[0] as any;
+    const r = rows[0];
     return {
       total:        parseInt(r.total, 10),
       active30d:    parseInt(r.active30d, 10),
@@ -121,8 +147,8 @@ export class UserModel {
     };
   }
 
-  static async listAll(limit = 50, offset = 0): Promise<any[]> {
-    const { rows } = await db.query<any>(
+  static async listAll(limit = 50, offset = 0): Promise<PublicUser[]> {
+    const { rows } = await db.query<UserRow>(
       `SELECT id, name, email, email_hash, plan, is_admin, onboarding_completed, created_at, updated_at
        FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`,
       [limit, offset]

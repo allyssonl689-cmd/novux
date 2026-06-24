@@ -103,10 +103,10 @@ async function start(): Promise<void> {
   }
 
   // Registrar webhook do Telegram após tudo estar pronto
-  if (env.NODE_ENV === 'production' && (env as any).TELEGRAM_BOT_TOKEN && (env as any).BACKEND_URL) {
+  if (env.NODE_ENV === 'production' && env.TELEGRAM_BOT_TOKEN && env.BACKEND_URL) {
     const { registerWebhook } = await import('./services/telegramService');
-    const webhookUrl = `${(env as any).BACKEND_URL}/api/telegram/webhook`;
-    const ok = await registerWebhook(webhookUrl, (env as any).TELEGRAM_WEBHOOK_SECRET);
+    const webhookUrl = `${env.BACKEND_URL}/api/telegram/webhook`;
+    const ok = await registerWebhook(webhookUrl, env.TELEGRAM_WEBHOOK_SECRET);
     console.log(`🤖 Telegram webhook ${ok ? 'registrado' : 'FALHOU'}: ${webhookUrl}`);
   }
 }

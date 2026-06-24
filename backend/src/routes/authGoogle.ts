@@ -5,6 +5,7 @@ import { db } from '../config/database';
 import { signAccessToken, signRefreshToken } from '../config/auth';
 import { env } from '../config/env';
 import { encrypt, decrypt, emailHmac } from '../utils/encryption';
+import { googleCredentialSchema } from '../validators/authValidators';
 
 const router = Router();
 
@@ -15,11 +16,12 @@ const REFRESH_COOKIE = 'novux_refresh';
 
 router.post('/google', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { credential } = req.body as { credential?: string };
-    if (!credential) {
+    const parsed = googleCredentialSchema.safeParse(req.body);
+    if (!parsed.success) {
       res.status(400).json({ success: false, message: 'Token Google ausente' });
       return;
     }
+    const { credential } = parsed.data;
 
     if (!GOOGLE_CLIENT_ID) {
       res.status(503).json({ success: false, message: 'Login com Google indisponível no momento' });
