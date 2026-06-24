@@ -16,6 +16,9 @@
 - **M2** — `/admin/users` mascara e-mail (`j***@dominio`) + `Cache-Control: no-store`.
 - **B1** — auditados `admin/users`, enable/disable de 2FA; rótulo do metrics corrigido.
 - **B2** — `emailService` não loga mais a URL de reset no fallback.
+- **M7** — migration **019** (`totp_secret`→`TEXT`) — ✅ **aplicada no Supabase**.
+- **C3** — recovery codes do 2FA (10 códigos uso único, hash-only, tabela nova — migration **020**; aceitos no login como alternativa ao TOTP; UI no ProfilePage + LoginPage). ⚠️ **rodar migration 020 no Supabase**.
+- **M3 + B3** — `dataLimiter` nas rotas admin + try/catch no `requireAdmin`.
 - **C2 + A1 + M4 + M5 + B6** — login Google: grava só `token_hash`; valida `email_verified`+`iss`; seta `email_verified=TRUE`; reutiliza `setRefreshCookie` (`sameSite` none/lax); `authLimiter` na rota.
 - **A2** — escape de HTML do nome nos e-mails + `registerSchema` rejeita `<`/`>`.
 - **C4** — `POST /2fa/disable` exige senha (bcrypt) além do TOTP (front atualizado); OAuth-only dispensado.
@@ -25,7 +28,7 @@
 
 **↩️ Reavaliado:** **A4** (não retornar `secret` no setup) — **adiado**: o `secret` já vai embutido no `qrDataUrl` (otpauth URI) que é retornado de qualquer forma, então remover só o campo não fecha a exposição e quebraria a entrada manual. Fix real = servir QR por endpoint autenticado (revisitar com C3/recovery codes).
 
-**⏳ Pendentes (próximos):** C1 (RLS — infra), C3 (recovery codes — maior), A3 (audit log append-only — infra), M1/M2/M3/M6/M7/B1-B6, SCA (`npm audit fix`).
+**⏳ Pendentes:** **C1** (RLS — infra Supabase + meu `SET LOCAL`), **A3** (audit log append-only/role só-INSERT — infra), **M6** (CA do TLS banco/SMTP — infra), **B4** (validação TOTP `^\d{6}$`), **B5** (chave HMAC separada da `ENCRYPTION_KEY`), **nodemailer** (SCA breaking). Restam basicamente os itens de **infra/decisão** (C1, A3, M6) + dois hardenings menores (B4, B5).
 
 ---
 
