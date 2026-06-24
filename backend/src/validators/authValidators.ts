@@ -47,9 +47,10 @@ export const forgotPasswordSchema = z.object({
   email: z.string().email('Email inválido').toLowerCase(),
 });
 
-// Código TOTP (6 dígitos; aceita até 10 p/ tolerar espaços/recovery codes)
+// Código TOTP: exatamente 6 dígitos (B4). Recovery codes entram por outro fluxo
+// (login/2fa), não por este schema — então aqui pode ser estrito.
 export const totpTokenSchema = z.object({
-  token: z.string().trim().min(6, 'Código deve ter ao menos 6 dígitos').max(10),
+  token: z.string().trim().regex(/^\d{6}$/, 'Código deve ter exatamente 6 dígitos'),
 });
 
 export const googleCredentialSchema = z.object({
