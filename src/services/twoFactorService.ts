@@ -12,8 +12,10 @@ export const twoFactorService = {
     const res = await apiFetch<{ success: boolean; data: TwoFASetup }>('/api/auth/2fa/setup', { method: 'POST' });
     return res.data;
   },
-  async verify(token: string): Promise<void> {
-    await apiFetch('/api/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ token }) });
+  async verify(token: string): Promise<{ recoveryCodes: string[] }> {
+    const res = await apiFetch<{ success: boolean; data: { recoveryCodes: string[] } }>(
+      '/api/auth/2fa/verify', { method: 'POST', body: JSON.stringify({ token }) });
+    return res.data;
   },
   async disable(token: string, currentPassword?: string): Promise<void> {
     await apiFetch('/api/auth/2fa/disable', { method: 'POST', body: JSON.stringify({ token, currentPassword }) });

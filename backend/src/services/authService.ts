@@ -11,6 +11,7 @@ import { RegisterInput, LoginInput } from '../validators/authValidators';
 import { PublicUser } from '../models/types';
 import { recordLoginAttempt } from '../middleware/bruteForce';
 import { audit } from './auditService';
+import { consumeRecoveryCode } from './recoveryCodeService';
 import { decrypt, emailHmac } from '../utils/encryption';
 
 function hashToken(token: string): string {
@@ -153,8 +154,10 @@ export class AuthService {
     if (!user || !user.totp_secret) throw new AppError('Usuário não encontrado', 404);
 
     const totpSecret = decrypt(user.totp_secret)!;
-    const result = verifySync({ token: totpToken, secret: totpSecret });
-    if (!result?.valid) {
+    const totpValid = verifySync({ token: totpToken, secret: totpSecret })?.valid ?? false;
+    // Alternativa ao TOTP: um código de recuperação de uso único (consumido se válido).
+    const authOk = totpValid || await consumeRecoveryCode(user.id, totpToken);
+    if (!authOk) {
       // Incrementa a contagem; ao atingir o teto, invalida a sessão de 2FA
       const upd = await db.query<{ attempts: number }>(
         'UPDATE pending_2fa SET attempts = attempts + 1 WHERE token_hash = $1 RETURNING attempts',

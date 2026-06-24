@@ -86,6 +86,7 @@ export default function LoginPage() {
   const [totpStep, setTotpStep] = useState(false);
   const [tempToken, setTempToken] = useState('');
   const [totpCode, setTotpCode] = useState('');
+  const [useRecovery, setUseRecovery] = useState(false);
 
   /* Intro states: 'chart' → 'morph' → 'done' */
   const [phase, setPhase] = useState<'chart' | 'morph' | 'done'>('chart');
@@ -210,24 +211,48 @@ export default function LoginPage() {
                 <p className="text-sm font-semibold text-foreground">Verificação em 2 etapas</p>
               </div>
               <p className="text-xs text-muted-foreground">
-                Abra seu app autenticador e insira o código de 6 dígitos.
+                {useRecovery
+                  ? 'Insira um dos seus códigos de recuperação.'
+                  : 'Abra seu app autenticador e insira o código de 6 dígitos.'}
               </p>
 
               <div>
-                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Código TOTP</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  value={totpCode}
-                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  required
-                  autoFocus
-                  placeholder="000000"
-                  className="w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50 transition-colors tracking-[0.4em] text-center font-mono"
-                />
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">
+                  {useRecovery ? 'Código de recuperação' : 'Código TOTP'}
+                </label>
+                {useRecovery ? (
+                  <input
+                    type="text"
+                    value={totpCode}
+                    onChange={e => setTotpCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 11))}
+                    required
+                    autoFocus
+                    placeholder="XXXXX-XXXXX"
+                    className="w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50 transition-colors tracking-widest text-center font-mono"
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]{6}"
+                    maxLength={6}
+                    value={totpCode}
+                    onChange={e => setTotpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    required
+                    autoFocus
+                    placeholder="000000"
+                    className="w-full rounded-xl border border-border bg-secondary px-3 py-2.5 text-sm text-foreground outline-none focus:border-primary/50 transition-colors tracking-[0.4em] text-center font-mono"
+                  />
+                )}
               </div>
+
+              <button
+                type="button"
+                onClick={() => { setUseRecovery(v => !v); setTotpCode(''); setError(''); }}
+                className="text-xs text-primary hover:underline"
+              >
+                {useRecovery ? 'Usar código do app autenticador' : 'Usar código de recuperação'}
+              </button>
 
               {error && (
                 <p className="text-xs text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
@@ -235,7 +260,7 @@ export default function LoginPage() {
 
               <button
                 type="submit"
-                disabled={loading || totpCode.length !== 6}
+                disabled={loading || (useRecovery ? totpCode.replace(/-/g, '').length < 10 : totpCode.length !== 6)}
                 className="btn-novux w-full py-2.5 text-sm font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}

@@ -32,6 +32,7 @@ export default function ProfilePage() {
   const [secret, setSecret]     = useState('');
   const [token2FA, setToken2FA] = useState('');
   const [password2FA, setPassword2FA] = useState('');
+  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [show2FAToken, setShow2FAToken] = useState(false);
   const [twoFALoading, setTwoFALoading] = useState(false);
   const [twoFAError, setTwoFAError]     = useState('');
@@ -111,7 +112,8 @@ export default function ProfilePage() {
   async function handle2FAVerify() {
     setTwoFALoading(true); setTwoFAError('');
     try {
-      await twoFactorService.verify(token2FA);
+      const data = await twoFactorService.verify(token2FA);
+      setRecoveryCodes(data.recoveryCodes ?? []);
       setTwoFAEnabled(true); setShowSetup(false); setToken2FA('');
       setTwoFASuccess('2FA ativado com sucesso!');
       setTimeout(() => setTwoFASuccess(''), 3000);
@@ -361,6 +363,33 @@ export default function ProfilePage() {
                 </button>
               </div>
               {twoFAError && <p className="text-xs text-destructive">{twoFAError}</p>}
+            </motion.div>
+          )}
+
+          {/* Recovery codes — exibidos UMA única vez após ativar o 2FA */}
+          {recoveryCodes.length > 0 && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+              className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 space-y-3">
+              <p className="text-xs font-bold text-foreground">Guarde seus códigos de recuperação</p>
+              <p className="text-[11px] text-muted-foreground">
+                Cada código funciona <strong>uma vez</strong> caso você perca o app autenticador.
+                Eles <strong>não serão exibidos novamente</strong>. Guarde em local seguro.
+              </p>
+              <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-background/70 p-3 font-mono text-xs text-foreground">
+                {recoveryCodes.map(c => <span key={c}>{c}</span>)}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(recoveryCodes.join('\n')); setTwoFASuccess('Códigos copiados.'); setTimeout(() => setTwoFASuccess(''), 3000); }}
+                  className="text-xs font-semibold text-primary hover:underline">
+                  Copiar códigos
+                </button>
+                <button
+                  onClick={() => setRecoveryCodes([])}
+                  className="ml-auto text-xs font-bold rounded-lg border border-border px-3 py-1.5 hover:bg-secondary transition-colors">
+                  Já guardei
+                </button>
+              </div>
             </motion.div>
           )}
         </div>
