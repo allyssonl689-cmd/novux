@@ -145,8 +145,8 @@ Com `search`, faz `SELECT *` sem `LIMIT`, descriptografa TUDO e filtra em JS.
 ### 8. ✅ [CORRIGIDO] Erros de API silenciados → péssima UX no cold start (~30s) do Render
 **UX.** `FinanceContext.tsx:36` faz `.catch(console.error)`. Com o backend hibernando, o usuário vê tudo **R$ 0,00** — parece perda de dados. Sem retry, sem aviso.
 
-### 9. Webhook Telegram fica aberto se o secret não estiver setado
-**Segurança.** `routes/telegram.ts:12-22` valida só `if (secret)`. Garantir `TELEGRAM_WEBHOOK_SECRET` obrigatório em produção.
+### 9. ✅ [CORRIGIDO] Webhook Telegram fica aberto se o secret não estiver setado
+**Segurança.** `routes/telegram.ts` validava só `if (secret)` (fail-open). **Corrigido (commit `feb7961`):** agora é **fail-closed** — sem `TELEGRAM_WEBHOOK_SECRET` o webhook responde 503; comparação do header em tempo constante (`timingSafeEqual`); e em produção, com `TELEGRAM_BOT_TOKEN` setado, o secret vira obrigatório (mín. 16 chars) ou o boot falha.
 
 ---
 
@@ -257,9 +257,9 @@ Esta auditoria foi **ampla mas não exaustiva**. Os seguintes pontos **não fora
 | # | Pendência | Ação necessária |
 |---|---|---|
 | Refresh token | ✅ **CONCLUÍDO** (commit `3e8e7d2`, em produção): grava só o hash, rotação a cada refresh + detecção de reuso. Migrations **016** (nullable) e **017** (drop da coluna `token`) aplicadas no Supabase. Nenhum refresh token fica mais legível no banco. |
-| #6 | Segredos de produção (`backend/.env`) dentro de pasta **OneDrive sincronizada**. | Mover o projeto p/ fora do OneDrive (ou dessincronizar o `.env`) e **rotacionar** os segredos. ⚠️ Rotacionar `ENCRYPTION_KEY` torna ilegível todo PII já cifrado — exige plano de re-criptografia. |
-| Anexos | Comprovantes em **disco efêmero** do Render (somem a cada deploy). | **Decidir** o storage externo (S3 / Supabase Storage). Depois eu integro. |
-| #9 | Webhook do Telegram fica aberto se `TELEGRAM_WEBHOOK_SECRET` não estiver setado. | Garantir o secret em produção. (Posso também **tornar obrigatório no código** — me confirme.) |
+| #6 | Segredos de produção (`backend/.env`) dentro de pasta **OneDrive sincronizada**. | Mover o projeto p/ fora do OneDrive (ou dessincronizar o `.env`) e **rotacionar** os segredos. ⚠️ Rotacionar `ENCRYPTION_KEY` torna ilegível todo PII já cifrado — exige plano de re-criptografia. **(Verificação Git concluída: nenhum segredo vazou para o GitHub; `.env` rastreado removido — commit `05dd431`.)** |
+| Anexos | ✅ **[CORRIGIDO]** Comprovantes migrados do disco efêmero para **Supabase Storage** (bucket privado, proxy autenticado — commit `e16e997`). | **Sua parte:** criar o bucket privado `receipts` no Supabase e setar `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` no Render. |
+| #9 | ✅ **[CORRIGIDO]** Webhook do Telegram **fail-closed** + secret obrigatório em produção quando o bot está ativo (commit `feb7961`). | **Sua parte:** garantir `TELEGRAM_WEBHOOK_SECRET` no Render (sem ele o webhook responde 503 e o boot falha em prod). |
 
 ### ✅ Concluído nesta rodada (16/06/2026)
 - **#24** máscara/validação BRL · **#20** focus trap completo (Radix Dialog) · **CSV bulk** (1 requisição atômica) · **#5 parser de datas** em fuso BRT · **#6 a11y/mobile** na lista (touch + aria-labels) · **#4 `verifyAccessToken`** com cache · dívida rápida (`safeDecrypt`, dead code, lint trivial).
