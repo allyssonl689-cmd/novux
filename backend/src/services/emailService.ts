@@ -63,7 +63,9 @@ async function sendViaSMTP(
     port:   env.SMTP_PORT,
     secure: env.SMTP_PORT === 465,
     auth:   { user: env.SMTP_USER, pass: env.SMTP_PASS },
-    tls:    { rejectUnauthorized: false },
+    // Valida o certificado TLS do servidor SMTP (evita MITM). O caminho principal
+    // de e-mail é o Brevo HTTP; este SMTP é fallback e deve usar um provedor com cert válido.
+    tls:    { rejectUnauthorized: true },
   });
 
   const from = env.SMTP_FROM ?? env.EMAIL_FROM ?? `"Novux Finance" <${env.SMTP_USER}>`;

@@ -23,6 +23,9 @@ const envSchema = z.object({
 
   // false por padrão para compatibilidade com Supabase Session Pooler (cert auto-assinado)
   DATABASE_SSL_REJECT_UNAUTHORIZED: z.coerce.boolean().default(false),
+  // CA do banco em PEM (opcional). Se setado, o SSL valida o certificado do servidor
+  // (rejectUnauthorized: true) — ver M6 da auditoria. Sem ele, mantém o comportamento atual.
+  DATABASE_CA_CERT: z.string().optional(),
 
   GOOGLE_CLIENT_ID: z.string().min(10, 'GOOGLE_CLIENT_ID inválido').optional(),
 

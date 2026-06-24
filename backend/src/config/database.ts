@@ -16,10 +16,14 @@ export const db = new Pool({
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  // SSL sempre ativo em produção — rejectUnauthorized configurável para compatibilidade
-  // com Supabase Session Pooler que usa cert auto-assinado (DATABASE_SSL_REJECT_UNAUTHORIZED=false)
+  // SSL em produção. Se DATABASE_CA_CERT for fornecido (PEM do CA do Supabase),
+  // valida o certificado do servidor (rejectUnauthorized: true) — fecha o MITM (M6).
+  // Sem o CA, mantém o comportamento atual (rejectUnauthorized configurável) para não
+  // quebrar a conexão com o Session Pooler de cert auto-assinado.
   ssl: isProduction
-    ? { rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED }
+    ? (env.DATABASE_CA_CERT
+        ? { ca: env.DATABASE_CA_CERT, rejectUnauthorized: true }
+        : { rejectUnauthorized: env.DATABASE_SSL_REJECT_UNAUTHORIZED })
     : false,
   application_name: 'novux-finance',
 });
