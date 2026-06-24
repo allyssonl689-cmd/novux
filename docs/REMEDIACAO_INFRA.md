@@ -94,9 +94,18 @@ e estável em produção. Quando você decidir, começamos pela tabela `transact
 
 ---
 
-## Resumo do que falta após esta etapa
-- **M6-banco:** você seta `DATABASE_CA_CERT` no Render (rápido).
-- **A3:** você escolhe Opção A ou B; eu preparo.
-- **C1:** mini-projeto faseado — começa quando você decidir o modelo (passo 1 acima).
-- **B5** (chave HMAC separada): adiado por decisão sua (exige re-hash dos e-mails).
-- **nodemailer/SCA:** ✅ já resolvido. **B4, M7, C3, M3** e demais de código: ✅ feitos.
+## Status final (2026-06-24)
+
+**✅ Concluído e em produção (branch mergeada na `main`; CI verde):**
+- **M6-banco** — `DATABASE_CA_CERT` setado no Render; `/health` = `db: connected` (TLS do banco validado).
+- **M6-SMTP** — `rejectUnauthorized: true`.
+- **A3** — migration **021** aplicada (trigger `audit_log_no_delete`, append-only via Opção A).
+- **C2/A1/A2/C4/A5/C3** + **M1/M2/M3/M7** + **B1/B2/B3/B4** + **SCA** (multer/dompurify/nodemailer → 0 vulns) + **lint-gate** do backend no CI.
+- Migrations aplicadas pelo usuário no Supabase: **019, 020, 021**.
+
+**⏳ Único item de segurança em aberto:**
+- **C1 — RLS no Postgres.** Mini-projeto faseado (ver seção acima). **Não é vazamento ativo** — o IDOR já é mitigado no código (filtro `user_id` em toda query, confirmado na 1ª auditoria); a RLS é 2ª camada (defesa em profundidade). Começar pela tabela `transactions` como piloto quando o modelo (passo 1) for decidido. Sem urgência.
+
+**↩️ Adiados por decisão:**
+- **B5** — chave HMAC separada da `ENCRYPTION_KEY` (exige re-hash dos `email_hash` existentes → backfill).
+- **A4** — não retornar o `secret` TOTP no setup (o segredo já vai embutido no `qrDataUrl`; fix real = servir QR por endpoint autenticado).
