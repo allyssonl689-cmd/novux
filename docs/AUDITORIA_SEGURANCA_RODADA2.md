@@ -10,7 +10,12 @@
 
 ## Status de remediação (atualizado 24/06/2026)
 
-**✅ Corrigidos na branch (commits `bb978a4`, `abc6c98`):**
+**✅ Corrigidos na branch (commits `bb978a4`, `abc6c98`, `3001f3a`, `0c353b4`):**
+- **SCA** — `npm audit fix`: multer 2.2.0 (back, corrige DoS) e dompurify 3.4.11 (front). Resta só nodemailer (breaking, fallback SMTP).
+- **M1** — audit log não grava mais PII em claro (`register` sem nome; `login_failed` com HMAC do e-mail).
+- **M2** — `/admin/users` mascara e-mail (`j***@dominio`) + `Cache-Control: no-store`.
+- **B1** — auditados `admin/users`, enable/disable de 2FA; rótulo do metrics corrigido.
+- **B2** — `emailService` não loga mais a URL de reset no fallback.
 - **C2 + A1 + M4 + M5 + B6** — login Google: grava só `token_hash`; valida `email_verified`+`iss`; seta `email_verified=TRUE`; reutiliza `setRefreshCookie` (`sameSite` none/lax); `authLimiter` na rota.
 - **A2** — escape de HTML do nome nos e-mails + `registerSchema` rejeita `<`/`>`.
 - **C4** — `POST /2fa/disable` exige senha (bcrypt) além do TOTP (front atualizado); OAuth-only dispensado.
