@@ -25,3 +25,8 @@ npm-debug.log*
 Thumbs.db
 
 .vercel
+
+# Identidade visual: PNGs e brandbook vivem no repo novux-brand.
+# Aqui ficam só tokens, fontes e SVGs — o que o build consome.
+brand/logo/png/
+brand/brandbook.html
