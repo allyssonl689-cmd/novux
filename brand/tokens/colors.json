@@ -1,0 +1,557 @@
+{
+  "$schema": "https://novux.brand/tokens.schema.json",
+  "brand": "Novux Finance",
+  "id": "finance",
+  "generatedBy": "scripts/brand/build.mjs",
+  "gradient": {
+    "from": "#16C7FF",
+    "to": "#8B5CF6"
+  },
+  "surfaces": {
+    "background": "#050816",
+    "surface": "#0B1020",
+    "card": "#121933",
+    "elevated": "#1A2342",
+    "logoBackdropFrom": "#0B1020",
+    "logoBackdropTo": "#0F1735"
+  },
+  "scales": {
+    "primary": {
+      "50": "#E6F5F9",
+      "100": "#CAECF6",
+      "200": "#98E0F6",
+      "300": "#57D4FA",
+      "400": "#1AC9FF",
+      "500": "#14C8FF",
+      "600": "#02ABDE",
+      "700": "#0785AB",
+      "800": "#0B607A",
+      "900": "#0B3C4B"
+    },
+    "accent": {
+      "50": "#ECE7F8",
+      "100": "#D8CDF4",
+      "200": "#B69CF1",
+      "300": "#8B5FF2",
+      "400": "#6325F4",
+      "500": "#895AF6",
+      "600": "#490DD3",
+      "700": "#3C0FA3",
+      "800": "#2E1074",
+      "900": "#200E48"
+    }
+  },
+  "dark": {
+    "background": {
+      "hex": "#050816",
+      "hsl": "229 63% 5.2%",
+      "hslArray": [
+        229,
+        63,
+        5.2
+      ]
+    },
+    "foreground": {
+      "hex": "#F2F4F8",
+      "hsl": "214 32% 96%",
+      "hslArray": [
+        214,
+        32,
+        96
+      ]
+    },
+    "card": {
+      "hex": "#121933",
+      "hsl": "227 48% 13.6%",
+      "hslArray": [
+        227,
+        48,
+        13.6
+      ]
+    },
+    "card-foreground": {
+      "hex": "#F2F4F8",
+      "hsl": "214 32% 96%",
+      "hslArray": [
+        214,
+        32,
+        96
+      ]
+    },
+    "popover": {
+      "hex": "#121933",
+      "hsl": "227 48% 13.6%",
+      "hslArray": [
+        227,
+        48,
+        13.6
+      ]
+    },
+    "popover-foreground": {
+      "hex": "#F2F4F8",
+      "hsl": "214 32% 96%",
+      "hslArray": [
+        214,
+        32,
+        96
+      ]
+    },
+    "secondary": {
+      "hex": "#19203E",
+      "hsl": "228 42% 17%",
+      "hslArray": [
+        228,
+        42,
+        17
+      ]
+    },
+    "secondary-foreground": {
+      "hex": "#A3B0C2",
+      "hsl": "215 20% 70%",
+      "hslArray": [
+        215,
+        20,
+        70
+      ]
+    },
+    "muted": {
+      "hex": "#1E2543",
+      "hsl": "228 38% 19%",
+      "hslArray": [
+        228,
+        38,
+        19
+      ]
+    },
+    "muted-foreground": {
+      "hex": "#7D8CA1",
+      "hsl": "215 16% 56%",
+      "hslArray": [
+        215,
+        16,
+        56
+      ]
+    },
+    "border": {
+      "hex": "#212845",
+      "hsl": "228 35% 20%",
+      "hslArray": [
+        228,
+        35,
+        20
+      ]
+    },
+    "input": {
+      "hex": "#212845",
+      "hsl": "228 35% 20%",
+      "hslArray": [
+        228,
+        35,
+        20
+      ]
+    },
+    "primary": {
+      "hex": "#16C7FF",
+      "hsl": "194.2 99.6% 54.2%",
+      "hslArray": [
+        194.2,
+        99.6,
+        54.2
+      ]
+    },
+    "primary-foreground": {
+      "hex": "#04081B",
+      "hsl": "228 75% 6%",
+      "hslArray": [
+        228,
+        75,
+        6
+      ]
+    },
+    "accent": {
+      "hex": "#8B5CF6",
+      "hsl": "258 89.9% 66.4%",
+      "hslArray": [
+        258,
+        89.9,
+        66.4
+      ]
+    },
+    "accent-foreground": {
+      "hex": "#04081B",
+      "hsl": "228 75% 6%",
+      "hslArray": [
+        228,
+        75,
+        6
+      ]
+    },
+    "success": {
+      "hex": "#19D38A",
+      "hsl": "156.2 78.7% 46.4%",
+      "hslArray": [
+        156.2,
+        78.7,
+        46.4
+      ]
+    },
+    "success-foreground": {
+      "hex": "#04081B",
+      "hsl": "228 75% 6%",
+      "hslArray": [
+        228,
+        75,
+        6
+      ]
+    },
+    "warning": {
+      "hex": "#F59E0B",
+      "hsl": "37.8 92% 50.1%",
+      "hslArray": [
+        37.8,
+        92,
+        50.1
+      ]
+    },
+    "warning-foreground": {
+      "hex": "#251404",
+      "hsl": "30 80% 8%",
+      "hslArray": [
+        30,
+        80,
+        8
+      ]
+    },
+    "destructive": {
+      "hex": "#FF5A5F",
+      "hsl": "358 100% 67.6%",
+      "hslArray": [
+        358,
+        100,
+        67.6
+      ]
+    },
+    "destructive-foreground": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "ring": {
+      "hex": "#16C7FF",
+      "hsl": "194.2 99.6% 54.2%",
+      "hslArray": [
+        194.2,
+        99.6,
+        54.2
+      ]
+    },
+    "primary-text": {
+      "hex": "#16C7FF",
+      "hsl": "194.2 99.6% 54.2%",
+      "hslArray": [
+        194.2,
+        99.6,
+        54.2
+      ]
+    },
+    "accent-text": {
+      "hex": "#9A72F8",
+      "hsl": "258 89.9% 70.9%",
+      "hslArray": [
+        258,
+        89.9,
+        70.9
+      ]
+    },
+    "success-text": {
+      "hex": "#19D38A",
+      "hsl": "156.2 78.7% 46.4%",
+      "hslArray": [
+        156.2,
+        78.7,
+        46.4
+      ]
+    },
+    "warning-text": {
+      "hex": "#F59E0B",
+      "hsl": "37.8 92% 50.1%",
+      "hslArray": [
+        37.8,
+        92,
+        50.1
+      ]
+    },
+    "destructive-text": {
+      "hex": "#FF5A5F",
+      "hsl": "358 100% 67.6%",
+      "hslArray": [
+        358,
+        100,
+        67.6
+      ]
+    }
+  },
+  "light": {
+    "background": {
+      "hex": "#F5F7FA",
+      "hsl": "214 32% 97%",
+      "hslArray": [
+        214,
+        32,
+        97
+      ]
+    },
+    "foreground": {
+      "hex": "#383E57",
+      "hsl": "228 22% 28%",
+      "hslArray": [
+        228,
+        22,
+        28
+      ]
+    },
+    "card": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "card-foreground": {
+      "hex": "#383E57",
+      "hsl": "228 22% 28%",
+      "hslArray": [
+        228,
+        22,
+        28
+      ]
+    },
+    "popover": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "popover-foreground": {
+      "hex": "#383E57",
+      "hsl": "228 22% 28%",
+      "hslArray": [
+        228,
+        22,
+        28
+      ]
+    },
+    "secondary": {
+      "hex": "#E7EAEF",
+      "hsl": "215 20% 92%",
+      "hslArray": [
+        215,
+        20,
+        92
+      ]
+    },
+    "secondary-foreground": {
+      "hex": "#363F63",
+      "hsl": "228 30% 30%",
+      "hslArray": [
+        228,
+        30,
+        30
+      ]
+    },
+    "muted": {
+      "hex": "#EDEFF2",
+      "hsl": "215 18% 94%",
+      "hslArray": [
+        215,
+        18,
+        94
+      ]
+    },
+    "muted-foreground": {
+      "hex": "#5C697A",
+      "hsl": "215 14% 42%",
+      "hslArray": [
+        215,
+        14,
+        42
+      ]
+    },
+    "border": {
+      "hex": "#D4DAE2",
+      "hsl": "215 20% 86%",
+      "hslArray": [
+        215,
+        20,
+        86
+      ]
+    },
+    "input": {
+      "hex": "#D4DAE2",
+      "hsl": "215 20% 86%",
+      "hslArray": [
+        215,
+        20,
+        86
+      ]
+    },
+    "primary": {
+      "hex": "#00A0CC",
+      "hsl": "193 100% 40%",
+      "hslArray": [
+        193,
+        100,
+        40
+      ]
+    },
+    "primary-foreground": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "accent": {
+      "hex": "#7649DF",
+      "hsl": "258 70% 58%",
+      "hslArray": [
+        258,
+        70,
+        58
+      ]
+    },
+    "accent-foreground": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "success": {
+      "hex": "#1C9C6D",
+      "hsl": "158 70% 36%",
+      "hslArray": [
+        158,
+        70,
+        36
+      ]
+    },
+    "success-foreground": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "warning": {
+      "hex": "#DD910E",
+      "hsl": "38 88% 46%",
+      "hslArray": [
+        38,
+        88,
+        46
+      ]
+    },
+    "warning-foreground": {
+      "hex": "#251404",
+      "hsl": "30 80% 8%",
+      "hslArray": [
+        30,
+        80,
+        8
+      ]
+    },
+    "destructive": {
+      "hex": "#EE2B31",
+      "hsl": "358 85% 55%",
+      "hslArray": [
+        358,
+        85,
+        55
+      ]
+    },
+    "destructive-foreground": {
+      "hex": "#FFFFFF",
+      "hsl": "0 0% 100%",
+      "hslArray": [
+        0,
+        0,
+        100
+      ]
+    },
+    "ring": {
+      "hex": "#00A0CC",
+      "hsl": "193 100% 40%",
+      "hslArray": [
+        193,
+        100,
+        40
+      ]
+    },
+    "primary-text": {
+      "hex": "#007291",
+      "hsl": "193 100% 28.5%",
+      "hslArray": [
+        193,
+        100,
+        28.5
+      ]
+    },
+    "accent-text": {
+      "hex": "#7649DF",
+      "hsl": "258 70% 58%",
+      "hslArray": [
+        258,
+        70,
+        58
+      ]
+    },
+    "success-text": {
+      "hex": "#157753",
+      "hsl": "158 70% 27.5%",
+      "hslArray": [
+        158,
+        70,
+        27.5
+      ]
+    },
+    "warning-text": {
+      "hex": "#905E09",
+      "hsl": "38 88% 30%",
+      "hslArray": [
+        38,
+        88,
+        30
+      ]
+    },
+    "destructive-text": {
+      "hex": "#D21117",
+      "hsl": "358 85% 44.5%",
+      "hslArray": [
+        358,
+        85,
+        44.5
+      ]
+    }
+  },
+  "notes": [
+    "Paleta VALIDADA — não alterar sem decisão de marca.",
+    "Extraída de novux-finance/src/index.css e public/icon.svg.",
+    "O Novux Mobile consome esta mesma identidade."
+  ]
+}

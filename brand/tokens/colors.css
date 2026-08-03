@@ -1,0 +1,73 @@
+/* Novux Finance — design tokens
+ * GERADO por scripts/brand/build.mjs — não editar à mão.
+ * Fonte da verdade: scripts/brand/brands.mjs
+ *
+ * Os valores são triplas HSL cruas, para consumo via hsl(var(--token) / <alpha>).
+ */
+:root {
+    --background:             229 63% 5.2%;
+    --foreground:             214 32% 96%;
+    --card:                   227 48% 13.6%;
+    --card-foreground:        214 32% 96%;
+    --popover:                227 48% 13.6%;
+    --popover-foreground:     214 32% 96%;
+    --secondary:              228 42% 17%;
+    --secondary-foreground:   215 20% 70%;
+    --muted:                  228 38% 19%;
+    --muted-foreground:       215 16% 56%;
+    --border:                 228 35% 20%;
+    --input:                  228 35% 20%;
+    --primary:                194.2 99.6% 54.2%;
+    --primary-foreground:     228 75% 6%;
+    --accent:                 258 89.9% 66.4%;
+    --accent-foreground:      228 75% 6%;
+    --success:                156.2 78.7% 46.4%;
+    --success-foreground:     228 75% 6%;
+    --warning:                37.8 92% 50.1%;
+    --warning-foreground:     30 80% 8%;
+    --destructive:            358 100% 67.6%;
+    --destructive-foreground: 0 0% 100%;
+    --ring:                   194.2 99.6% 54.2%;
+    --primary-text:           194.2 99.6% 54.2%;
+    --accent-text:            258 89.9% 70.9%;
+    --success-text:           156.2 78.7% 46.4%;
+    --warning-text:           37.8 92% 50.1%;
+    --destructive-text:       358 100% 67.6%;
+    --radius:                 1rem;
+
+    /* Gradiente da marca */
+    --brand-gradient-from:    #16C7FF;
+    --brand-gradient-to:      #8B5CF6;
+    --brand-gradient:         linear-gradient(135deg, #16C7FF, #8B5CF6);
+}
+
+.light {
+    --background:             214 32% 97%;
+    --foreground:             228 22% 28%;
+    --card:                   0 0% 100%;
+    --card-foreground:        228 22% 28%;
+    --popover:                0 0% 100%;
+    --popover-foreground:     228 22% 28%;
+    --secondary:              215 20% 92%;
+    --secondary-foreground:   228 30% 30%;
+    --muted:                  215 18% 94%;
+    --muted-foreground:       215 14% 42%;
+    --border:                 215 20% 86%;
+    --input:                  215 20% 86%;
+    --primary:                193 100% 40%;
+    --primary-foreground:     0 0% 100%;
+    --accent:                 258 70% 58%;
+    --accent-foreground:      0 0% 100%;
+    --success:                158 70% 36%;
+    --success-foreground:     0 0% 100%;
+    --warning:                38 88% 46%;
+    --warning-foreground:     30 80% 8%;
+    --destructive:            358 85% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --ring:                   193 100% 40%;
+    --primary-text:           193 100% 28.5%;
+    --accent-text:            258 70% 58%;
+    --success-text:           158 70% 27.5%;
+    --warning-text:           38 88% 30%;
+    --destructive-text:       358 85% 44.5%;
+}

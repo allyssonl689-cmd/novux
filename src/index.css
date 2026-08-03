@@ -6,63 +6,79 @@
   :root {
     /* ══════════════════════════════════════════
        NOVUX BRAND BOOK — Dark Mode (default)
-       Background  #050816  → hsl(232 75% 5%)
-       Surface     #0B1020  → hsl(228 50% 9%)
-       Card        #121933  → hsl(228 47% 14%)
-       Elevated    #1A2342  → hsl(228 42% 18%)
-       Primary     #16C7FF  → hsl(193 100% 54%)
-       Success     #19D38A  → hsl(158 76% 46%)
-       Warning     #F59E0B  → hsl(38 93% 50%)
-       Danger      #FF5A5F  → hsl(358 100% 68%)
-       Accent      #8B5CF6  → hsl(258 87% 66%)
+       O HEX é a fonte da verdade; o HSL é derivado dele com precisão
+       suficiente para o round-trip fechar exato.
+       Background  #050816  → hsl(229 63% 5.2%)
+       Surface     #0B1020  → hsl(226 49% 8.3%)
+       Card        #121933  → hsl(227 48% 13.6%)
+       Elevated    #1A2342  → hsl(227 43% 18%)
+       Primary     #16C7FF  → hsl(194.2 99.6% 54.2%)
+       Success     #19D38A  → hsl(156.2 78.7% 46.4%)
+       Warning     #F59E0B  → hsl(37.8 92% 50.1%)
+       Danger      #FF5A5F  → hsl(358 100% 67.6%)
+       Accent      #8B5CF6  → hsl(258 89.9% 66.4%)
     ══════════════════════════════════════════ */
 
-    --background:        228 47% 4%;
+    /* Valores HSL com decimais: reproduzem EXATAMENTE os hex canônicos acima.
+       Arredondar para inteiro desviava a cor (o primary rendia #14CCFF, não
+       #16C7FF). Sincronizado com brand/tokens/colors.css — ver brand/README.md. */
+    --background:        229 63% 5.2%;
     --foreground:        214 32% 96%;
-    --card:              228 47% 12%;
+    --card:              227 48% 13.6%;
     --card-foreground:   214 32% 96%;
-    --popover:           228 47% 12%;
+    --popover:           227 48% 13.6%;
     --popover-foreground:214 32% 96%;
-    --primary:           193 100% 54%;
+    --primary:           194.2 99.6% 54.2%;
     --primary-foreground:228 75% 6%;
     --secondary:         228 42% 17%;
     --secondary-foreground:215 20% 70%;
     --muted:             228 38% 19%;
-    --muted-foreground:  215 16% 48%;
-    --accent:            258 87% 66%;
+    --muted-foreground:  215 16% 56%;
+    --accent:            258 89.9% 66.4%;
     --accent-foreground: 228 75% 6%;
-    --destructive:       358 100% 68%;
+    --destructive:       358 100% 67.6%;
     --destructive-foreground:0 0% 100%;
-    --success:           158 76% 46%;
+    --success:           156.2 78.7% 46.4%;
     --success-foreground:228 75% 6%;
     --success-muted:     158 60% 8%;
-    --warning:           38 93% 50%;
+    --warning:           37.8 92% 50.1%;
     --warning-foreground:30 80% 8%;
     --warning-muted:     38 60% 10%;
-    --alert:             358 100% 68%;
+    --alert:             358 100% 67.6%;
     --alert-foreground:  0 0% 100%;
     --alert-muted:       358 55% 10%;
     --border:            228 35% 20%;
     --input:             228 35% 20%;
-    --ring:              193 100% 54%;
+    --ring:              194.2 99.6% 54.2%;
     --radius:            1rem;
+
+    /* ── Cores de TEXTO ──
+       Cor de marca preenche; token -text escreve.
+       Usar --primary como cor de texto rende 2.5:1 no light — ilegível.
+       Estes tokens têm o mesmo matiz, com lightness ajustada até 4.5:1
+       contra a superfície de pior caso do modo. */
+    --primary-text:      194.2 99.6% 54.2%;
+    --accent-text:       258 89.9% 70.9%;
+    --success-text:      156.2 78.7% 46.4%;
+    --warning-text:      37.8 92% 50.1%;
+    --destructive-text:  358 100% 67.6%;
 
     /* Sidebar */
     --sidebar-background:228 55% 6%;
     --sidebar-foreground:215 18% 65%;
-    --sidebar-primary:   193 100% 54%;
+    --sidebar-primary:   194.2 99.6% 54.2%;
     --sidebar-primary-foreground:228 75% 6%;
     --sidebar-accent:    228 42% 11%;
     --sidebar-accent-foreground:215 22% 88%;
     --sidebar-border:    228 40% 11%;
-    --sidebar-ring:      193 100% 54%;
+    --sidebar-ring:      194.2 99.6% 54.2%;
 
     /* Chart — brand palette */
-    --chart-1: 193 100% 54%;   /* Primary cyan  #16C7FF */
-    --chart-2: 158 76%  46%;   /* Success green #19D38A */
-    --chart-3: 38  93%  50%;   /* Warning amber #F59E0B */
-    --chart-4: 258 87%  66%;   /* Accent purple #8B5CF6 */
-    --chart-5: 358 100% 68%;   /* Danger red    #FF5A5F */
+    --chart-1: 194.2 99.6% 54.2%;   /* Primary cyan  #16C7FF */
+    --chart-2: 156.2 78.7% 46.4%;   /* Success green #19D38A */
+    --chart-3: 37.8  92%   50.1%;   /* Warning amber #F59E0B */
+    --chart-4: 258   89.9% 66.4%;   /* Accent purple #8B5CF6 */
+    --chart-5: 358   100%  67.6%;   /* Danger red    #FF5A5F */
   }
 
   /* ── LIGHT MODE ── */
@@ -78,7 +94,9 @@
     --secondary:         215 20% 92%;
     --secondary-foreground:228 30% 30%;
     --muted:             215 18% 94%;
-    --muted-foreground:  215 14% 46%;
+    /* 42%, não 46%: a superfície de pior caso no light é `secondary`
+       (#E7EAEF), não o card branco. Em 46% ficava em 4.00:1. */
+    --muted-foreground:  215 14% 42%;
     --accent:            258 70% 58%;
     --accent-foreground: 0 0% 100%;
     --destructive:       358 85% 55%;
@@ -103,6 +121,16 @@
     --sidebar-accent-foreground:228 40% 14%;
     --sidebar-border:    215 20% 88%;
     --sidebar-ring:      193 100% 40%;
+
+    /* ── Cores de TEXTO (light) ──
+       Aqui o ajuste é grande: as cores de marca rendem 2.1–3.4:1 sobre fundo
+       claro. Escurecê-las na paleta descaracterizaria a identidade (o âmbar
+       viraria marrom), então a variante de texto vive em tokens próprios. */
+    --primary-text:      193 100% 28.5%;
+    --accent-text:       258 70% 58%;
+    --success-text:      158 70% 27.5%;
+    --warning-text:      38 88% 30%;
+    --destructive-text:  358 85% 44.5%;
 
     --chart-1: 193 100% 38%;
     --chart-2: 158 70%  36%;
@@ -143,7 +171,7 @@
   /* Financial inline numbers */
   .mono { font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.95em; }
 
-  ::selection { background: hsl(193 100% 54% / 0.2); color: hsl(214 32% 96%); }
+  ::selection { background: hsl(var(--primary) / 0.2); color: hsl(214 32% 96%); }
   ::-webkit-scrollbar { width: 3px; height: 3px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 99px; }
@@ -158,9 +186,9 @@
   .shadow-card    { box-shadow: 0 2px 12px hsl(228 75% 3% / 0.6),  0 0 0 1px hsl(var(--border)); }
   .shadow-card-lg { box-shadow: 0 6px 28px hsl(228 75% 3% / 0.65), 0 0 0 1px hsl(var(--border)); }
   .shadow-float   { box-shadow: 0 12px 40px hsl(228 75% 3% / 0.7), 0 0 0 1px hsl(var(--border)); }
-  .shadow-glow-primary { box-shadow: 0 0 20px hsl(193 100% 54% / 0.25), 0 0 40px hsl(193 100% 54% / 0.10); }
-  .shadow-glow-accent  { box-shadow: 0 0 20px hsl(258 87% 66% / 0.25), 0 0 40px hsl(258 87% 66% / 0.10); }
-  .shadow-glow-success { box-shadow: 0 0 16px hsl(158 76% 46% / 0.25); }
+  .shadow-glow-primary { box-shadow: 0 0 20px hsl(var(--primary) / 0.25), 0 0 40px hsl(var(--primary) / 0.10); }
+  .shadow-glow-accent  { box-shadow: 0 0 20px hsl(var(--accent) / 0.25), 0 0 40px hsl(var(--accent) / 0.10); }
+  .shadow-glow-success { box-shadow: 0 0 16px hsl(var(--success) / 0.25); }
 
   .light .shadow-card    { box-shadow: 0 1px 4px hsl(0 0% 0% / 0.06),  0 0 0 1px hsl(var(--border)); }
   .light .shadow-card-lg { box-shadow: 0 4px 18px hsl(0 0% 0% / 0.08), 0 0 0 1px hsl(var(--border)); }
@@ -213,7 +241,7 @@
   /* — Mesh background — */
   .mesh-bg {
     background:
-      radial-gradient(ellipse 60% 45% at 5%  10%, hsl(193 100% 54% / 0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 45% at 5%  10%, hsl(var(--primary) / 0.05) 0%, transparent 60%),
       radial-gradient(ellipse 50% 50% at 90% 85%, hsl(258 87%  66% / 0.04) 0%, transparent 55%),
       radial-gradient(ellipse 40% 35% at 50% 50%, hsl(228 75%   4% / 0.80) 0%, transparent 70%);
   }
@@ -228,7 +256,7 @@
   .glass-elevated {
     background: hsl(228 42% 18% / 0.75);
     backdrop-filter: blur(20px) saturate(200%);
-    border: 1px solid hsl(193 100% 54% / 0.12);
+    border: 1px solid hsl(var(--primary) / 0.12);
   }
 
   /* — Card hover premium — */
@@ -237,8 +265,8 @@
   }
   .card-hover:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 32px hsl(228 75% 3% / 0.6), 0 0 0 1px hsl(193 100% 54% / 0.12);
-    border-color: hsl(193 100% 54% / 0.18);
+    box-shadow: 0 8px 32px hsl(228 75% 3% / 0.6), 0 0 0 1px hsl(var(--primary) / 0.12);
+    border-color: hsl(var(--primary) / 0.18);
   }
   .light .card-hover:hover {
     transform: translateY(-1px);
@@ -248,16 +276,16 @@
 
   /* — Glow cards especiais — */
   .card-glow-primary {
-    border-color: hsl(193 100% 54% / 0.25);
-    box-shadow: 0 0 24px hsl(193 100% 54% / 0.12), inset 0 0 20px hsl(193 100% 54% / 0.03);
+    border-color: hsl(var(--primary) / 0.25);
+    box-shadow: 0 0 24px hsl(var(--primary) / 0.12), inset 0 0 20px hsl(var(--primary) / 0.03);
   }
   .card-glow-success {
-    border-color: hsl(158 76% 46% / 0.25);
-    box-shadow: 0 0 24px hsl(158 76% 46% / 0.12), inset 0 0 20px hsl(158 76% 46% / 0.03);
+    border-color: hsl(var(--success) / 0.25);
+    box-shadow: 0 0 24px hsl(var(--success) / 0.12), inset 0 0 20px hsl(var(--success) / 0.03);
   }
   .card-glow-accent {
-    border-color: hsl(258 87% 66% / 0.25);
-    box-shadow: 0 0 24px hsl(258 87% 66% / 0.12), inset 0 0 20px hsl(258 87% 66% / 0.03);
+    border-color: hsl(var(--accent) / 0.25);
+    box-shadow: 0 0 24px hsl(var(--accent) / 0.12), inset 0 0 20px hsl(var(--accent) / 0.03);
   }
 
   /* — Progress bars — */
@@ -269,17 +297,17 @@
 
   /* — Botão principal Novux — */
   .btn-novux {
-    background: linear-gradient(135deg, hsl(193 100% 54%) 0%, hsl(204 100% 50%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(204 100% 50%) 100%);
     color: hsl(228 75% 6%);
     font-family: 'Poppins', sans-serif;
     font-weight: 700;
     border-radius: 0.875rem;
     transition: all 0.18s ease-out;
-    box-shadow: 0 2px 12px hsl(193 100% 54% / 0.3);
+    box-shadow: 0 2px 12px hsl(var(--primary) / 0.3);
   }
   .btn-novux:hover {
     filter: brightness(1.08);
-    box-shadow: 0 4px 20px hsl(193 100% 54% / 0.45);
+    box-shadow: 0 4px 20px hsl(var(--primary) / 0.45);
     transform: translateY(-1px);
   }
   .btn-novux:active { transform: translateY(0); filter: brightness(0.96); }
@@ -292,26 +320,26 @@
     font-weight: 700;
     border-radius: 0.875rem;
     transition: all 0.18s ease-out;
-    box-shadow: 0 2px 16px hsl(258 87% 66% / 0.3);
+    box-shadow: 0 2px 16px hsl(var(--accent) / 0.3);
   }
   .btn-ia:hover {
     filter: brightness(1.08);
-    box-shadow: 0 4px 24px hsl(258 87% 66% / 0.4);
+    box-shadow: 0 4px 24px hsl(var(--accent) / 0.4);
     transform: translateY(-1px);
   }
 
   /* — Nav active — */
   .nav-active {
-    background: hsl(193 100% 54% / 0.1);
-    border-left: 2px solid hsl(193 100% 54%);
+    background: hsl(var(--primary) / 0.1);
+    border-left: 2px solid hsl(var(--primary));
     color: hsl(193 100% 68%);
   }
 
   /* — Badges — */
-  .badge-cyan   { background: hsl(193 100% 54% / 0.14); color: hsl(193 100% 68%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
+  .badge-cyan   { background: hsl(var(--primary) / 0.14); color: hsl(193 100% 68%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
   .badge-violet { background: hsl(258 87%  66% / 0.15); color: hsl(258 75%  78%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
   .badge-green  { background: hsl(158 76%  46% / 0.14); color: hsl(158 70%  62%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
-  .badge-red    { background: hsl(358 100% 68% / 0.14); color: hsl(358 90%  78%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
+  .badge-red    { background: hsl(var(--destructive) / 0.14); color: hsl(358 90%  78%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
   .badge-amber  { background: hsl(38  93%  50% / 0.14); color: hsl(38  90%  65%);  @apply text-[10px] font-semibold px-2 py-0.5 rounded-full; }
   .badge-soon   { background: hsl(215 16%  48% / 0.12); color: hsl(215 14%  56%);  @apply text-[9px]  font-semibold px-1.5 py-0.5 rounded-full; }
 
@@ -326,8 +354,8 @@
 
   /* — Dot de status online — */
   .dot-online {
-    background: hsl(158 76% 46%);
-    box-shadow: 0 0 0 2px hsl(var(--card)), 0 0 8px hsl(158 76% 46% / 0.6);
+    background: hsl(var(--success));
+    box-shadow: 0 0 0 2px hsl(var(--card)), 0 0 8px hsl(var(--success) / 0.6);
   }
 }
 

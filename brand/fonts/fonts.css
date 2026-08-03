@@ -1,0 +1,39 @@
+/* Novux — sistema tipográfico (idêntico em todos os produtos).
+ * GERADO por scripts/brand/build.mjs — não editar à mão.
+ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800;900&family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');
+
+body {
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+/* Wordmark, page titles */
+.display { font-family: 'Syne', 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
+/* Valores de KPI */
+.val     { font-family: 'Outfit', 'Poppins', sans-serif; font-weight: 700; letter-spacing: -0.02em; }
+/* Números inline */
+.mono    { font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.95em; }
+
+/* Branding / Títulos — Wordmark, page titles, headlines de marketing. Nunca em texto corrido. */
+.font-syne { font-family: 'Syne', 'Poppins', sans-serif; }
+
+/* UI / Body — Interface inteira: labels, parágrafos, botões, navegação. É a voz padrão. */
+.font-poppins { font-family: 'Poppins', 'Inter', system-ui, sans-serif; }
+
+/* Números / Métricas — Valores grandes de KPI. Finance: saldos. Forge: carga, séries, volume. */
+.font-outfit { font-family: 'Outfit', 'Poppins', sans-serif; }
+
+/* Monospace — Números inline que precisam alinhar em coluna, IDs, código. */
+.font-fira-code { font-family: 'Fira Code', 'Courier New', monospace; }
+
+/* Fallback — Substitui Poppins onde ela não carregar. Não usar deliberadamente. */
+.font-inter { font-family: 'Inter', system-ui, sans-serif; }

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 370 262" fill="none" role="img">
+  <style>@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800;900&family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&display=swap');</style>
+  <defs/>
+  <g transform="translate(113 0) scale(0.28125)"><path d="M 128 384 L 128 128 L 384 384 L 384 128" stroke="#FFFFFF" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" fill="none"/></g>
+  <g transform="translate(0 170)">
+    <text x="185" y="52" fill="#FFFFFF" font-family="Syne, sans-serif" font-size="58" font-weight="800" letter-spacing="1.16" text-anchor="middle">NOVUX</text>
+    <g opacity="0.6"><text x="185" y="78" fill="#FFFFFF" font-family="Poppins, sans-serif" font-size="16" font-weight="600" letter-spacing="5.44" text-anchor="middle">FINANCE</text></g>
+  </g>
+</svg>

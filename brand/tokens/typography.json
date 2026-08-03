@@ -1,0 +1,89 @@
+{
+  "generatedBy": "scripts/brand/build.mjs",
+  "googleFontsUrl": "https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800;900&family=Outfit:wght@400;600;700;800&family=Fira+Code:wght@400;500;600&display=swap",
+  "roles": [
+    {
+      "role": "Branding / Títulos",
+      "family": "Syne",
+      "stack": "'Syne', 'Poppins', sans-serif",
+      "weights": [
+        700,
+        800,
+        900
+      ],
+      "usage": "Wordmark, page titles, headlines de marketing. Nunca em texto corrido.",
+      "sample": "NOVUX",
+      "previewSize": 44,
+      "previewWeight": 800,
+      "previewTracking": "0.02em"
+    },
+    {
+      "role": "UI / Body",
+      "family": "Poppins",
+      "stack": "'Poppins', 'Inter', system-ui, sans-serif",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900
+      ],
+      "usage": "Interface inteira: labels, parágrafos, botões, navegação. É a voz padrão.",
+      "sample": "Progresso consistente vale mais que intensidade esporádica.",
+      "previewSize": 18,
+      "previewWeight": 400,
+      "previewTracking": "0"
+    },
+    {
+      "role": "Números / Métricas",
+      "family": "Outfit",
+      "stack": "'Outfit', 'Poppins', sans-serif",
+      "weights": [
+        400,
+        600,
+        700,
+        800
+      ],
+      "usage": "Valores grandes de KPI. Finance: saldos. Forge: carga, séries, volume.",
+      "sample": "12.480",
+      "previewSize": 40,
+      "previewWeight": 700,
+      "previewTracking": "-0.02em"
+    },
+    {
+      "role": "Monospace",
+      "family": "Fira Code",
+      "stack": "'Fira Code', 'Courier New', monospace",
+      "weights": [
+        400,
+        500,
+        600
+      ],
+      "usage": "Números inline que precisam alinhar em coluna, IDs, código.",
+      "sample": "R$ 1.240,00  ·  3×12 @ 80kg",
+      "previewSize": 15,
+      "previewWeight": 400,
+      "previewTracking": "0"
+    },
+    {
+      "role": "Fallback",
+      "family": "Inter",
+      "stack": "'Inter', system-ui, sans-serif",
+      "weights": [
+        300,
+        400,
+        500,
+        600,
+        700,
+        800
+      ],
+      "usage": "Substitui Poppins onde ela não carregar. Não usar deliberadamente.",
+      "sample": "Fallback universal",
+      "previewSize": 18,
+      "previewWeight": 400,
+      "previewTracking": "0"
+    }
+  ]
+}
